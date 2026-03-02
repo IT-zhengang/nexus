@@ -54,7 +54,9 @@ export function ModelSelector({ sessionId }: ModelSelectorProps): React.JSX.Elem
     return null
   })
   const agentSdk = session?.agent_sdk ?? 'opencode'
-  const globalModel = useSettingsStore((state) => state.selectedModel)
+  const globalModel = useSettingsStore(
+    (state) => state.selectedModelByProvider[agentSdk] ?? state.selectedModel
+  )
   const sessionModel =
     session?.model_id && session.model_provider_id
       ? {
@@ -64,7 +66,6 @@ export function ModelSelector({ sessionId }: ModelSelectorProps): React.JSX.Elem
         }
       : null
   const selectedModel = sessionModel ?? globalModel
-  const setSelectedModel = useSettingsStore((state) => state.setSelectedModel)
   const favoriteModels = useSettingsStore((s) => s.favoriteModels)
   const toggleFavoriteModel = useSettingsStore((s) => s.toggleFavoriteModel)
   const [providers, setProviders] = useState<ProviderModels[]>([])
@@ -153,7 +154,7 @@ export function ModelSelector({ sessionId }: ModelSelectorProps): React.JSX.Elem
     if (sessionId) {
       useSessionStore.getState().setSessionModel(sessionId, newModel)
     } else {
-      setSelectedModel(newModel)
+      useSettingsStore.getState().setSelectedModelForSdk(agentSdk, newModel)
     }
   }
 
@@ -163,7 +164,7 @@ export function ModelSelector({ sessionId }: ModelSelectorProps): React.JSX.Elem
     if (sessionId) {
       useSessionStore.getState().setSessionModel(sessionId, newModel)
     } else {
-      setSelectedModel(newModel)
+      useSettingsStore.getState().setSelectedModelForSdk(agentSdk, newModel)
     }
   }
 
@@ -209,10 +210,10 @@ export function ModelSelector({ sessionId }: ModelSelectorProps): React.JSX.Elem
     if (sessionId) {
       useSessionStore.getState().setSessionModel(sessionId, newModel)
     } else {
-      setSelectedModel(newModel)
+      useSettingsStore.getState().setSelectedModelForSdk(agentSdk, newModel)
     }
     toast.success(`Variant: ${nextVariant}`)
-  }, [selectedModel, currentModel, setSelectedModel, sessionId])
+  }, [selectedModel, currentModel, agentSdk, sessionId])
 
   // Listen for centralized Alt+T shortcut via custom event
   useEffect(() => {
