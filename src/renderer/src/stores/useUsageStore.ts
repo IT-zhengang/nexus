@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-interface UsageData {
+export interface UsageData {
   five_hour: { utilization: number; resets_at: string }
   seven_day: { utilization: number; resets_at: string }
   extra_usage?: {
@@ -34,10 +34,10 @@ export const useUsageStore = create<UsageState>()((set, get) => ({
     try {
       const result = await window.usageOps.fetch()
       if (result.success) {
-        set({ usage: result.data, lastFetchedAt: Date.now() })
+        set({ usage: result.data })
       }
     } finally {
-      set({ isLoading: false })
+      set({ isLoading: false, lastFetchedAt: Date.now() })
     }
   }
 }))

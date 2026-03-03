@@ -41,4 +41,4 @@ export { useTerminalStore, type TerminalStatus, type TerminalInfo } from './useT
 export { useConnectionStore } from './useConnectionStore'
 export { useRecentStore } from './useRecentStore'
 export { usePinnedStore } from './usePinnedStore'
-export { useUsageStore } from './useUsageStore'
+export { useUsageStore, type UsageData } from './useUsageStore'
