@@ -75,7 +75,7 @@ export function UsageIndicator(): React.JSX.Element | null {
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <div className="border-t px-3 py-1.5 space-y-0.5 cursor-default">
+          <div className="border-t px-3 py-1.5 space-y-0.5 cursor-default" data-testid="usage-indicator">
             <UsageRow
               label="5h"
               percent={fiveHourPercent}
