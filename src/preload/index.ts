@@ -1589,6 +1589,10 @@ const connectionOps = {
   getPinned: () => ipcRenderer.invoke('connection:getPinned')
 }
 
+const usageOps = {
+  fetch: () => ipcRenderer.invoke('usage:fetch')
+}
+
 const analyticsOps = {
   track: (event: string, properties?: Record<string, unknown>) =>
     ipcRenderer.invoke('telemetry:track', event, properties),
@@ -1617,6 +1621,7 @@ if (process.contextIsolated) {
     contextBridge.exposeInMainWorld('terminalOps', terminalOps)
     contextBridge.exposeInMainWorld('updaterOps', updaterOps)
     contextBridge.exposeInMainWorld('connectionOps', connectionOps)
+    contextBridge.exposeInMainWorld('usageOps', usageOps)
     contextBridge.exposeInMainWorld('analyticsOps', analyticsOps)
   } catch (error) {
     console.error(error)
@@ -1650,6 +1655,8 @@ if (process.contextIsolated) {
   window.updaterOps = updaterOps
   // @ts-expect-error (define in dts)
   window.connectionOps = connectionOps
+  // @ts-expect-error (define in dts)
+  window.usageOps = usageOps
   // @ts-expect-error (define in dts)
   window.analyticsOps = analyticsOps
 }

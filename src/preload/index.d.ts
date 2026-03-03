@@ -1075,6 +1075,22 @@ declare global {
       ) => Promise<{ success: boolean; error?: string }>
       getPinned: () => Promise<ConnectionWithMembers[]>
     }
+    usageOps: {
+      fetch: () => Promise<{
+        success: boolean
+        data?: {
+          five_hour: { utilization: number; resets_at: string }
+          seven_day: { utilization: number; resets_at: string }
+          extra_usage?: {
+            is_enabled: boolean
+            utilization: number
+            used_credits: number
+            monthly_limit: number
+          }
+        }
+        error?: string
+      }>
+    }
     analyticsOps: {
       track: (event: string, properties?: Record<string, unknown>) => Promise<void>
       setEnabled: (enabled: boolean) => Promise<void>
