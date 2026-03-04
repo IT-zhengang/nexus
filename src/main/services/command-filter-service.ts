@@ -144,7 +144,7 @@ export class CommandFilterService {
       // For bash commands, * should match any character including /
       // because command arguments regularly contain paths with slashes.
       // The [^/]* behaviour is only useful for file-path patterns (edit:, read:, write:).
-      const isBashPattern = pattern.startsWith('bash:')
+      const isBashPattern = pattern.toLowerCase().startsWith('bash:')
 
       // Escape special regex characters except our wildcards
       const regexPattern = pattern
