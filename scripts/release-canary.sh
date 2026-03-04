@@ -17,17 +17,27 @@ fatal() { err "$1"; exit 1; }
 # ── Parse flags ───────────────────────────────────────────────────
 DRY_RUN=false
 SHUTDOWN_AFTER=false
+SLEEP_AFTER=false
 SUDO_KEEPALIVE_PID=""
 for arg in "$@"; do
   case "$arg" in
     --dry-run) DRY_RUN=true ;;
     --shutdown) SHUTDOWN_AFTER=true ;;
+    --sleep) SLEEP_AFTER=true ;;
     *) fatal "Unknown argument: $arg" ;;
   esac
 done
 
+if $SHUTDOWN_AFTER && $SLEEP_AFTER; then
+  fatal "Cannot combine --shutdown and --sleep"
+fi
+
 if $DRY_RUN && $SHUTDOWN_AFTER; then
   fatal "Cannot combine --dry-run and --shutdown"
+fi
+
+if $DRY_RUN && $SLEEP_AFTER; then
+  fatal "Cannot combine --dry-run and --sleep"
 fi
 
 if $DRY_RUN; then
@@ -36,6 +46,10 @@ fi
 
 if $SHUTDOWN_AFTER; then
   warn "Computer will shut down after release completes"
+fi
+
+if $SLEEP_AFTER; then
+  warn "Computer will sleep after release completes"
 fi
 
 # ── Constants ─────────────────────────────────────────────────────
@@ -219,6 +233,10 @@ on_exit() {
     warn "Shutting down in 10 seconds... (Ctrl+C to cancel)"
     sleep 10
     sudo shutdown -h now
+  elif $SLEEP_AFTER; then
+    warn "Sleeping in 10 seconds... (Ctrl+C to cancel)"
+    sleep 10
+    pmset sleepnow
   fi
 }
 trap on_exit EXIT
