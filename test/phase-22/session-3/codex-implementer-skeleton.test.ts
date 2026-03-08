@@ -157,10 +157,9 @@ describe('CodexImplementer skeleton', () => {
       )
     })
 
-    it('abort throws (not yet implemented)', async () => {
-      await expect(impl.abort('/path', 'session-1')).rejects.toThrow(
-        'CodexImplementer.abort() not yet implemented'
-      )
+    it('abort returns false for unknown session', async () => {
+      const result = await impl.abort('/path', 'session-1')
+      expect(result).toBe(false)
     })
 
     it('getMessages returns empty array for unknown session', async () => {
@@ -185,31 +184,30 @@ describe('CodexImplementer skeleton', () => {
     })
   })
 
-  // ── Unimplemented human-in-the-loop methods throw ──────────────
+  // ── Implemented human-in-the-loop methods ──────────────────────
 
-  describe('unimplemented human-in-the-loop methods throw descriptive errors', () => {
-    it('questionReply throws', async () => {
+  describe('implemented human-in-the-loop methods handle missing requests', () => {
+    it('questionReply throws for unknown requestId', async () => {
       await expect(impl.questionReply('req-1', [['answer']])).rejects.toThrow(
-        'CodexImplementer.questionReply() not yet implemented'
+        'No pending question found for requestId: req-1'
       )
     })
 
-    it('questionReject throws', async () => {
+    it('questionReject throws for unknown requestId', async () => {
       await expect(impl.questionReject('req-1')).rejects.toThrow(
-        'CodexImplementer.questionReject() not yet implemented'
+        'No pending question found for requestId: req-1'
       )
     })
 
-    it('permissionReply throws', async () => {
+    it('permissionReply throws for unknown requestId', async () => {
       await expect(impl.permissionReply('req-1', 'once')).rejects.toThrow(
-        'CodexImplementer.permissionReply() not yet implemented'
+        'No pending approval found for requestId: req-1'
       )
     })
 
-    it('permissionList throws', async () => {
-      await expect(impl.permissionList()).rejects.toThrow(
-        'CodexImplementer.permissionList() not yet implemented'
-      )
+    it('permissionList returns empty array with no sessions', async () => {
+      const result = await impl.permissionList()
+      expect(result).toEqual([])
     })
   })
 

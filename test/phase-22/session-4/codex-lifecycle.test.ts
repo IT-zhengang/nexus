@@ -449,10 +449,9 @@ describe('CodexImplementer lifecycle', () => {
       )
     })
 
-    it('abort throws (not yet implemented)', async () => {
-      await expect(impl.abort('/test', 'session-1')).rejects.toThrow(
-        'CodexImplementer.abort() not yet implemented'
-      )
+    it('abort returns false for unknown session', async () => {
+      const result = await impl.abort('/test', 'session-1')
+      expect(result).toBe(false)
     })
 
     it('getMessages returns empty array for unknown session', async () => {

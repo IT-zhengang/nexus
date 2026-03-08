@@ -528,6 +528,149 @@ export class CodexAppServerManager extends EventEmitter<CodexAppServerManagerEve
     }
   }
 
+  // ── HITL / control-plane API ──────────────────────────────────
+
+  respondToApproval(
+    threadId: string,
+    requestId: string,
+    decision: 'once' | 'always' | 'reject'
+  ): void {
+    const context = this.sessions.get(threadId)
+    if (!context) {
+      throw new Error(`respondToApproval: no session for threadId=${threadId}`)
+    }
+
+    const pending = context.pendingApprovals.get(requestId)
+    if (!pending) {
+      throw new Error(`respondToApproval: no pending approval for requestId=${requestId}`)
+    }
+
+    this.writeMessage(context, {
+      jsonrpc: '2.0',
+      id: pending.jsonRpcId,
+      result: { decision }
+    })
+
+    context.pendingApprovals.delete(requestId)
+
+    this.emitLifecycleEvent(
+      context,
+      'approval/responded',
+      `Approval ${requestId} responded with ${decision}`
+    )
+  }
+
+  respondToUserInput(
+    threadId: string,
+    requestId: string,
+    answers: Array<{ id: string; answer: string }>
+  ): void {
+    const context = this.sessions.get(threadId)
+    if (!context) {
+      throw new Error(`respondToUserInput: no session for threadId=${threadId}`)
+    }
+
+    const pending = context.pendingUserInputs.get(requestId)
+    if (!pending) {
+      throw new Error(`respondToUserInput: no pending user input for requestId=${requestId}`)
+    }
+
+    // Convert answers array into a map keyed by question id
+    const answersMap: Record<string, string> = {}
+    for (const { id, answer } of answers) {
+      answersMap[id] = answer
+    }
+
+    this.writeMessage(context, {
+      jsonrpc: '2.0',
+      id: pending.jsonRpcId,
+      result: { answers: answersMap }
+    })
+
+    context.pendingUserInputs.delete(requestId)
+
+    this.emitLifecycleEvent(
+      context,
+      'userInput/responded',
+      `User input ${requestId} responded`
+    )
+  }
+
+  rejectUserInput(threadId: string, requestId: string): void {
+    const context = this.sessions.get(threadId)
+    if (!context) {
+      throw new Error(`rejectUserInput: no session for threadId=${threadId}`)
+    }
+
+    const pending = context.pendingUserInputs.get(requestId)
+    if (!pending) {
+      throw new Error(`rejectUserInput: no pending user input for requestId=${requestId}`)
+    }
+
+    this.writeMessage(context, {
+      jsonrpc: '2.0',
+      id: pending.jsonRpcId,
+      result: { answers: {}, rejected: true }
+    })
+
+    context.pendingUserInputs.delete(requestId)
+
+    this.emitLifecycleEvent(
+      context,
+      'userInput/rejected',
+      `User input ${requestId} rejected`
+    )
+  }
+
+  async interruptTurn(threadId: string, turnId?: string): Promise<void> {
+    const context = this.sessions.get(threadId)
+    if (!context) {
+      throw new Error(`interruptTurn: no session for threadId=${threadId}`)
+    }
+
+    const targetTurnId = turnId ?? context.session.activeTurnId
+
+    await this.sendRequest(context, 'turn/interrupt', {
+      threadId: context.session.threadId,
+      ...(targetTurnId ? { turnId: targetTurnId } : {})
+    })
+
+    this.updateSession(context, {
+      status: 'ready',
+      activeTurnId: null
+    })
+
+    this.emitLifecycleEvent(context, 'turn/interrupted', 'Turn interrupted')
+  }
+
+  async readThread(threadId: string): Promise<unknown> {
+    const context = this.sessions.get(threadId)
+    if (!context) {
+      throw new Error(`readThread: no session for threadId=${threadId}`)
+    }
+
+    return this.sendRequest(context, 'thread/read', {
+      threadId: context.session.threadId,
+      includeTurns: true
+    })
+  }
+
+  getPendingApprovals(threadId: string): PendingApprovalRequest[] {
+    const context = this.sessions.get(threadId)
+    if (!context) {
+      return []
+    }
+    return Array.from(context.pendingApprovals.values())
+  }
+
+  getPendingUserInputs(threadId: string): PendingUserInputRequest[] {
+    const context = this.sessions.get(threadId)
+    if (!context) {
+      return []
+    }
+    return Array.from(context.pendingUserInputs.values())
+  }
+
   // ── Process listeners ─────────────────────────────────────────
 
   private attachProcessListeners(context: CodexSessionContext, trackingId: string): void {

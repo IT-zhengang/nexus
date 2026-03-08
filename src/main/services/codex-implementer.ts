@@ -9,6 +9,7 @@ import {
   type CodexManagerEvent
 } from './codex-app-server-manager'
 import { mapCodexEventToStreamEvents } from './codex-event-mapper'
+import { asObject, asString } from './codex-utils'
 
 const log = createLogger({ component: 'CodexImplementer' })
 
@@ -22,6 +23,14 @@ export interface CodexSessionState {
   messages: unknown[]
 }
 
+// ── Pending HITL entry (shared by questions and approvals) ────────
+
+interface PendingHitlEntry {
+  threadId: string
+  hiveSessionId: string
+  worktreePath: string
+}
+
 export class CodexImplementer implements AgentSdkImplementer {
   readonly id = 'codex' as const
   readonly capabilities: AgentSdkCapabilities = CODEX_CAPABILITIES
@@ -31,6 +40,8 @@ export class CodexImplementer implements AgentSdkImplementer {
   private selectedVariant: string | undefined
   private manager: CodexAppServerManager = new CodexAppServerManager()
   private sessions = new Map<string, CodexSessionState>()
+  private pendingQuestions = new Map<string, PendingHitlEntry>()
+  private pendingApprovalSessions = new Map<string, PendingHitlEntry>()
 
   // ── Window binding ───────────────────────────────────────────────
 
@@ -38,10 +49,102 @@ export class CodexImplementer implements AgentSdkImplementer {
     this.mainWindow = window
   }
 
+  // ── Manager event listener (handles approval/question routing) ──
+
+  private managerListenerAttached = false
+
+  private attachManagerListener(): void {
+    if (this.managerListenerAttached) return
+    this.managerListenerAttached = true
+
+    this.manager.on('event', (event: CodexManagerEvent) => {
+      this.handleManagerEvent(event)
+    })
+  }
+
+  private handleManagerEvent(event: CodexManagerEvent): void {
+    // Clean up stale pending entries when a session closes
+    if (
+      event.kind === 'session' &&
+      (event.method === 'session/closed' || event.method === 'session/exited')
+    ) {
+      this.cleanupPendingForThread(event.threadId)
+      return
+    }
+
+    // Only handle request events (approvals + user inputs)
+    if (event.kind !== 'request') return
+
+    // Find the session for this event's threadId
+    let targetSession: CodexSessionState | undefined
+    for (const session of this.sessions.values()) {
+      if (session.threadId === event.threadId) {
+        targetSession = session
+        break
+      }
+    }
+    if (!targetSession) return
+
+    const requestId = event.requestId
+    if (!requestId) return
+
+    // Handle approval requests
+    if (
+      event.method === 'item/commandExecution/requestApproval' ||
+      event.method === 'item/fileChange/requestApproval' ||
+      event.method === 'item/fileRead/requestApproval'
+    ) {
+      this.pendingApprovalSessions.set(requestId, {
+        threadId: targetSession.threadId,
+        hiveSessionId: targetSession.hiveSessionId,
+        worktreePath: targetSession.worktreePath
+      })
+
+      const payload = asObject(event.payload)
+      this.sendToRenderer('opencode:stream', {
+        type: 'request.opened',
+        sessionId: targetSession.hiveSessionId,
+        data: {
+          requestId,
+          method: event.method,
+          payload,
+          turnId: event.turnId,
+          itemId: event.itemId
+        }
+      })
+      return
+    }
+
+    // Handle user input requests (questions)
+    if (event.method === 'item/tool/requestUserInput') {
+      this.pendingQuestions.set(requestId, {
+        threadId: targetSession.threadId,
+        hiveSessionId: targetSession.hiveSessionId,
+        worktreePath: targetSession.worktreePath
+      })
+
+      const payload = asObject(event.payload)
+      const questions = (payload?.questions ?? []) as unknown[]
+
+      this.sendToRenderer('opencode:stream', {
+        type: 'question.asked',
+        sessionId: targetSession.hiveSessionId,
+        data: {
+          requestId,
+          id: requestId,
+          questions
+        }
+      })
+    }
+  }
+
   // ── Lifecycle ────────────────────────────────────────────────────
 
   async connect(worktreePath: string, hiveSessionId: string): Promise<{ sessionId: string }> {
     log.info('Connecting', { worktreePath, hiveSessionId, model: this.selectedModel })
+
+    // Ensure the manager event listener is attached for HITL flows
+    this.attachManagerListener()
 
     const providerSession = await this.manager.startSession({
       cwd: worktreePath,
@@ -148,6 +251,7 @@ export class CodexImplementer implements AgentSdkImplementer {
 
     // Clean up local state
     this.sessions.delete(key)
+    this.cleanupPendingForThread(agentSessionId)
 
     log.info('Disconnected', { worktreePath, agentSessionId })
   }
@@ -160,6 +264,9 @@ export class CodexImplementer implements AgentSdkImplementer {
 
     // Clear local state
     this.sessions.clear()
+    this.pendingQuestions.clear()
+    this.pendingApprovalSessions.clear()
+    this.managerListenerAttached = false
     this.mainWindow = null
     this.selectedModel = CODEX_DEFAULT_MODEL
     this.selectedVariant = undefined
@@ -335,8 +442,27 @@ export class CodexImplementer implements AgentSdkImplementer {
     }
   }
 
-  async abort(_worktreePath: string, _agentSessionId: string): Promise<boolean> {
-    throw new Error('CodexImplementer.abort() not yet implemented')
+  async abort(worktreePath: string, agentSessionId: string): Promise<boolean> {
+    const key = this.getSessionKey(worktreePath, agentSessionId)
+    const session = this.sessions.get(key)
+    if (!session) {
+      log.warn('Abort: session not found', { worktreePath, agentSessionId })
+      return false
+    }
+
+    try {
+      await this.manager.interruptTurn(session.threadId)
+    } catch (error) {
+      log.warn('Abort: interruptTurn failed, continuing cleanup', {
+        worktreePath,
+        agentSessionId,
+        error: error instanceof Error ? error.message : String(error)
+      })
+    }
+
+    session.status = 'ready'
+    this.emitStatus(session.hiveSessionId, 'idle')
+    return true
   }
 
   async getMessages(worktreePath: string, agentSessionId: string): Promise<unknown[]> {
@@ -346,7 +472,34 @@ export class CodexImplementer implements AgentSdkImplementer {
       log.warn('getMessages: session not found', { worktreePath, agentSessionId })
       return []
     }
-    return [...session.messages]
+
+    // Return in-memory messages if available
+    if (session.messages.length > 0) {
+      return [...session.messages]
+    }
+
+    // Fallback: try reading from thread via the server
+    if (session.status !== 'closed') {
+      try {
+        const threadSnapshot = await this.manager.readThread(session.threadId)
+        const parsed = this.parseThreadSnapshot(threadSnapshot)
+        if (parsed.length > 0) {
+          session.messages = parsed
+          log.info('getMessages: warmed in-memory cache from thread/read', {
+            agentSessionId,
+            count: parsed.length
+          })
+          return [...parsed]
+        }
+      } catch (error) {
+        log.warn('getMessages: readThread fallback failed', {
+          agentSessionId,
+          error: error instanceof Error ? error.message : String(error)
+        })
+      }
+    }
+
+    return []
   }
 
   // ── Models ───────────────────────────────────────────────────────
@@ -387,27 +540,110 @@ export class CodexImplementer implements AgentSdkImplementer {
   // ── Human-in-the-loop ────────────────────────────────────────────
 
   async questionReply(
-    _requestId: string,
-    _answers: string[][],
+    requestId: string,
+    answers: string[][],
     _worktreePath?: string
   ): Promise<void> {
-    throw new Error('CodexImplementer.questionReply() not yet implemented')
+    const pending = this.pendingQuestions.get(requestId)
+    if (!pending) {
+      throw new Error(`No pending question found for requestId: ${requestId}`)
+    }
+
+    // Convert string[][] answers to the format Codex expects
+    const codexAnswers = answers.map(([id, answer]) => ({
+      id: id ?? requestId,
+      answer: answer ?? ''
+    }))
+
+    log.info('questionReply: responding to pending question', {
+      requestId,
+      hiveSessionId: pending.hiveSessionId,
+      answerCount: codexAnswers.length
+    })
+
+    this.manager.respondToUserInput(pending.threadId, requestId, codexAnswers)
+    this.pendingQuestions.delete(requestId)
+
+    this.sendToRenderer('opencode:stream', {
+      type: 'question.replied',
+      sessionId: pending.hiveSessionId,
+      data: { requestId, id: requestId }
+    })
   }
 
-  async questionReject(_requestId: string, _worktreePath?: string): Promise<void> {
-    throw new Error('CodexImplementer.questionReject() not yet implemented')
+  async questionReject(requestId: string, _worktreePath?: string): Promise<void> {
+    const pending = this.pendingQuestions.get(requestId)
+    if (!pending) {
+      throw new Error(`No pending question found for requestId: ${requestId}`)
+    }
+
+    log.info('questionReject: rejecting pending question', {
+      requestId,
+      hiveSessionId: pending.hiveSessionId
+    })
+
+    this.manager.rejectUserInput(pending.threadId, requestId)
+    this.pendingQuestions.delete(requestId)
+
+    this.sendToRenderer('opencode:stream', {
+      type: 'question.rejected',
+      sessionId: pending.hiveSessionId,
+      data: { requestId, id: requestId }
+    })
   }
 
   async permissionReply(
-    _requestId: string,
-    _decision: 'once' | 'always' | 'reject',
+    requestId: string,
+    decision: 'once' | 'always' | 'reject',
     _worktreePath?: string
   ): Promise<void> {
-    throw new Error('CodexImplementer.permissionReply() not yet implemented')
+    const pending = this.pendingApprovalSessions.get(requestId)
+    if (!pending) {
+      throw new Error(`No pending approval found for requestId: ${requestId}`)
+    }
+
+    log.info('permissionReply: responding to pending approval', {
+      requestId,
+      hiveSessionId: pending.hiveSessionId,
+      decision
+    })
+
+    this.manager.respondToApproval(pending.threadId, requestId, decision)
+    this.pendingApprovalSessions.delete(requestId)
+
+    this.sendToRenderer('opencode:stream', {
+      type: 'request.resolved',
+      sessionId: pending.hiveSessionId,
+      data: { requestId, id: requestId, decision }
+    })
   }
 
   async permissionList(_worktreePath?: string): Promise<unknown[]> {
-    throw new Error('CodexImplementer.permissionList() not yet implemented')
+    // Aggregate pending approvals across all sessions
+    const result: unknown[] = []
+    for (const session of this.sessions.values()) {
+      const approvals = this.manager.getPendingApprovals(session.threadId)
+      for (const approval of approvals) {
+        result.push({
+          requestId: approval.requestId,
+          method: approval.method,
+          threadId: approval.threadId,
+          turnId: approval.turnId,
+          itemId: approval.itemId
+        })
+      }
+    }
+    return result
+  }
+
+  /** Check if a question requestId belongs to this implementer */
+  hasPendingQuestion(requestId: string): boolean {
+    return this.pendingQuestions.has(requestId)
+  }
+
+  /** Check if a permission requestId belongs to this implementer */
+  hasPendingApproval(requestId: string): boolean {
+    return this.pendingApprovalSessions.has(requestId)
   }
 
   // ── Undo/Redo ────────────────────────────────────────────────────
@@ -480,7 +716,30 @@ export class CodexImplementer implements AgentSdkImplementer {
     return this.sessions
   }
 
+  /** @internal */
+  getPendingQuestions(): Map<string, PendingHitlEntry> {
+    return this.pendingQuestions
+  }
+
+  /** @internal */
+  getPendingApprovalSessions(): Map<string, PendingHitlEntry> {
+    return this.pendingApprovalSessions
+  }
+
   // ── Private helpers ──────────────────────────────────────────────
+
+  private cleanupPendingForThread(threadId: string): void {
+    for (const [reqId, entry] of this.pendingQuestions.entries()) {
+      if (entry.threadId === threadId) {
+        this.pendingQuestions.delete(reqId)
+      }
+    }
+    for (const [reqId, entry] of this.pendingApprovalSessions.entries()) {
+      if (entry.threadId === threadId) {
+        this.pendingApprovalSessions.delete(reqId)
+      }
+    }
+  }
 
   private getSessionKey(worktreePath: string, agentSessionId: string): string {
     return `${worktreePath}::${agentSessionId}`
@@ -580,5 +839,81 @@ export class CodexImplementer implements AgentSdkImplementer {
         resolve()
       }
     })
+  }
+
+  /** Parse a thread/read snapshot into a message array for getMessages() */
+  private parseThreadSnapshot(snapshot: unknown): unknown[] {
+    const obj = asObject(snapshot)
+    if (!obj) return []
+
+    const threadObj = asObject(obj.thread) ?? obj
+    const turns = threadObj.turns as unknown[] | undefined
+    if (!Array.isArray(turns)) return []
+
+    const messages: unknown[] = []
+    for (const turn of turns) {
+      const turnObj = asObject(turn)
+      if (!turnObj) continue
+
+      // Extract user input
+      const input = turnObj.input as unknown[] | undefined
+      if (Array.isArray(input)) {
+        const textParts: unknown[] = []
+        for (const item of input) {
+          const itemObj = asObject(item)
+          if (itemObj?.type === 'text' && typeof itemObj.text === 'string') {
+            textParts.push({
+              type: 'text',
+              text: itemObj.text,
+              timestamp: asString(turnObj.createdAt) ?? new Date().toISOString()
+            })
+          }
+        }
+        if (textParts.length > 0) {
+          messages.push({
+            role: 'user',
+            parts: textParts,
+            timestamp: asString(turnObj.createdAt) ?? new Date().toISOString()
+          })
+        }
+      }
+
+      // Extract assistant output
+      const output = turnObj.output as unknown[] | undefined
+      const outputText = asString(turnObj.outputText)
+      if (outputText) {
+        messages.push({
+          role: 'assistant',
+          parts: [{
+            type: 'text',
+            text: outputText,
+            timestamp: asString(turnObj.updatedAt) ?? new Date().toISOString()
+          }],
+          timestamp: asString(turnObj.updatedAt) ?? new Date().toISOString()
+        })
+      } else if (Array.isArray(output)) {
+        const assistantParts: unknown[] = []
+        for (const item of output) {
+          const itemObj = asObject(item)
+          if (!itemObj) continue
+          if (itemObj.type === 'text' && typeof itemObj.text === 'string') {
+            assistantParts.push({
+              type: 'text',
+              text: itemObj.text,
+              timestamp: asString(turnObj.updatedAt) ?? new Date().toISOString()
+            })
+          }
+        }
+        if (assistantParts.length > 0) {
+          messages.push({
+            role: 'assistant',
+            parts: assistantParts,
+            timestamp: asString(turnObj.updatedAt) ?? new Date().toISOString()
+          })
+        }
+      }
+    }
+
+    return messages
   }
 }

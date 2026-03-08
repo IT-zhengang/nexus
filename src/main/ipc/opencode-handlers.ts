@@ -5,6 +5,7 @@ import { telemetryService } from '../services/telemetry-service'
 import type { DatabaseService } from '../db/database'
 import type { AgentSdkManager } from '../services/agent-sdk-manager'
 import { ClaudeCodeImplementer } from '../services/claude-code-implementer'
+import { CodexImplementer } from '../services/codex-implementer'
 
 const log = createLogger({ component: 'OpenCodeHandlers' })
 
@@ -561,13 +562,23 @@ export function registerOpenCodeHandlers(
     ) => {
       log.info('IPC: opencode:question:reply', { requestId })
       try {
-        // TODO(codex): Generalize when Codex implements this HITL flow
         // Route to Claude Code implementer if this is a Claude Code question
         if (sdkManager) {
           const claudeImpl = sdkManager.getImplementer('claude-code') as ClaudeCodeImplementer
           if (claudeImpl.hasPendingQuestion(requestId)) {
             await claudeImpl.questionReply(requestId, answers, worktreePath)
             return { success: true }
+          }
+
+          // Route to Codex implementer if this is a Codex question
+          try {
+            const codexImpl = sdkManager.getImplementer('codex') as CodexImplementer
+            if (codexImpl.hasPendingQuestion(requestId)) {
+              await codexImpl.questionReply(requestId, answers, worktreePath)
+              return { success: true }
+            }
+          } catch {
+            // Codex implementer not registered, continue
           }
         }
         // Fall through to OpenCode
@@ -589,13 +600,23 @@ export function registerOpenCodeHandlers(
     async (_event, { requestId, worktreePath }: { requestId: string; worktreePath?: string }) => {
       log.info('IPC: opencode:question:reject', { requestId })
       try {
-        // TODO(codex): Generalize when Codex implements this HITL flow
         // Route to Claude Code implementer if this is a Claude Code question
         if (sdkManager) {
           const claudeImpl = sdkManager.getImplementer('claude-code') as ClaudeCodeImplementer
           if (claudeImpl.hasPendingQuestion(requestId)) {
             await claudeImpl.questionReject(requestId, worktreePath)
             return { success: true }
+          }
+
+          // Route to Codex implementer if this is a Codex question
+          try {
+            const codexImpl = sdkManager.getImplementer('codex') as CodexImplementer
+            if (codexImpl.hasPendingQuestion(requestId)) {
+              await codexImpl.questionReject(requestId, worktreePath)
+              return { success: true }
+            }
+          } catch {
+            // Codex implementer not registered, continue
           }
         }
         // Fall through to OpenCode
@@ -705,6 +726,19 @@ export function registerOpenCodeHandlers(
     ) => {
       log.info('IPC: opencode:permission:reply', { requestId, reply })
       try {
+        // Route to Codex implementer if this is a Codex approval
+        if (sdkManager) {
+          try {
+            const codexImpl = sdkManager.getImplementer('codex') as CodexImplementer
+            if (codexImpl.hasPendingApproval(requestId)) {
+              await codexImpl.permissionReply(requestId, reply, worktreePath)
+              return { success: true }
+            }
+          } catch {
+            // Codex implementer not registered, continue
+          }
+        }
+        // Fall through to OpenCode
         await openCodeService.permissionReply(requestId, reply, worktreePath, message)
         return { success: true }
       } catch (error) {
@@ -723,7 +757,20 @@ export function registerOpenCodeHandlers(
     async (_event, { worktreePath }: { worktreePath?: string }) => {
       log.info('IPC: opencode:permission:list')
       try {
-        const permissions = await openCodeService.permissionList(worktreePath)
+        // Aggregate permissions from all implementers
+        let permissions = await openCodeService.permissionList(worktreePath)
+
+        // Also include Codex pending approvals
+        if (sdkManager) {
+          try {
+            const codexImpl = sdkManager.getImplementer('codex') as CodexImplementer
+            const codexPermissions = await codexImpl.permissionList(worktreePath)
+            permissions = [...permissions, ...codexPermissions]
+          } catch {
+            // Codex implementer not registered, continue
+          }
+        }
+
         return { success: true, permissions }
       } catch (error) {
         log.error('IPC: opencode:permission:list failed', { error })
