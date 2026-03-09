@@ -67,6 +67,7 @@ export function ModelSelector({ sessionId }: ModelSelectorProps): React.JSX.Elem
         }
       : null
   const selectedModel = sessionModel ?? globalModel
+  const showModelProvider = useSettingsStore((s) => s.showModelProvider)
   const favoriteModels = useSettingsStore((s) => s.favoriteModels)
   const toggleFavoriteModel = useSettingsStore((s) => s.toggleFavoriteModel)
   const [providers, setProviders] = useState<ProviderModels[]>([])
@@ -189,6 +190,16 @@ export function ModelSelector({ sessionId }: ModelSelectorProps): React.JSX.Elem
     return null
   }, [selectedModel, providers])
 
+  const providerPrefix = useMemo(() => {
+    if (!showModelProvider) return null
+    if (agentSdk === 'claude-code') return 'ANTHROPIC'
+    return (
+      currentModel?.providerID?.toUpperCase() ??
+      selectedModel?.providerID?.toUpperCase() ??
+      null
+    )
+  }, [showModelProvider, agentSdk, currentModel, selectedModel])
+
   // Cycle thinking-level variant for Alt+T
   const cycleVariant = useCallback(() => {
     if (!currentModel) return
@@ -280,6 +291,11 @@ export function ModelSelector({ sessionId }: ModelSelectorProps): React.JSX.Elem
           aria-label={`Current model: ${displayName}. Click to change model`}
           data-testid="model-selector"
         >
+          {providerPrefix && (
+            <span className="text-[10px] font-semibold text-primary uppercase shrink-0">
+              {providerPrefix}
+            </span>
+          )}
           <span className="truncate max-w-[140px]">{isLoading ? 'Loading...' : displayName}</span>
           {hasVariants && selectedModel?.variant && (
             <span
