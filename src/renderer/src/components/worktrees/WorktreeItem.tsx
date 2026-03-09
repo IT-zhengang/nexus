@@ -223,9 +223,6 @@ export function WorktreeItem({
   // Auto-focus the rename input when it appears (deferred to run after menu closes)
   useEffect(() => {
     if (isRenamingBranch) {
-      // Record when we started renaming
-      renameStartTimeRef.current = Date.now()
-
       // Focus function
       const focusInput = () => {
         if (renameInputRef.current && document.activeElement !== renameInputRef.current) {
@@ -248,6 +245,7 @@ export function WorktreeItem({
 
   const startBranchRename = useCallback((): void => {
     intentionalCloseRef.current = false
+    renameStartTimeRef.current = Date.now() // Record time before setting state
     setBranchNameInput(worktree.branch_name)
     setIsRenamingBranch(true)
   }, [worktree.branch_name])

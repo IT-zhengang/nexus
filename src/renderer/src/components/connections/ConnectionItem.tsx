@@ -127,9 +127,6 @@ export function ConnectionItem({
   // Focus rename input when it appears (deferred to run after menu closes)
   useEffect(() => {
     if (isRenaming) {
-      // Record when we started renaming
-      renameStartTimeRef.current = Date.now()
-
       // Focus function
       const focusInput = () => {
         if (renameInputRef.current && document.activeElement !== renameInputRef.current) {
@@ -152,6 +149,7 @@ export function ConnectionItem({
 
   const handleStartRename = useCallback((): void => {
     intentionalCloseRef.current = false
+    renameStartTimeRef.current = Date.now() // Record time before setting state
     setNameInput(connection.custom_name || '')
     setIsRenaming(true)
   }, [connection.custom_name])
