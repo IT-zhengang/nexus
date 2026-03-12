@@ -537,7 +537,7 @@ export class CodexImplementer implements AgentSdkImplementer {
             id: requestId,
             requestId,
             plan: pendingPlanText,
-            toolUseID: ''
+            toolUseID: `codex-exitplan-${session.threadId}-${Date.now()}`
           }
         })
       }
