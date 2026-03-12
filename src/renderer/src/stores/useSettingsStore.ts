@@ -74,7 +74,7 @@ export interface AppSettings {
   showUsageIndicator: boolean
 
   // Agent SDK
-  defaultAgentSdk: 'opencode' | 'claude-code' | 'terminal'
+  defaultAgentSdk: 'opencode' | 'claude-code' | 'codex' | 'terminal'
 
   // Setup
   initialSetupComplete: boolean
@@ -142,7 +142,7 @@ interface SettingsState extends AppSettings {
   isLoading: boolean
 
   // Cached SDK availability (non-persisted, re-detected each launch)
-  availableAgentSdks: { opencode: boolean; claude: boolean } | null
+  availableAgentSdks: { opencode: boolean; claude: boolean; codex: boolean } | null
 
   // Actions
   openSettings: (section?: string) => void

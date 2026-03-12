@@ -41,8 +41,10 @@ import { useProjectStore } from '@/stores/useProjectStore'
 import { useConnectionStore } from '@/stores/useConnectionStore'
 import { useFileTreeStore } from '@/stores/useFileTreeStore'
 import { mapOpencodeMessagesToSessionViewMessages } from '@/lib/opencode-transcript'
+import { appendStreamedAssistantFallback } from '@/lib/transcript-refresh'
 import { COMPLETION_WORDS, formatCompletionDuration, formatElapsedTimer } from '@/lib/format-utils'
 import { messageSendTimes, lastSendMode, userExplicitSendTimes } from '@/lib/message-send-times'
+import { buildPlanImplementationPrompt } from '@/lib/proposedPlan'
 import beeIcon from '@/assets/bee.png'
 
 // Stable empty array to avoid creating new references in selectors
@@ -402,8 +404,9 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
       : globalModel
   const currentModelId = effectiveModel?.modelID ?? 'claude-opus-4-5-20251101'
   const currentProviderId = effectiveModel?.providerID ?? 'anthropic'
-  // Claude Code SDK uses native plan mode (ExitPlanMode) — skip PLAN_MODE_PREFIX
+  // Claude Code and Codex SDKs skip PLAN_MODE_PREFIX (they don't use the text-prefix approach)
   const isClaudeCode = sessionRecord?.agent_sdk === 'claude-code'
+  const skipPlanModePrefix = isClaudeCode || sessionRecord?.agent_sdk === 'codex'
 
   // Active question prompt from AI
   const activeQuestion = useQuestionStore((s) => s.getActiveQuestion(sessionId))
@@ -422,6 +425,16 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
   // Streaming parts - tracks interleaved text and tool use during streaming
   const [streamingParts, setStreamingParts] = useState<StreamingPart[]>([])
   const streamingPartsRef = useRef<StreamingPart[]>([])
+
+  // XML tag detection state for Codex plan streaming.
+  // In plan mode, Codex wraps plan content in <proposed_plan>...</proposed_plan>.
+  // We scan the stream for these tags and route only the plan content into an
+  // ExitPlanMode tool card, leaving reasoning/preamble as regular chat text.
+  const planXmlDetectionRef = useRef<{
+    state: 'scanning' | 'routing' | 'done'
+    buffer: string // partial-tag buffer (≤ tag length chars)
+    cardId: string | null
+  }>({ state: 'scanning', buffer: '', cardId: null })
 
   // Legacy streaming content for backward compatibility
   const [streamingContent, setStreamingContent] = useState<string>('')
@@ -910,6 +923,7 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
     setStreamingContent('')
     setIsStreaming(false)
     lastSentPromptRef.current = null
+    planXmlDetectionRef.current = { state: 'scanning', buffer: '', cardId: null }
   }, [])
 
   // Load session info and connect to OpenCode
@@ -1140,6 +1154,15 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
             ]
           })
         }
+
+        if (streamedPartsSnapshot.length > 0 || streamedContentSnapshot.length > 0) {
+          setMessages((currentMessages) =>
+            appendStreamedAssistantFallback(currentMessages, {
+              streamedContent: streamedContentSnapshot,
+              streamedParts: streamedPartsSnapshot
+            })
+          )
+        }
       } catch (error) {
         console.error('Failed to refresh messages after stream completion:', error)
         toast.error('Failed to refresh response')
@@ -1169,6 +1192,7 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
     setStreamingParts([])
     setStreamingContent('')
     hasFinalizedCurrentResponseRef.current = false
+    planXmlDetectionRef.current = { state: 'scanning', buffer: '', cardId: null }
 
     // Subscribe to OpenCode stream events SYNCHRONOUSLY before any async work.
     // This prevents a race condition where session.idle arrives during async
@@ -1354,45 +1378,85 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
                 }
               }
 
-              // Inject plan content into the ExitPlanMode tool_use input for rendering
-              if (planText && data.toolUseID) {
-                const hasExisting = streamingPartsRef.current.some(
-                  (p) => p.type === 'tool_use' && p.toolUse?.id === data.toolUseID
-                )
-                if (hasExisting) {
-                  // Update existing streaming part
-                  updateStreamingPartsRef((parts) =>
-                    parts.map((p) =>
-                      p.type === 'tool_use' && p.toolUse?.id === data.toolUseID
-                        ? {
-                            ...p,
-                            toolUse: {
-                              ...p.toolUse!,
-                              input: { ...p.toolUse!.input, plan: planText },
-                              status: 'pending' as const
-                            }
-                          }
-                        : p
-                    )
-                  )
-                } else {
-                  // Tool_use part not yet in streaming parts (race: content_block_start
-                  // hasn't been processed yet) — create it so the plan card renders
-                  updateStreamingPartsRef((parts) => [
-                    ...parts,
-                    {
-                      type: 'tool_use' as const,
+              // Finalize the streaming plan card (if XML tag detection created one)
+              // or create a new one from plan.ready data (fallback for Claude Code /
+              // sessions where <proposed_plan> tags weren't present).
+              const det = planXmlDetectionRef.current
+              const streamingCardId = det.cardId
+
+              // Flush any leftover scanning buffer as regular text
+              if (det.buffer) {
+                appendTextDelta(det.buffer)
+                det.buffer = ''
+              }
+              // Reset detection state
+              planXmlDetectionRef.current = { state: 'scanning', buffer: '', cardId: null }
+
+              if (streamingCardId) {
+                // Progressive card exists — finalize with clean plan text + real ID
+                updateStreamingPartsRef((parts) =>
+                  parts.map((p) => {
+                    if (p.type !== 'tool_use' || p.toolUse?.id !== streamingCardId) return p
+                    const finalPlan = planText || (p.toolUse!.input.plan as string) || ''
+                    return {
+                      ...p,
                       toolUse: {
-                        id: data.toolUseID,
-                        name: 'ExitPlanMode',
-                        input: { plan: planText },
-                        status: 'pending' as const,
-                        startTime: Date.now()
+                        ...p.toolUse!,
+                        id: data.toolUseID || p.toolUse!.id,
+                        input: { ...p.toolUse!.input, plan: finalPlan },
+                        status: 'pending' as const
                       }
                     }
-                  ])
-                }
+                  })
+                )
                 immediateFlush()
+              } else {
+                // No progressive card — strip XML from text parts and inject card
+                updateStreamingPartsRef((parts) =>
+                  parts.map((p) => {
+                    if (p.type !== 'text' || !p.text) return p
+                    const stripped = p.text.replace(/<proposed_plan>\s*[\s\S]*?\s*<\/proposed_plan>/gi, '').trim()
+                    if (!stripped) return { ...p, text: '' }
+                    return { ...p, text: stripped }
+                  })
+                )
+
+                if (planText && data.toolUseID) {
+                  const hasExisting = streamingPartsRef.current.some(
+                    (p) => p.type === 'tool_use' && p.toolUse?.id === data.toolUseID
+                  )
+                  if (hasExisting) {
+                    updateStreamingPartsRef((parts) =>
+                      parts.map((p) =>
+                        p.type === 'tool_use' && p.toolUse?.id === data.toolUseID
+                          ? {
+                              ...p,
+                              toolUse: {
+                                ...p.toolUse!,
+                                input: { ...p.toolUse!.input, plan: planText },
+                                status: 'pending' as const
+                              }
+                            }
+                          : p
+                      )
+                    )
+                  } else {
+                    updateStreamingPartsRef((parts) => [
+                      ...parts,
+                      {
+                        type: 'tool_use' as const,
+                        toolUse: {
+                          id: data.toolUseID,
+                          name: 'ExitPlanMode',
+                          input: { plan: planText },
+                          status: 'pending' as const,
+                          startTime: Date.now()
+                        }
+                      }
+                    ])
+                  }
+                  immediateFlush()
+                }
               }
 
               useSessionStore.getState().setPendingPlan(sessionId, {
@@ -1551,14 +1615,145 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
             }
 
             if (part.type === 'text') {
-              // Update streaming text content with delta or full text
               const delta = event.data?.delta
-              if (delta) {
-                appendTextDelta(delta)
-              } else if (part.text) {
-                setTextContent(part.text)
+
+              // Codex plan mode: scan for <proposed_plan> XML tags and route
+              // only the plan content into an ExitPlanMode card. Text before/
+              // after the tags renders as normal chat text.
+              const isCodexPlan =
+                sessionRecord?.agent_sdk === 'codex' &&
+                useSessionStore.getState().getSessionMode(sessionId) === 'plan'
+
+              if (isCodexPlan) {
+                const textDelta = delta || part.text || ''
+                if (!textDelta) {
+                  setIsStreaming(true)
+                } else {
+                  const det = planXmlDetectionRef.current
+                  const OPEN_TAG = '<proposed_plan>'
+                  const CLOSE_TAG = '</proposed_plan>'
+
+                  if (det.state === 'scanning') {
+                    det.buffer += textDelta
+                    const tagIdx = det.buffer.toLowerCase().indexOf(OPEN_TAG)
+
+                    if (tagIdx !== -1) {
+                      // Found opening tag — split at the tag boundary
+                      const beforeTag = det.buffer.slice(0, tagIdx)
+                      const afterTag = det.buffer.slice(tagIdx + OPEN_TAG.length)
+                      det.buffer = ''
+
+                      if (beforeTag) appendTextDelta(beforeTag)
+
+                      // Check if closing tag is already present
+                      const closeIdx = afterTag.toLowerCase().indexOf(CLOSE_TAG)
+                      let planContent: string
+
+                      if (closeIdx !== -1) {
+                        planContent = afterTag.slice(0, closeIdx).trim()
+                        det.state = 'done'
+                        const afterClose = afterTag.slice(closeIdx + CLOSE_TAG.length)
+                        if (afterClose.trim()) appendTextDelta(afterClose)
+                      } else {
+                        planContent = afterTag
+                        det.state = 'routing'
+                      }
+
+                      const tempId = `codex-plan-streaming-${Date.now()}`
+                      det.cardId = tempId
+                      updateStreamingPartsRef((parts) => [
+                        ...parts,
+                        {
+                          type: 'tool_use' as const,
+                          toolUse: {
+                            id: tempId,
+                            name: 'ExitPlanMode',
+                            input: { plan: planContent },
+                            status: 'running' as const,
+                            startTime: Date.now()
+                          }
+                        }
+                      ])
+                      immediateFlush()
+                    } else {
+                      // No opening tag yet — flush text that can't be a partial tag match.
+                      // Any suffix of the buffer that matches a prefix of the open tag
+                      // must be retained (e.g. buffer ends with "<propo").
+                      const maxPartial = Math.min(det.buffer.length, OPEN_TAG.length - 1)
+                      let safePoint = det.buffer.length
+                      for (let len = maxPartial; len >= 1; len--) {
+                        if (OPEN_TAG.startsWith(det.buffer.slice(-len).toLowerCase())) {
+                          safePoint = det.buffer.length - len
+                          break
+                        }
+                      }
+                      if (safePoint > 0) {
+                        appendTextDelta(det.buffer.slice(0, safePoint))
+                        det.buffer = det.buffer.slice(safePoint)
+                      }
+                    }
+                  } else if (det.state === 'routing') {
+                    // Inside <proposed_plan> — append to card, watch for close tag
+                    const toolId = det.cardId!
+                    const currentCard = streamingPartsRef.current.find(
+                      (p) => p.type === 'tool_use' && p.toolUse?.id === toolId
+                    )
+                    const currentPlan = (currentCard?.toolUse?.input?.plan as string) || ''
+                    const combined = currentPlan + textDelta
+                    const closeIdx = combined.toLowerCase().indexOf(CLOSE_TAG)
+
+                    if (closeIdx !== -1) {
+                      const planContent = combined.slice(0, closeIdx)
+                      const afterClose = combined.slice(closeIdx + CLOSE_TAG.length)
+                      det.state = 'done'
+
+                      updateStreamingPartsRef((parts) =>
+                        parts.map((p) =>
+                          p.type === 'tool_use' && p.toolUse?.id === toolId
+                            ? {
+                                ...p,
+                                toolUse: {
+                                  ...p.toolUse!,
+                                  input: { ...p.toolUse!.input, plan: planContent }
+                                }
+                              }
+                            : p
+                        )
+                      )
+                      scheduleFlush()
+                      if (afterClose.trim()) appendTextDelta(afterClose)
+                    } else {
+                      updateStreamingPartsRef((parts) =>
+                        parts.map((p) =>
+                          p.type === 'tool_use' && p.toolUse?.id === toolId
+                            ? {
+                                ...p,
+                                toolUse: {
+                                  ...p.toolUse!,
+                                  input: { ...p.toolUse!.input, plan: combined }
+                                }
+                              }
+                            : p
+                        )
+                      )
+                      scheduleFlush()
+                    }
+                  } else {
+                    // state === 'done' — after closing tag, route as regular text
+                    if (delta) appendTextDelta(delta)
+                    else if (part.text) setTextContent(part.text)
+                  }
+                  setIsStreaming(true)
+                }
+              } else {
+                // Normal text handling (non-Codex or non-plan mode)
+                if (delta) {
+                  appendTextDelta(delta)
+                } else if (part.text) {
+                  setTextContent(part.text)
+                }
+                setIsStreaming(true)
               }
-              setIsStreaming(true)
             } else if (part.type === 'tool') {
               // Tool part from OpenCode SDK - has callID, tool (name), state
               const toolId = part.callID || part.id || `tool-${Date.now()}`
@@ -1772,6 +1967,7 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
               setIsStreaming(true)
               hasFinalizedCurrentResponseRef.current = false
               newPromptPendingRef.current = false
+              planXmlDetectionRef.current = { state: 'scanning', buffer: '', cardId: null }
               setIsSending(true)
 
               // Restore worktree status to working/planning
@@ -2146,7 +2342,7 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
               .getState()
               .setSessionStatus(sessionId, currentMode === 'plan' ? 'planning' : 'working')
             // Apply mode prefix for OpenCode sessions (Claude Code uses native plan mode)
-            const modePrefix = currentMode === 'plan' && !isClaudeCode ? PLAN_MODE_PREFIX : ''
+            const modePrefix = currentMode === 'plan' && !skipPlanModePrefix ? PLAN_MODE_PREFIX : ''
             const promptMessage = modePrefix + pendingMsg
             // Store the full prompt so the stream handler can detect SDK echoes
             lastSentPromptRef.current = promptMessage
@@ -2956,7 +3152,8 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
             } else {
               // Unknown command — send as regular prompt (SDK may handle it)
               const currentMode = useSessionStore.getState().getSessionMode(sessionId)
-              const modePrefix = currentMode === 'plan' && !isClaudeCode ? PLAN_MODE_PREFIX : ''
+              const modePrefix =
+                currentMode === 'plan' && !skipPlanModePrefix ? PLAN_MODE_PREFIX : ''
               const promptMessage = modePrefix + trimmedValue
               lastSentPromptRef.current = promptMessage
               const parts: MessagePart[] = [
@@ -2984,7 +3181,7 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
           } else {
             // Regular prompt — existing code (with mode prefix, attachments, etc.)
             const currentMode = useSessionStore.getState().getSessionMode(sessionId)
-            const modePrefix = currentMode === 'plan' && !isClaudeCode ? PLAN_MODE_PREFIX : ''
+            const modePrefix = currentMode === 'plan' && !skipPlanModePrefix ? PLAN_MODE_PREFIX : ''
             const promptMessage = modePrefix + trimmedValue
             // Store the full prompt so the stream handler can detect SDK echoes
             // of the user message (the SDK often re-emits the prompt without a
@@ -3042,7 +3239,7 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
       allSlashCommands,
       sessionCapabilities,
       revertMessageID,
-      isClaudeCode,
+      skipPlanModePrefix,
       refreshMessagesFromOpenCode,
       getModelForRequests,
       fileMentions,
@@ -3051,6 +3248,29 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
   )
 
   const handlePlanReadyImplement = useCallback(async () => {
+    if (pendingPlan && !isClaudeCode) {
+      const pendingBeforeAction = pendingPlan
+      useSessionStore.getState().clearPendingPlan(sessionId)
+      useWorktreeStatusStore.getState().clearSessionStatus(sessionId)
+
+      // Transition ExitPlanMode tool card to "accepted" state
+      if (pendingBeforeAction.toolUseID) {
+        updateStreamingPartsRef((parts) =>
+          parts.map((p) =>
+            p.type === 'tool_use' && p.toolUse?.id === pendingBeforeAction.toolUseID
+              ? { ...p, toolUse: { ...p.toolUse!, status: 'success' as const } }
+              : p
+          )
+        )
+        immediateFlush()
+      }
+
+      await useSessionStore.getState().setSessionMode(sessionId, 'build')
+      lastSendMode.set(sessionId, 'build')
+      await handleSend(buildPlanImplementationPrompt(pendingBeforeAction.planContent))
+      return
+    }
+
     // Claude Code sessions must resolve a real pending ExitPlanMode request.
     if (isClaudeCode) {
       if (!worktreePath || !pendingPlan) {
@@ -3121,7 +3341,32 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
 
   const handlePlanReject = useCallback(
     async (feedback: string) => {
-      if (!worktreePath || !pendingPlan) return
+      if (!pendingPlan) return
+
+      if (!isClaudeCode) {
+        const pendingBeforeAction = pendingPlan
+        useSessionStore.getState().clearPendingPlan(sessionId)
+        useWorktreeStatusStore.getState().clearSessionStatus(sessionId)
+
+        // Transition ExitPlanMode tool card to "rejected" state
+        if (pendingBeforeAction?.toolUseID) {
+          updateStreamingPartsRef((parts) =>
+            parts.map((p) =>
+              p.type === 'tool_use' && p.toolUse?.id === pendingBeforeAction.toolUseID
+                ? { ...p, toolUse: { ...p.toolUse!, status: 'error' as const, error: feedback } }
+                : p
+            )
+          )
+          immediateFlush()
+        }
+
+        await useSessionStore.getState().setSessionMode(sessionId, 'plan')
+        lastSendMode.set(sessionId, 'plan')
+        await handleSend(feedback)
+        return
+      }
+
+      if (!worktreePath) return
       userExplicitSendTimes.set(sessionId, Date.now())
       const pendingBeforeAction = pendingPlan
       useSessionStore.getState().clearPendingPlan(sessionId)
@@ -3165,7 +3410,15 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
         useWorktreeStatusStore.getState().setSessionStatus(sessionId, 'plan_ready')
       }
     },
-    [sessionId, worktreePath, pendingPlan, updateStreamingPartsRef, immediateFlush]
+    [
+      sessionId,
+      worktreePath,
+      pendingPlan,
+      isClaudeCode,
+      updateStreamingPartsRef,
+      immediateFlush,
+      handleSend
+    ]
   )
 
   const handlePlanReadyHandoff = useCallback(async () => {
@@ -3723,9 +3976,10 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
   // Show the floating Implement FAB when:
   // 1. Claude Code sessions: ExitPlanMode is pending approval.
   // 2. OpenCode sessions: legacy non-blocking plan mode completed.
-  const showPlanReadyImplementFab = isClaudeCode
-    ? !!pendingPlan
-    : lastSendMode.get(sessionId) === 'plan' && !isSending && !isStreaming && !pendingPlan
+  const showPlanReadyImplementFab =
+    isClaudeCode || sessionRecord?.agent_sdk === 'codex'
+      ? !!pendingPlan
+      : lastSendMode.get(sessionId) === 'plan' && !isSending && !isStreaming && !pendingPlan
 
   const retrySecondsRemaining = useMemo(() => {
     if (!sessionRetry?.next) return null
