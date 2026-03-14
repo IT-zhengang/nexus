@@ -74,9 +74,7 @@ export function mapCodexManagerEventToActivity(
         'unknown'
       const isTool =
         itemType === 'commandexecution' ||
-        itemType === 'filechange' ||
-        itemType === 'commandExecution' ||
-        itemType === 'fileChange'
+        itemType === 'filechange'
       if (!isTool) return null
 
       if (event.method === 'item.started' || event.method === 'item/started') {
