@@ -167,7 +167,7 @@ interface SettingsState extends AppSettings {
   ) => Promise<void>
   setSelectedModelForSdk: (
     agentSdk: AppSettings['defaultAgentSdk'],
-    model: SelectedModel,
+    model: SelectedModel | null,
     options?: { skipBackendPush?: boolean }
   ) => Promise<void>
   setModeDefaultModel: (mode: 'build' | 'plan' | 'ask', model: SelectedModel | null) => Promise<void>
@@ -318,15 +318,21 @@ export const useSettingsStore = create<SettingsState>()(
 
       setSelectedModelForSdk: async (
         agentSdk: AppSettings['defaultAgentSdk'],
-        model: SelectedModel,
+        model: SelectedModel | null,
         options?: { skipBackendPush?: boolean }
       ) => {
-        const updated = { ...get().selectedModelByProvider, [agentSdk]: model }
-        set({ selectedModelByProvider: updated })
+        // null clears the per-SDK entry
+        const current = { ...get().selectedModelByProvider }
+        if (model) {
+          current[agentSdk] = model
+        } else {
+          delete current[agentSdk]
+        }
+        set({ selectedModelByProvider: current })
         // Push to backend (skip for terminal — no backend service, or when caller already pushed)
         if (agentSdk !== 'terminal' && !options?.skipBackendPush) {
           try {
-            await window.opencodeOps.setModel({ ...model, agentSdk })
+            await window.opencodeOps.setModel(model ? { ...model, agentSdk } : null)
           } catch (error) {
             console.error('Failed to persist model selection for SDK:', error)
           }
@@ -334,7 +340,7 @@ export const useSettingsStore = create<SettingsState>()(
         // Persist to app settings DB
         const settings = extractSettings({
           ...get(),
-          selectedModelByProvider: updated
+          selectedModelByProvider: current
         } as SettingsState)
         saveToDatabase(settings)
       },

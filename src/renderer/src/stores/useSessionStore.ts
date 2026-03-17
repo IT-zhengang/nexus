@@ -76,7 +76,8 @@ interface SessionState {
   createSession: (
     worktreeId: string,
     projectId: string,
-    agentSdkOverride?: 'opencode' | 'claude-code' | 'codex' | 'terminal'
+    agentSdkOverride?: 'opencode' | 'claude-code' | 'codex' | 'terminal',
+    initialMode?: SessionMode
   ) => Promise<{ success: boolean; session?: Session; error?: string }>
   closeSession: (sessionId: string) => Promise<{ success: boolean; error?: string }>
   reopenSession: (
@@ -118,7 +119,8 @@ interface SessionState {
   loadConnectionSessions: (connectionId: string) => Promise<void>
   createConnectionSession: (
     connectionId: string,
-    agentSdkOverride?: 'opencode' | 'claude-code' | 'codex' | 'terminal'
+    agentSdkOverride?: 'opencode' | 'claude-code' | 'codex' | 'terminal',
+    initialMode?: SessionMode
   ) => Promise<{ success: boolean; session?: Session; error?: string }>
   setActiveConnectionSession: (sessionId: string | null) => void
   setActiveConnection: (connectionId: string | null) => void
@@ -264,7 +266,8 @@ export const useSessionStore = create<SessionState>()(
       createSession: async (
         worktreeId: string,
         projectId: string,
-        agentSdkOverride?: 'opencode' | 'claude-code' | 'codex' | 'terminal'
+        agentSdkOverride?: 'opencode' | 'claude-code' | 'codex' | 'terminal',
+        initialMode?: SessionMode
       ) => {
         try {
           // Resolve default agent SDK from settings
@@ -284,7 +287,7 @@ export const useSessionStore = create<SessionState>()(
             // Priority 1: mode-specific default (only when session SDK matches the
             // configured default — mode defaults are set in that SDK's context)
             if (defaultAgentSdk === configuredDefaultSdk) {
-              const modeModel = useSettingsStore.getState().getModelForMode('build')
+              const modeModel = useSettingsStore.getState().getModelForMode(initialMode ?? 'build')
               if (modeModel) {
                 defaultModel = modeModel
               }
@@ -1235,7 +1238,8 @@ export const useSessionStore = create<SessionState>()(
       // Create a session scoped to a connection
       createConnectionSession: async (
         connectionId: string,
-        agentSdkOverride?: 'opencode' | 'claude-code' | 'codex' | 'terminal'
+        agentSdkOverride?: 'opencode' | 'claude-code' | 'codex' | 'terminal',
+        initialMode?: SessionMode
       ) => {
         try {
           // Look up the connection to get the first member's project_id
@@ -1260,7 +1264,7 @@ export const useSessionStore = create<SessionState>()(
               // Priority 1: mode-specific default (only when session SDK matches the
               // configured default — mode defaults are set in that SDK's context)
               if (defaultAgentSdk === configuredDefaultSdk) {
-                const modeModel = useSettingsStore.getState().getModelForMode('build')
+                const modeModel = useSettingsStore.getState().getModelForMode(initialMode ?? 'build')
                 if (modeModel) {
                   defaultModel = modeModel
                 }

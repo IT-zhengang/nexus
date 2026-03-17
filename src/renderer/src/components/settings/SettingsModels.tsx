@@ -1,11 +1,16 @@
-import { useSettingsStore } from '@/stores/useSettingsStore'
+import { useSettingsStore, resolveModelForSdk } from '@/stores/useSettingsStore'
 import { ModelSelector } from '@/components/sessions/ModelSelector'
 import { Info } from 'lucide-react'
 
 export function SettingsModels(): React.JSX.Element {
-  const selectedModel = useSettingsStore((state) => state.selectedModel)
+  const defaultAgentSdk = useSettingsStore((s) => s.defaultAgentSdk) ?? 'opencode'
+  // Show the effective model for the current SDK (what new sessions will actually use)
+  const effectiveModel = useSettingsStore((s) =>
+    resolveModelForSdk(defaultAgentSdk === 'terminal' ? 'opencode' : defaultAgentSdk, s)
+  )
   const defaultModels = useSettingsStore((state) => state.defaultModels)
   const setSelectedModel = useSettingsStore((state) => state.setSelectedModel)
+  const setSelectedModelForSdk = useSettingsStore((state) => state.setSelectedModelForSdk)
   const setModeDefaultModel = useSettingsStore((state) => state.setModeDefaultModel)
 
   return (
@@ -41,12 +46,22 @@ export function SettingsModels(): React.JSX.Element {
         </p>
         <div className="flex items-center gap-2">
           <ModelSelector
-            value={selectedModel}
-            onChange={(model) => setSelectedModel(model)}
+            value={effectiveModel}
+            onChange={(model) => {
+              // Update both legacy selectedModel and per-SDK entry so
+              // resolveModelForSdk returns the new model for new sessions
+              const sdk = defaultAgentSdk === 'terminal' ? 'opencode' : defaultAgentSdk
+              setSelectedModel(model)
+              setSelectedModelForSdk(sdk, model)
+            }}
           />
-          {selectedModel && (
+          {effectiveModel && (
             <button
-              onClick={() => setSelectedModel(null)}
+              onClick={() => {
+                const sdk = defaultAgentSdk === 'terminal' ? 'opencode' : defaultAgentSdk
+                setSelectedModel(null)
+                setSelectedModelForSdk(sdk, null)
+              }}
               className="text-xs text-muted-foreground hover:text-foreground transition-colors"
             >
               Clear
