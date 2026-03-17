@@ -308,19 +308,9 @@ export function registerOpenCodeHandlers(
     ) => {
       log.info('IPC: opencode:setModel', { model: model ? model.modelID : null, agentSdk: model?.agentSdk })
       try {
-        // Handle null (clear model from all SDK implementers)
+        // Handle null (clear global model only — per-SDK models are independent)
         if (model === null) {
           openCodeService.clearSelectedModel()
-          if (sdkManager) {
-            for (const sdkId of ['claude-code', 'codex'] as const) {
-              try {
-                const impl = sdkManager.getImplementer(sdkId) as { clearSelectedModel?: () => void }
-                impl.clearSelectedModel?.()
-              } catch {
-                /* SDK not registered */
-              }
-            }
-          }
           return { success: true }
         }
 

@@ -40,9 +40,11 @@ interface ModelSelectorProps {
   // Controlled mode (for settings)
   value?: { providerID: string; modelID: string; variant?: string } | null
   onChange?: (model: { providerID: string; modelID: string; variant?: string }) => void
+  // Override the SDK used for model listing (e.g. force 'opencode' in settings when defaultAgentSdk is 'terminal')
+  agentSdkOverride?: 'opencode' | 'claude-code' | 'codex'
 }
 
-export function ModelSelector({ sessionId, value, onChange }: ModelSelectorProps): React.JSX.Element {
+export function ModelSelector({ sessionId, value, onChange, agentSdkOverride }: ModelSelectorProps): React.JSX.Element {
   // Read per-session model from session store (with global fallback)
   const session = useSessionStore((state) => {
     if (!sessionId) return null
@@ -57,7 +59,9 @@ export function ModelSelector({ sessionId, value, onChange }: ModelSelectorProps
     return null
   })
   const defaultAgentSdk = useSettingsStore((s) => s.defaultAgentSdk)
-  const agentSdk = session?.agent_sdk ?? defaultAgentSdk ?? 'opencode'
+  const rawAgentSdk = agentSdkOverride ?? session?.agent_sdk ?? defaultAgentSdk ?? 'opencode'
+  // Terminal SDK has no models — fall back to opencode for model listing
+  const agentSdk = rawAgentSdk === 'terminal' ? 'opencode' : rawAgentSdk
   const globalModel = useSettingsStore((state) => resolveModelForSdk(agentSdk, state))
   const sessionModel =
     session?.model_id && session.model_provider_id

@@ -92,7 +92,7 @@ interface SessionState {
   getSessionMode: (sessionId: string) => SessionMode
   toggleSessionMode: (sessionId: string) => Promise<void>
   setSessionMode: (sessionId: string, mode: SessionMode) => Promise<void>
-  setSessionModel: (sessionId: string, model: SelectedModel) => Promise<void>
+  setSessionModel: (sessionId: string, model: SelectedModel, options?: { skipGlobalUpdate?: boolean }) => Promise<void>
   setOpenCodeSessionId: (sessionId: string, opencodeSessionId: string | null) => void
   setPendingMessage: (sessionId: string, message: string) => void
   dequeuePendingMessage: (sessionId: string) => string | null
@@ -775,7 +775,7 @@ export const useSessionStore = create<SessionState>()(
         await get().applyModeDefaultModel(sessionId, newMode)
       },
 
-      // Set session mode explicitly
+      // Set session mode explicitly (also applies mode-specific model default)
       setSessionMode: async (sessionId: string, mode: SessionMode) => {
         set((state) => {
           const newModeMap = new Map(state.modeBySession)
@@ -788,10 +788,13 @@ export const useSessionStore = create<SessionState>()(
         } catch (error) {
           console.error('Failed to persist session mode:', error)
         }
+
+        // Apply mode-specific default model (same as toggleSessionMode)
+        await get().applyModeDefaultModel(sessionId, mode)
       },
 
       // Set model for a specific session (per-session model selection, scope-agnostic)
-      setSessionModel: async (sessionId: string, model: SelectedModel) => {
+      setSessionModel: async (sessionId: string, model: SelectedModel, options?: { skipGlobalUpdate?: boolean }) => {
         // Update local state immediately (search both maps)
         set((state) => {
           const newWorktreeSessionsMap = new Map(state.sessionsByWorktree)
@@ -874,14 +877,16 @@ export const useSessionStore = create<SessionState>()(
         }
 
         // Update per-provider last-used model so new worktrees inherit it
-        // skipBackendPush: we already pushed to the backend above
-        try {
-          const { useSettingsStore } = await import('./useSettingsStore')
-          useSettingsStore
-            .getState()
-            .setSelectedModelForSdk(agentSdk, model, { skipBackendPush: true })
-        } catch {
-          /* non-critical */
+        // Skip when auto-applying mode defaults — those shouldn't rewrite global preferences
+        if (!options?.skipGlobalUpdate) {
+          try {
+            const { useSettingsStore } = await import('./useSettingsStore')
+            useSettingsStore
+              .getState()
+              .setSelectedModelForSdk(agentSdk, model, { skipBackendPush: true })
+          } catch {
+            /* non-critical */
+          }
         }
 
         // Also persist as the worktree's last-used model (only for worktree sessions)
@@ -904,18 +909,25 @@ export const useSessionStore = create<SessionState>()(
       // Apply mode-specific default model when toggling modes
       applyModeDefaultModel: async (sessionId: string, newMode: SessionMode) => {
         // Import settings store dynamically to avoid circular deps
-        const { useSettingsStore } = await import('./useSettingsStore')
+        const { useSettingsStore, resolveModelForSdk } = await import('./useSettingsStore')
 
-        // Check mode-specific default first, then fall back to global default
+        // Mode defaults are configured in the context of the default SDK.
+        // Skip if the session uses a different SDK to avoid injecting wrong models.
+        const session = get().getSessionById(sessionId)
         const settings = useSettingsStore.getState()
-        const newModeDefault = settings.getModelForMode(newMode) ?? settings.selectedModel
+        const sessionSdk = session?.agent_sdk ?? settings.defaultAgentSdk ?? 'opencode'
+        if (sessionSdk === 'terminal') return
+
+        // Check mode-specific default first, then fall back to per-SDK/global default
+        const newModeDefault = settings.getModelForMode(newMode)
+          ?? resolveModelForSdk(sessionSdk, settings)
         if (!newModeDefault) {
-          // No mode default and no global default configured, keep current model
+          // No defaults configured, keep current model
           return
         }
 
-        // Apply the new mode's default model
-        await get().setSessionModel(sessionId, newModeDefault)
+        // Apply the new mode's default model (without rewriting global preferences)
+        await get().setSessionModel(sessionId, newModeDefault, { skipGlobalUpdate: true })
       },
 
       // Keep opencode_session_id in sync in-memory after connect/reconnect (scope-agnostic)
