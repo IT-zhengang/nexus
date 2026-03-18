@@ -75,6 +75,11 @@ export function useVimNavigation(): void {
       if (commandPaletteOpen) return
 
       if (event.key === 'Escape') {
+        if (hint.mode === 'pending') {
+          hint.exitPending()
+          event.preventDefault()
+          return
+        }
         if (vim.mode === 'insert') {
           vim.enterNormalMode()
           event.preventDefault()
@@ -91,6 +96,17 @@ export function useVimNavigation(): void {
       // --- Hint dispatch: pending mode (second char) ---
       // Must come before I/? handlers so pending state is resolved first
       if (hint.mode === 'pending' && hint.pendingChar) {
+        if (event.key === 'P') {
+          hint.setActionMode(hint.actionMode === 'pin' ? 'select' : 'pin')
+          event.preventDefault()
+          return
+        }
+        if (event.key === 'D') {
+          hint.setActionMode(hint.actionMode === 'archive' ? 'select' : 'archive')
+          event.preventDefault()
+          return
+        }
+
         const isUppercase = /^[A-Z]$/.test(event.key)
 
         // Another uppercase → restart pending with the new char
@@ -105,7 +121,7 @@ export function useVimNavigation(): void {
         // Check worktree/project hintMap (value→key reverse lookup)
         for (const [key, value] of hint.hintMap.entries()) {
           if (value === code) {
-            dispatchHintAction(key)
+            dispatchHintAction(key, hint.actionMode)
             hint.exitPending()
             event.preventDefault()
             return
@@ -115,6 +131,11 @@ export function useVimNavigation(): void {
         // Check session hints (code→sessionId direct lookup)
         const sessionId = hint.sessionHintTargetMap.get(code)
         if (sessionId) {
+          if (hint.actionMode !== 'select') {
+            hint.exitPending()
+            event.preventDefault()
+            return
+          }
           useSessionStore.getState().setActiveSession(sessionId)
           useFileViewerStore.getState().setActiveFile(null)
           hint.exitPending()
