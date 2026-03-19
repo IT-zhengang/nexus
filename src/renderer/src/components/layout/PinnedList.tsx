@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, useRef } from 'react'
+import { revealLabel } from '@/lib/platform'
 import {
   AlertCircle,
   Archive,
@@ -496,7 +497,7 @@ function PinnedWorktreeItem({ worktreeId }: { worktreeId: string }): React.JSX.E
       </MenuItem>
       <MenuItem onClick={handleOpenInFinder}>
         <ExternalLink className="h-4 w-4 mr-2" />
-        Open in Finder
+        {revealLabel(true)}
       </MenuItem>
       <MenuItem onClick={handleCopyPath}>
         <Copy className="h-4 w-4 mr-2" />
@@ -927,7 +928,7 @@ function PinnedConnectionItem({
       </MenuItem>
       <MenuItem onClick={handleOpenInFinder}>
         <ExternalLink className="h-4 w-4 mr-2" />
-        Open in Finder
+        {revealLabel(true)}
       </MenuItem>
       <MenuItem onClick={handleCopyPath}>
         <Copy className="h-4 w-4 mr-2" />

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, useRef } from 'react'
+import { revealLabel } from '@/lib/platform'
 import {
   AlertCircle,
   Code,
@@ -290,7 +291,7 @@ export function ConnectionItem({
       </ContextMenuItem>
       <ContextMenuItem onClick={handleOpenInFinder}>
         <ExternalLink className="h-4 w-4 mr-2" />
-        Open in Finder
+        {revealLabel(true)}
       </ContextMenuItem>
       <ContextMenuItem onClick={handleCopyPath}>
         <Copy className="h-4 w-4 mr-2" />
@@ -477,7 +478,7 @@ export function ConnectionItem({
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleOpenInFinder}>
                 <ExternalLink className="h-4 w-4 mr-2" />
-                Open in Finder
+                {revealLabel(true)}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleCopyPath}>
                 <Copy className="h-4 w-4 mr-2" />

@@ -3,7 +3,7 @@ import { app, shell, BrowserWindow, screen, ipcMain, clipboard } from 'electron'
 import { join } from 'path'
 import { spawn, exec } from 'child_process'
 import { promisify } from 'util'
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs'
+import { existsSync, readFileSync, writeFileSync, mkdirSync, unlinkSync } from 'fs'
 import { electronApp, is } from '@electron-toolkit/utils'
 import { getDatabase, closeDatabase } from './db'
 import {
@@ -128,8 +128,12 @@ function createWindow(): void {
     minHeight: 600,
     show: false,
     autoHideMenuBar: true,
-    titleBarStyle: 'hiddenInset',
-    trafficLightPosition: { x: 15, y: 10 },
+    ...(process.platform === 'darwin'
+      ? {
+          titleBarStyle: 'hiddenInset' as const,
+          trafficLightPosition: { x: 15, y: 10 }
+        }
+      : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,
@@ -267,13 +271,34 @@ function registerSystemHandlers(): void {
     try {
       switch (appName) {
         case 'cursor':
-          spawn('open', ['-a', 'Cursor', path], { detached: true, stdio: 'ignore' })
+          if (process.platform === 'darwin') {
+            spawn('open', ['-a', 'Cursor', path], { detached: true, stdio: 'ignore' })
+          } else if (process.platform === 'win32') {
+            spawn('cmd', ['/c', 'start', '', 'cursor', path], {
+              detached: true,
+              stdio: 'ignore'
+            })
+          } else {
+            spawn('cursor', [path], { detached: true, stdio: 'ignore' })
+          }
           break
         case 'ghostty':
+          if (process.platform === 'win32') {
+            return { success: false, error: 'Ghostty is not available on Windows' }
+          }
           spawn('open', ['-a', 'Ghostty', path], { detached: true, stdio: 'ignore' })
           break
         case 'android-studio':
-          spawn('open', ['-a', 'Android Studio', path], { detached: true, stdio: 'ignore' })
+          if (process.platform === 'darwin') {
+            spawn('open', ['-a', 'Android Studio', path], { detached: true, stdio: 'ignore' })
+          } else if (process.platform === 'win32') {
+            spawn('cmd', ['/c', 'start', '', 'studio64.exe', path], {
+              detached: true,
+              stdio: 'ignore'
+            })
+          } else {
+            spawn('studio', [path], { detached: true, stdio: 'ignore' })
+          }
           break
         case 'copy-path':
           clipboard.writeText(path)
@@ -305,13 +330,39 @@ function registerSystemHandlers(): void {
     return app.isPackaged
   })
 
-  // Install hive-server shell wrapper to /usr/local/bin
-  ipcMain.handle('system:installServerToPath', async () => {
-    const targetPath = '/usr/local/bin/hive-server'
-    const execAsync = promisify(exec)
+  // Get the current platform (darwin, win32, linux)
+  ipcMain.handle('system:getPlatform', () => {
+    return process.platform
+  })
 
+  // Install hive-server shell wrapper to PATH
+  ipcMain.handle('system:installServerToPath', async () => {
+    const execAsync = promisify(exec)
+    const execPath = process.execPath
+
+    if (process.platform === 'win32') {
+      try {
+        const installDir = join(process.env.LOCALAPPDATA || join(app.getPath('home'), 'AppData', 'Local'), 'Hive')
+        mkdirSync(installDir, { recursive: true })
+        const targetPath = join(installDir, 'hive-server.cmd')
+        const scriptContent = `@echo off\r\n"${execPath}" --headless %*\r\n`
+        writeFileSync(targetPath, scriptContent)
+
+        // Add to user PATH via PowerShell if not already present (escape single quotes for safe interpolation)
+        const escapedDir = installDir.replace(/'/g, "''")
+        const psCmd = `$d='${escapedDir}'; $p=[Environment]::GetEnvironmentVariable('Path','User'); if($p -split ';' -notcontains $d){ [Environment]::SetEnvironmentVariable('Path',$p+';'+$d,'User') }`
+        await execAsync(`powershell -Command "${psCmd}"`, { timeout: 15000 })
+
+        return { success: true, path: targetPath }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error)
+        return { success: false, error: message }
+      }
+    }
+
+    // macOS / Linux
+    const targetPath = '/usr/local/bin/hive-server'
     try {
-      const execPath = process.execPath
       const scriptContent =
         [
           '#!/bin/bash',
@@ -330,7 +381,6 @@ function registerSystemHandlers(): void {
       return { success: true, path: targetPath }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
-      // User cancelled the admin dialog
       if (message.includes('User canceled') || message.includes('-128')) {
         return { success: false, error: 'Installation cancelled' }
       }
@@ -338,11 +388,34 @@ function registerSystemHandlers(): void {
     }
   })
 
-  // Uninstall hive-server from /usr/local/bin
+  // Uninstall hive-server from PATH
   ipcMain.handle('system:uninstallServerFromPath', async () => {
-    const targetPath = '/usr/local/bin/hive-server'
     const execAsync = promisify(exec)
 
+    if (process.platform === 'win32') {
+      try {
+        const installDir = join(process.env.LOCALAPPDATA || join(app.getPath('home'), 'AppData', 'Local'), 'Hive')
+        const targetPath = join(installDir, 'hive-server.cmd')
+        if (!existsSync(targetPath)) {
+          return { success: false, error: 'hive-server is not installed' }
+        }
+
+        unlinkSync(targetPath)
+
+        // Remove from user PATH via PowerShell (escape single quotes for safe interpolation)
+        const escapedDir = installDir.replace(/'/g, "''")
+        const psCmd = `$d='${escapedDir}'; $p = [Environment]::GetEnvironmentVariable('Path','User'); [Environment]::SetEnvironmentVariable('Path', ($p -split ';' | Where-Object { $_ -ne $d }) -join ';','User')`
+        await execAsync(`powershell -Command "${psCmd}"`, { timeout: 15000 })
+
+        return { success: true }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error)
+        return { success: false, error: message }
+      }
+    }
+
+    // macOS / Linux
+    const targetPath = '/usr/local/bin/hive-server'
     try {
       if (!existsSync(targetPath)) {
         return { success: false, error: 'hive-server is not installed' }
