@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useLayoutEffect, useCallback, useMemo } from 'react'
-import { Send, ListPlus, Loader2, AlertCircle, RefreshCw, Square, X, Github } from 'lucide-react'
+import { Send, ListPlus, Loader2, AlertCircle, RefreshCw, Square, X, Github, Minimize2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { toast } from '@/lib/toast'
@@ -498,6 +498,7 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
   const [connectionId, setConnectionId] = useState<string | null>(null)
   const [opencodeSessionId, setOpencodeSessionId] = useState<string | null>(null)
   const [isStreaming, setIsStreaming] = useState(false)
+  const [isCompacting, setIsCompacting] = useState(false)
   const [sessionRetry, setSessionRetry] = useState<SessionRetryState | null>(null)
   const [sessionErrorMessage, setSessionErrorMessage] = useState<string | null>(null)
   const [sessionErrorStderr, setSessionErrorStderr] = useState<string | null>(null)
@@ -1103,6 +1104,7 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
     streamingContentRef.current = ''
     setStreamingContent('')
     setIsStreaming(false)
+    setIsCompacting(false)
     lastSentPromptRef.current = null
     planXmlDetectionRef.current = { state: 'scanning', buffer: '', cardId: null }
   }, [])
@@ -1879,6 +1881,7 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
             }
 
             if (part.type === 'text') {
+              setIsCompacting(false)
               const delta = event.data?.delta
 
               // Codex plan mode: scan for <proposed_plan> XML tags and route
@@ -2019,6 +2022,7 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
                 setIsStreaming(true)
               }
             } else if (part.type === 'tool') {
+              setIsCompacting(false)
               // Tool part from OpenCode SDK - has callID, tool (name), state
               const toolId = part.callID || part.id || `tool-${Date.now()}`
               const toolName = part.tool || undefined
@@ -2120,7 +2124,12 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
               ])
               immediateFlush()
               setIsStreaming(true)
+            } else if (part.type === 'compaction_started') {
+              setIsCompacting(true)
+              setIsStreaming(true)
+              immediateFlush()
             } else if (part.type === 'compaction') {
+              setIsCompacting(false)
               updateStreamingPartsRef((parts) => [
                 ...parts,
                 { type: 'compaction' as const, compactionAuto: part.auto === true }
@@ -2204,6 +2213,7 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
             // This catches edge cases where session.status events are unavailable.
             immediateFlush()
             setIsSending(false)
+            setIsCompacting(false)
             setQueuedMessages([])
             // Clear any stale command approvals when session goes idle
             useCommandApprovalStore.getState().clearSession(sessionId)
@@ -2229,6 +2239,7 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
               setSessionRetry(null)
               setSessionErrorMessage(null)
               setSessionErrorStderr(null)
+              setIsCompacting(false)
               setIsStreaming(true)
               hasFinalizedCurrentResponseRef.current = false
               newPromptPendingRef.current = false
@@ -2243,6 +2254,8 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
             } else if (status.type === 'idle') {
               // Don't overwrite plan_ready — session is blocked waiting for plan approval
               if (useSessionStore.getState().getPendingPlan(sessionId)) return
+
+              setIsCompacting(false)
 
               // If there are queued follow-up messages, send the next one instead of finalizing
               const followUp = useSessionStore.getState().consumeFollowUpMessage(sessionId)
@@ -4544,17 +4557,24 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
               {/* Typing indicator — shows while busy unless the blinking cursor is visible */}
               {isSending && !hasVisibleWritingCursor && (
                 <div className="px-6 py-5" data-testid="typing-indicator">
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-bounce" />
-                    <span
-                      className="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-bounce"
-                      style={{ animationDelay: '0.1s' }}
-                    />
-                    <span
-                      className="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-bounce"
-                      style={{ animationDelay: '0.2s' }}
-                    />
-                  </div>
+                  {isCompacting ? (
+                    <div className="flex items-center gap-1.5 text-muted-foreground text-xs">
+                      <Minimize2 className="h-3.5 w-3.5 animate-pulse" />
+                      <span>Compacting conversation...</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-bounce" />
+                      <span
+                        className="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-bounce"
+                        style={{ animationDelay: '0.1s' }}
+                      />
+                      <span
+                        className="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-bounce"
+                        style={{ animationDelay: '0.2s' }}
+                      />
+                    </div>
+                  )}
                 </div>
               )}
               {/* Queued messages rendered as visible bubbles */}
@@ -4766,7 +4786,7 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
               </div>
               <div className="flex items-center gap-1.5">
                 {isStreaming && (
-                  <IndeterminateProgressBar mode={mode} isAsking={!!activeQuestion} />
+                  <IndeterminateProgressBar mode={mode} isAsking={!!activeQuestion} isCompacting={isCompacting} />
                 )}
                 {isStreaming && !inputValue.trim() ? (
                   <Button
