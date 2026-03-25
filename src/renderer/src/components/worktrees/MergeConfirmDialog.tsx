@@ -1,7 +1,7 @@
 import { DirtyFilesConfirmDialog } from './DirtyFilesConfirmDialog'
 import type { DiffStatFile } from './DirtyFilesConfirmDialog'
 
-interface ArchiveConfirmDialogProps {
+interface MergeConfirmDialogProps {
   open: boolean
   worktreeName: string
   files: DiffStatFile[]
@@ -9,12 +9,12 @@ interface ArchiveConfirmDialogProps {
   onConfirm: () => void
 }
 
-export function ArchiveConfirmDialog(props: ArchiveConfirmDialogProps): React.JSX.Element {
+export function MergeConfirmDialog(props: MergeConfirmDialogProps): React.JSX.Element {
   return (
     <DirtyFilesConfirmDialog
       {...props}
-      description="has uncommitted changes that will be permanently lost."
-      confirmLabel="Archive Anyway"
+      description="has uncommitted changes that won't be included in the merge."
+      confirmLabel="Merge Anyway"
       confirmVariant="destructive"
     />
   )
