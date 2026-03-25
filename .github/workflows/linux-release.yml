@@ -9,6 +9,9 @@ on:
     branches:
       - linux-release-artifact
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -71,7 +74,6 @@ jobs:
 
       # Also upload to a GitHub Release for stable caching
       - name: Upload to linux-natives release
-        if: github.ref == 'refs/heads/main'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
@@ -80,10 +82,15 @@ jobs:
           tar czf ../linux-natives.tar.gz .
           cd ..
 
-          # Create or update the release
-          gh release create linux-natives-v1 \
-            --title "Linux Native Modules" \
-            --notes "Prebuilt Linux native .node binaries for cross-compilation from macOS" \
-            --prerelease 2>/dev/null || true
+          # Create release if it doesn't exist yet
+          if ! gh release view linux-natives-v1 &>/dev/null; then
+            echo "Creating linux-natives-v1 release..."
+            gh release create linux-natives-v1 \
+              --title "Linux Native Modules" \
+              --notes "Prebuilt Linux native .node binaries for cross-compilation from macOS" \
+              --prerelease
+          else
+            echo "Release linux-natives-v1 already exists"
+          fi
 
           gh release upload linux-natives-v1 linux-natives.tar.gz --clobber
