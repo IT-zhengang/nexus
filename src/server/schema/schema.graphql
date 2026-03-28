@@ -97,6 +97,12 @@ type Query {
   # --- Script ---
   scriptPort(cwd: String!): Int
 
+  # --- Kanban ---
+  kanbanTicket(id: ID!): KanbanTicket
+  kanbanTicketsByProject(projectId: ID!, includeArchived: Boolean): [KanbanTicket!]!
+  kanbanTicketsBySession(sessionId: ID!): [KanbanTicket!]!
+  kanbanFollowupsByTicket(ticketId: ID!): [TicketFollowupMessage!]!
+
   # --- DB Utility ---
   dbSchemaVersion: Int!
 }
@@ -215,6 +221,18 @@ type Mutation {
   projectInitRepository(path: String!): SuccessResult!
   projectUploadIcon(projectId: ID!, data: String!, filename: String!): SuccessResult!
   projectRemoveIcon(projectId: ID!): SuccessResult!
+
+  # --- Kanban ---
+  kanbanCreateTicket(input: KanbanCreateTicketInput!): KanbanTicket!
+  kanbanUpdateTicket(id: ID!, input: KanbanUpdateTicketInput!): KanbanTicket
+  kanbanDeleteTicket(id: ID!): SuccessResult!
+  kanbanArchiveTicket(id: ID!): KanbanTicket
+  kanbanArchiveAllDone(projectId: ID!): SuccessResult!
+  kanbanUnarchiveTicket(id: ID!): KanbanTicket
+  kanbanMoveTicket(id: ID!, column: KanbanTicketColumn!, sortOrder: Float!): KanbanTicket
+  kanbanReorderTicket(id: ID!, sortOrder: Float!): SuccessResult!
+  kanbanToggleSimpleMode(projectId: ID!, enabled: Boolean!): SuccessResult!
+  kanbanCreateFollowup(input: KanbanCreateFollowupInput!): TicketFollowupMessage!
 
   # --- Logging ---
   createResponseLog(sessionId: ID!): String!

@@ -453,6 +453,51 @@ export type GitStatusChangedEvent = {
   worktreePath: Scalars['String']['output'];
 };
 
+export type KanbanCreateFollowupInput = {
+  message: Scalars['String']['input'];
+  ticketId: Scalars['String']['input'];
+};
+
+export type KanbanCreateTicketInput = {
+  column: KanbanTicketColumn;
+  description?: InputMaybe<Scalars['String']['input']>;
+  projectId: Scalars['String']['input'];
+  sessionId?: InputMaybe<Scalars['String']['input']>;
+  sortOrder?: InputMaybe<Scalars['Float']['input']>;
+  title: Scalars['String']['input'];
+  worktreeId?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type KanbanTicket = {
+  __typename?: 'KanbanTicket';
+  archived: Scalars['Boolean']['output'];
+  column: KanbanTicketColumn;
+  createdAt: Scalars['String']['output'];
+  description?: Maybe<Scalars['String']['output']>;
+  id: Scalars['String']['output'];
+  projectId: Scalars['String']['output'];
+  sessionId?: Maybe<Scalars['String']['output']>;
+  sortOrder: Scalars['Float']['output'];
+  title: Scalars['String']['output'];
+  updatedAt: Scalars['String']['output'];
+  worktreeId?: Maybe<Scalars['String']['output']>;
+};
+
+export type KanbanTicketColumn =
+  | 'backlog'
+  | 'done'
+  | 'in_progress'
+  | 'in_review';
+
+export type KanbanUpdateTicketInput = {
+  column?: InputMaybe<KanbanTicketColumn>;
+  description?: InputMaybe<Scalars['String']['input']>;
+  sessionId?: InputMaybe<Scalars['String']['input']>;
+  sortOrder?: InputMaybe<Scalars['Float']['input']>;
+  title?: InputMaybe<Scalars['String']['input']>;
+  worktreeId?: InputMaybe<Scalars['String']['input']>;
+};
+
 export type MessagePartInput = {
   filename?: InputMaybe<Scalars['String']['input']>;
   mime?: InputMaybe<Scalars['String']['input']>;
@@ -510,6 +555,16 @@ export type Mutation = {
   gitUnwatchWorktree: SuccessResult;
   gitWatchBranch: SuccessResult;
   gitWatchWorktree: SuccessResult;
+  kanbanArchiveAllDone: SuccessResult;
+  kanbanArchiveTicket?: Maybe<KanbanTicket>;
+  kanbanCreateFollowup: TicketFollowupMessage;
+  kanbanCreateTicket: KanbanTicket;
+  kanbanDeleteTicket: SuccessResult;
+  kanbanMoveTicket?: Maybe<KanbanTicket>;
+  kanbanReorderTicket: SuccessResult;
+  kanbanToggleSimpleMode: SuccessResult;
+  kanbanUnarchiveTicket?: Maybe<KanbanTicket>;
+  kanbanUpdateTicket?: Maybe<KanbanTicket>;
   opencodeAbort: SuccessResult;
   opencodeCommand: SuccessResult;
   opencodeConnect: OpenCodeConnectResult;
@@ -782,6 +837,61 @@ export type MutationGitWatchBranchArgs = {
 
 export type MutationGitWatchWorktreeArgs = {
   worktreePath: Scalars['String']['input'];
+};
+
+
+export type MutationKanbanArchiveAllDoneArgs = {
+  projectId: Scalars['ID']['input'];
+};
+
+
+export type MutationKanbanArchiveTicketArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type MutationKanbanCreateFollowupArgs = {
+  input: KanbanCreateFollowupInput;
+};
+
+
+export type MutationKanbanCreateTicketArgs = {
+  input: KanbanCreateTicketInput;
+};
+
+
+export type MutationKanbanDeleteTicketArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type MutationKanbanMoveTicketArgs = {
+  column: KanbanTicketColumn;
+  id: Scalars['ID']['input'];
+  sortOrder: Scalars['Float']['input'];
+};
+
+
+export type MutationKanbanReorderTicketArgs = {
+  id: Scalars['ID']['input'];
+  sortOrder: Scalars['Float']['input'];
+};
+
+
+export type MutationKanbanToggleSimpleModeArgs = {
+  enabled: Scalars['Boolean']['input'];
+  projectId: Scalars['ID']['input'];
+};
+
+
+export type MutationKanbanUnarchiveTicketArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type MutationKanbanUpdateTicketArgs = {
+  id: Scalars['ID']['input'];
+  input: KanbanUpdateTicketInput;
 };
 
 
@@ -1326,6 +1436,10 @@ export type Query = {
   gitRefContent: GitRefContentResult;
   gitRefContentBase64: GitFileContentBase64Result;
   gitRemoteUrl: GitRemoteUrlResult;
+  kanbanFollowupsByTicket: Array<TicketFollowupMessage>;
+  kanbanTicket?: Maybe<KanbanTicket>;
+  kanbanTicketsByProject: Array<KanbanTicket>;
+  kanbanTicketsBySession: Array<KanbanTicket>;
   opencodeCapabilities: OpenCodeCapabilitiesResult;
   opencodeCommands: OpenCodeCommandsResult;
   opencodeMessages: OpenCodeMessagesResult;
@@ -1514,6 +1628,27 @@ export type QueryGitRefContentBase64Args = {
 export type QueryGitRemoteUrlArgs = {
   remote?: InputMaybe<Scalars['String']['input']>;
   worktreePath: Scalars['String']['input'];
+};
+
+
+export type QueryKanbanFollowupsByTicketArgs = {
+  ticketId: Scalars['ID']['input'];
+};
+
+
+export type QueryKanbanTicketArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type QueryKanbanTicketsByProjectArgs = {
+  includeArchived?: InputMaybe<Scalars['Boolean']['input']>;
+  projectId: Scalars['ID']['input'];
+};
+
+
+export type QueryKanbanTicketsBySessionArgs = {
+  sessionId: Scalars['ID']['input'];
 };
 
 
@@ -1876,6 +2011,14 @@ export type TerminalExitEvent = {
   worktreeId: Scalars['ID']['output'];
 };
 
+export type TicketFollowupMessage = {
+  __typename?: 'TicketFollowupMessage';
+  createdAt: Scalars['String']['output'];
+  id: Scalars['String']['output'];
+  message: Scalars['String']['output'];
+  ticketId: Scalars['String']['output'];
+};
+
 export type UpdateProjectInput = {
   archiveScript?: InputMaybe<Scalars['String']['input']>;
   autoAssignPort?: InputMaybe<Scalars['Boolean']['input']>;
@@ -2100,6 +2243,11 @@ export type ResolversTypes = ResolversObject<{
   ID: ResolverTypeWrapper<Scalars['ID']['output']>;
   Int: ResolverTypeWrapper<Scalars['Int']['output']>;
   JSON: ResolverTypeWrapper<Scalars['JSON']['output']>;
+  KanbanCreateFollowupInput: KanbanCreateFollowupInput;
+  KanbanCreateTicketInput: KanbanCreateTicketInput;
+  KanbanTicket: ResolverTypeWrapper<KanbanTicket>;
+  KanbanTicketColumn: KanbanTicketColumn;
+  KanbanUpdateTicketInput: KanbanUpdateTicketInput;
   MessagePartInput: MessagePartInput;
   ModelInput: ModelInput;
   Mutation: ResolverTypeWrapper<Record<PropertyKey, never>>;
@@ -2155,6 +2303,7 @@ export type ResolversTypes = ResolversObject<{
   TerminalCreateResult: ResolverTypeWrapper<TerminalCreateResult>;
   TerminalDataEvent: ResolverTypeWrapper<TerminalDataEvent>;
   TerminalExitEvent: ResolverTypeWrapper<TerminalExitEvent>;
+  TicketFollowupMessage: ResolverTypeWrapper<TicketFollowupMessage>;
   UpdateProjectInput: UpdateProjectInput;
   UpdateSessionInput: UpdateSessionInput;
   UpdateSpaceInput: UpdateSpaceInput;
@@ -2229,6 +2378,10 @@ export type ResolversParentTypes = ResolversObject<{
   ID: Scalars['ID']['output'];
   Int: Scalars['Int']['output'];
   JSON: Scalars['JSON']['output'];
+  KanbanCreateFollowupInput: KanbanCreateFollowupInput;
+  KanbanCreateTicketInput: KanbanCreateTicketInput;
+  KanbanTicket: KanbanTicket;
+  KanbanUpdateTicketInput: KanbanUpdateTicketInput;
   MessagePartInput: MessagePartInput;
   ModelInput: ModelInput;
   Mutation: Record<PropertyKey, never>;
@@ -2282,6 +2435,7 @@ export type ResolversParentTypes = ResolversObject<{
   TerminalCreateResult: TerminalCreateResult;
   TerminalDataEvent: TerminalDataEvent;
   TerminalExitEvent: TerminalExitEvent;
+  TicketFollowupMessage: TicketFollowupMessage;
   UpdateProjectInput: UpdateProjectInput;
   UpdateSessionInput: UpdateSessionInput;
   UpdateSpaceInput: UpdateSpaceInput;
@@ -2591,6 +2745,20 @@ export interface JsonScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes
   name: 'JSON';
 }
 
+export type KanbanTicketResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['KanbanTicket'] = ResolversParentTypes['KanbanTicket']> = ResolversObject<{
+  archived?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  column?: Resolver<ResolversTypes['KanbanTicketColumn'], ParentType, ContextType>;
+  createdAt?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  description?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  projectId?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  sessionId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  sortOrder?: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
+  title?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  updatedAt?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  worktreeId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+}>;
+
 export type MutationResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['Mutation'] = ResolversParentTypes['Mutation']> = ResolversObject<{
   addConnectionMember?: Resolver<ResolversTypes['ConnectionAddMemberResult'], ParentType, ContextType, RequireFields<MutationAddConnectionMemberArgs, 'connectionId' | 'worktreeId'>>;
   appendResponseLog?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType, RequireFields<MutationAppendResponseLogArgs, 'data' | 'filePath'>>;
@@ -2633,6 +2801,16 @@ export type MutationResolvers<ContextType = GraphQLContext, ParentType extends R
   gitUnwatchWorktree?: Resolver<ResolversTypes['SuccessResult'], ParentType, ContextType, RequireFields<MutationGitUnwatchWorktreeArgs, 'worktreePath'>>;
   gitWatchBranch?: Resolver<ResolversTypes['SuccessResult'], ParentType, ContextType, RequireFields<MutationGitWatchBranchArgs, 'worktreePath'>>;
   gitWatchWorktree?: Resolver<ResolversTypes['SuccessResult'], ParentType, ContextType, RequireFields<MutationGitWatchWorktreeArgs, 'worktreePath'>>;
+  kanbanArchiveAllDone?: Resolver<ResolversTypes['SuccessResult'], ParentType, ContextType, RequireFields<MutationKanbanArchiveAllDoneArgs, 'projectId'>>;
+  kanbanArchiveTicket?: Resolver<Maybe<ResolversTypes['KanbanTicket']>, ParentType, ContextType, RequireFields<MutationKanbanArchiveTicketArgs, 'id'>>;
+  kanbanCreateFollowup?: Resolver<ResolversTypes['TicketFollowupMessage'], ParentType, ContextType, RequireFields<MutationKanbanCreateFollowupArgs, 'input'>>;
+  kanbanCreateTicket?: Resolver<ResolversTypes['KanbanTicket'], ParentType, ContextType, RequireFields<MutationKanbanCreateTicketArgs, 'input'>>;
+  kanbanDeleteTicket?: Resolver<ResolversTypes['SuccessResult'], ParentType, ContextType, RequireFields<MutationKanbanDeleteTicketArgs, 'id'>>;
+  kanbanMoveTicket?: Resolver<Maybe<ResolversTypes['KanbanTicket']>, ParentType, ContextType, RequireFields<MutationKanbanMoveTicketArgs, 'column' | 'id' | 'sortOrder'>>;
+  kanbanReorderTicket?: Resolver<ResolversTypes['SuccessResult'], ParentType, ContextType, RequireFields<MutationKanbanReorderTicketArgs, 'id' | 'sortOrder'>>;
+  kanbanToggleSimpleMode?: Resolver<ResolversTypes['SuccessResult'], ParentType, ContextType, RequireFields<MutationKanbanToggleSimpleModeArgs, 'enabled' | 'projectId'>>;
+  kanbanUnarchiveTicket?: Resolver<Maybe<ResolversTypes['KanbanTicket']>, ParentType, ContextType, RequireFields<MutationKanbanUnarchiveTicketArgs, 'id'>>;
+  kanbanUpdateTicket?: Resolver<Maybe<ResolversTypes['KanbanTicket']>, ParentType, ContextType, RequireFields<MutationKanbanUpdateTicketArgs, 'id' | 'input'>>;
   opencodeAbort?: Resolver<ResolversTypes['SuccessResult'], ParentType, ContextType, RequireFields<MutationOpencodeAbortArgs, 'sessionId' | 'worktreePath'>>;
   opencodeCommand?: Resolver<ResolversTypes['SuccessResult'], ParentType, ContextType, RequireFields<MutationOpencodeCommandArgs, 'input'>>;
   opencodeConnect?: Resolver<ResolversTypes['OpenCodeConnectResult'], ParentType, ContextType, RequireFields<MutationOpencodeConnectArgs, 'hiveSessionId' | 'worktreePath'>>;
@@ -2883,6 +3061,10 @@ export type QueryResolvers<ContextType = GraphQLContext, ParentType extends Reso
   gitRefContent?: Resolver<ResolversTypes['GitRefContentResult'], ParentType, ContextType, RequireFields<QueryGitRefContentArgs, 'filePath' | 'ref' | 'worktreePath'>>;
   gitRefContentBase64?: Resolver<ResolversTypes['GitFileContentBase64Result'], ParentType, ContextType, RequireFields<QueryGitRefContentBase64Args, 'filePath' | 'ref' | 'worktreePath'>>;
   gitRemoteUrl?: Resolver<ResolversTypes['GitRemoteUrlResult'], ParentType, ContextType, RequireFields<QueryGitRemoteUrlArgs, 'worktreePath'>>;
+  kanbanFollowupsByTicket?: Resolver<Array<ResolversTypes['TicketFollowupMessage']>, ParentType, ContextType, RequireFields<QueryKanbanFollowupsByTicketArgs, 'ticketId'>>;
+  kanbanTicket?: Resolver<Maybe<ResolversTypes['KanbanTicket']>, ParentType, ContextType, RequireFields<QueryKanbanTicketArgs, 'id'>>;
+  kanbanTicketsByProject?: Resolver<Array<ResolversTypes['KanbanTicket']>, ParentType, ContextType, RequireFields<QueryKanbanTicketsByProjectArgs, 'projectId'>>;
+  kanbanTicketsBySession?: Resolver<Array<ResolversTypes['KanbanTicket']>, ParentType, ContextType, RequireFields<QueryKanbanTicketsBySessionArgs, 'sessionId'>>;
   opencodeCapabilities?: Resolver<ResolversTypes['OpenCodeCapabilitiesResult'], ParentType, ContextType, Partial<QueryOpencodeCapabilitiesArgs>>;
   opencodeCommands?: Resolver<ResolversTypes['OpenCodeCommandsResult'], ParentType, ContextType, RequireFields<QueryOpencodeCommandsArgs, 'worktreePath'>>;
   opencodeMessages?: Resolver<ResolversTypes['OpenCodeMessagesResult'], ParentType, ContextType, RequireFields<QueryOpencodeMessagesArgs, 'sessionId' | 'worktreePath'>>;
@@ -3043,6 +3225,13 @@ export type TerminalExitEventResolvers<ContextType = GraphQLContext, ParentType 
   worktreeId?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
 }>;
 
+export type TicketFollowupMessageResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['TicketFollowupMessage'] = ResolversParentTypes['TicketFollowupMessage']> = ResolversObject<{
+  createdAt?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  message?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  ticketId?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+}>;
+
 export type WorktreeResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['Worktree'] = ResolversParentTypes['Worktree']> = ResolversObject<{
   attachments?: Resolver<Array<ResolversTypes['Attachment']>, ParentType, ContextType>;
   branchName?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
@@ -3123,6 +3312,7 @@ export type Resolvers<ContextType = GraphQLContext> = ResolversObject<{
   GitRemoteUrlResult?: GitRemoteUrlResultResolvers<ContextType>;
   GitStatusChangedEvent?: GitStatusChangedEventResolvers<ContextType>;
   JSON?: GraphQLScalarType;
+  KanbanTicket?: KanbanTicketResolvers<ContextType>;
   Mutation?: MutationResolvers<ContextType>;
   OpenCodeCapabilities?: OpenCodeCapabilitiesResolvers<ContextType>;
   OpenCodeCapabilitiesResult?: OpenCodeCapabilitiesResultResolvers<ContextType>;
@@ -3161,6 +3351,7 @@ export type Resolvers<ContextType = GraphQLContext> = ResolversObject<{
   TerminalCreateResult?: TerminalCreateResultResolvers<ContextType>;
   TerminalDataEvent?: TerminalDataEventResolvers<ContextType>;
   TerminalExitEvent?: TerminalExitEventResolvers<ContextType>;
+  TicketFollowupMessage?: TicketFollowupMessageResolvers<ContextType>;
   Worktree?: WorktreeResolvers<ContextType>;
   WorktreeBranchRenamedEvent?: WorktreeBranchRenamedEventResolvers<ContextType>;
   WorktreeCreateResult?: WorktreeCreateResultResolvers<ContextType>;
