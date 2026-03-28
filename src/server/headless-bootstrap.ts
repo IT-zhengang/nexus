@@ -122,10 +122,17 @@ export async function headlessBootstrap(opts: HeadlessBootstrapOpts): Promise<vo
       )
     }
   } else {
-    // Default: look for bundled web UI next to server code
-    const defaultWebRoot = join(__dirname, 'web')
-    if (existsSync(join(defaultWebRoot, 'index.html'))) {
-      webRoot = defaultWebRoot
+    // Default: look for bundled web UI in known locations
+    const candidates = [
+      join(__dirname, 'web'),
+      join(__dirname, '..', '..', 'out', 'web'),
+      join(__dirname, '..', '..', 'dist', 'web')
+    ]
+    for (const candidate of candidates) {
+      if (existsSync(join(candidate, 'index.html'))) {
+        webRoot = candidate
+        break
+      }
     }
   }
 
