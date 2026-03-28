@@ -3,6 +3,7 @@ type Query {
   projects: [Project!]!
   project(id: ID!): Project
   projectByPath(path: String!): Project
+  projectIdsSortedByLastMessage: [ID!]!
 
   # --- Worktrees ---
   worktree(id: ID!): Worktree
@@ -10,6 +11,8 @@ type Query {
   activeWorktreesByProject(projectId: ID!): [Worktree!]!
   worktreeExists(worktreePath: String!): Boolean!
   worktreeHasCommits(projectPath: String!): Boolean!
+  pinnedWorktrees: [Worktree!]!
+  recentlyActiveWorktrees(cutoffMs: Int!): [Worktree!]!
 
   # --- Sessions ---
   session(id: ID!): Session
@@ -65,6 +68,7 @@ type Query {
   # --- Connection ---
   connections: [ConnectionWithMembers!]!
   connection(connectionId: ID!): ConnectionWithMembers
+  pinnedConnections: [ConnectionWithMembers!]!
 
   # --- Project Operations ---
   projectValidate(path: String!): ProjectValidateResult!
@@ -111,6 +115,11 @@ type Mutation {
   touchWorktree(id: ID!): Boolean!
   appendWorktreeSessionTitle(worktreeId: ID!, title: String!): SuccessResult!
   updateWorktreeModel(input: UpdateWorktreeModelInput!): SuccessResult!
+  worktreeAddAttachment(worktreeId: ID!, attachment: AttachmentInput!): SuccessResult!
+  worktreeRemoveAttachment(worktreeId: ID!, attachmentId: String!): SuccessResult!
+  worktreeAttachPR(worktreeId: ID!, prNumber: Int!, prUrl: String!): SuccessResult!
+  worktreeDetachPR(worktreeId: ID!): SuccessResult!
+  worktreeSetPinned(worktreeId: ID!, pinned: Boolean!): SuccessResult!
 
   # --- Sessions ---
   createSession(input: CreateSessionInput!): Session!
