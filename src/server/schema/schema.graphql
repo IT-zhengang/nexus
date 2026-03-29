@@ -3,6 +3,7 @@ type Query {
   projects: [Project!]!
   project(id: ID!): Project
   projectByPath(path: String!): Project
+  projectIdsSortedByLastMessage: [ID!]!
 
   # --- Worktrees ---
   worktree(id: ID!): Worktree
@@ -10,6 +11,8 @@ type Query {
   activeWorktreesByProject(projectId: ID!): [Worktree!]!
   worktreeExists(worktreePath: String!): Boolean!
   worktreeHasCommits(projectPath: String!): Boolean!
+  pinnedWorktrees: [Worktree!]!
+  recentlyActiveWorktrees(cutoffMs: Int!): [Worktree!]!
 
   # --- Sessions ---
   session(id: ID!): Session
@@ -52,6 +55,12 @@ type Query {
   gitIsBranchMerged(worktreePath: String!, branch: String!): GitIsMergedResult!
   gitRemoteUrl(worktreePath: String!, remote: String): GitRemoteUrlResult!
   gitListPRs(projectPath: String!): GitPRListResult!
+  gitBranchDiffFiles(worktreePath: String!, baseBranch: String!): GitBranchDiffFilesResult!
+  gitBranchFileDiff(worktreePath: String!, baseBranch: String!, filePath: String!): GitBranchFileDiffResult!
+  gitFileContentBase64(worktreePath: String!, filePath: String!): GitFileContentBase64Result!
+  gitRefContentBase64(worktreePath: String!, ref: String!, filePath: String!): GitFileContentBase64Result!
+  gitPRState(worktreePath: String!, prNumber: Int!): GitPRStateResult!
+  gitPRReviewComments(worktreePath: String!, prNumber: Int!): GitPRReviewCommentsResult!
 
   # --- File Tree ---
   fileTreeScan(dirPath: String!): FileTreeScanResult!
@@ -61,10 +70,12 @@ type Query {
   # --- File ---
   fileRead(filePath: String!): FileReadResult!
   fileReadPrompt(promptName: String!): FileReadResult!
+  fileReadImageAsBase64(filePath: String!): FileReadImageResult!
 
   # --- Connection ---
   connections: [ConnectionWithMembers!]!
   connection(connectionId: ID!): ConnectionWithMembers
+  pinnedConnections: [ConnectionWithMembers!]!
 
   # --- Project Operations ---
   projectValidate(path: String!): ProjectValidateResult!
@@ -86,6 +97,16 @@ type Query {
 
   # --- Script ---
   scriptPort(cwd: String!): Int
+
+  # --- Kanban ---
+  kanbanTicket(id: ID!): KanbanTicket
+  kanbanTicketsByProject(projectId: ID!, includeArchived: Boolean): [KanbanTicket!]!
+  kanbanTicketsBySession(sessionId: ID!): [KanbanTicket!]!
+  kanbanFollowupsByTicket(ticketId: ID!): [TicketFollowupMessage!]!
+
+  # --- Usage ---
+  usageFetch(providers: [String!]): UsageResult!
+  usageFetchOpenai: UsageResult!
 
   # --- DB Utility ---
   dbSchemaVersion: Int!
@@ -111,6 +132,11 @@ type Mutation {
   touchWorktree(id: ID!): Boolean!
   appendWorktreeSessionTitle(worktreeId: ID!, title: String!): SuccessResult!
   updateWorktreeModel(input: UpdateWorktreeModelInput!): SuccessResult!
+  worktreeAddAttachment(worktreeId: ID!, attachment: AttachmentInput!): SuccessResult!
+  worktreeRemoveAttachment(worktreeId: ID!, attachmentId: String!): SuccessResult!
+  worktreeAttachPR(worktreeId: ID!, prNumber: Int!, prUrl: String!): SuccessResult!
+  worktreeDetachPR(worktreeId: ID!): SuccessResult!
+  worktreeSetPinned(worktreeId: ID!, pinned: Boolean!): SuccessResult!
 
   # --- Sessions ---
   createSession(input: CreateSessionInput!): Session!
@@ -147,6 +173,7 @@ type Mutation {
   opencodePlanApprove(input: PlanApproveInput!): SuccessResult!
   opencodePlanReject(input: PlanRejectInput!): SuccessResult!
   opencodePermissionReply(input: PermissionReplyInput!): SuccessResult!
+  opencodeCommandApprovalReply(input: CommandApprovalReplyInput!): SuccessResult!
 
   # --- Git ---
   gitStageFile(worktreePath: String!, filePath: String!): SuccessResult!
@@ -200,6 +227,18 @@ type Mutation {
   projectInitRepository(path: String!): SuccessResult!
   projectUploadIcon(projectId: ID!, data: String!, filename: String!): SuccessResult!
   projectRemoveIcon(projectId: ID!): SuccessResult!
+
+  # --- Kanban ---
+  kanbanCreateTicket(input: KanbanCreateTicketInput!): KanbanTicket!
+  kanbanUpdateTicket(id: ID!, input: KanbanUpdateTicketInput!): KanbanTicket
+  kanbanDeleteTicket(id: ID!): SuccessResult!
+  kanbanArchiveTicket(id: ID!): KanbanTicket
+  kanbanArchiveAllDone(projectId: ID!): SuccessResult!
+  kanbanUnarchiveTicket(id: ID!): KanbanTicket
+  kanbanMoveTicket(id: ID!, column: KanbanTicketColumn!, sortOrder: Float!): KanbanTicket
+  kanbanReorderTicket(id: ID!, sortOrder: Float!): SuccessResult!
+  kanbanToggleSimpleMode(projectId: ID!, enabled: Boolean!): SuccessResult!
+  kanbanCreateFollowup(input: KanbanCreateFollowupInput!): TicketFollowupMessage!
 
   # --- Logging ---
   createResponseLog(sessionId: ID!): String!

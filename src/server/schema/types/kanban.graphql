@@ -1,0 +1,51 @@
+enum KanbanTicketColumn {
+  todo
+  in_progress
+  review
+  done
+}
+
+type KanbanTicket {
+  id: String!
+  projectId: String!
+  sessionId: String
+  worktreeId: String
+  title: String!
+  description: String
+  column: KanbanTicketColumn!
+  sortOrder: Float!
+  archived: Boolean!
+  createdAt: String!
+  updatedAt: String!
+}
+
+type TicketFollowupMessage {
+  id: String!
+  ticketId: String!
+  message: String!
+  createdAt: String!
+}
+
+input KanbanCreateTicketInput {
+  projectId: String!
+  sessionId: String
+  worktreeId: String
+  title: String!
+  description: String
+  column: KanbanTicketColumn!
+  sortOrder: Float
+}
+
+input KanbanUpdateTicketInput {
+  title: String
+  description: String
+  column: KanbanTicketColumn
+  sortOrder: Float
+  sessionId: String
+  worktreeId: String
+}
+
+input KanbanCreateFollowupInput {
+  ticketId: String!
+  message: String!
+}
