@@ -61,8 +61,8 @@ type FollowUpMode = 'build' | 'plan' | 'super-plan'
 /** Standard (non-dual-pane) DialogContent className per modal mode */
 const MODE_DIALOG_CLASS: Record<ModalMode, string> = {
   edit: 'sm:max-w-lg',
-  plan_review: 'sm:max-w-2xl max-h-[80vh] flex flex-col',
-  review: 'sm:max-w-2xl max-h-[80vh] flex flex-col',
+  plan_review: 'sm:max-w-2xl max-h-[80vh] flex flex-col overflow-hidden',
+  review: 'sm:max-w-2xl max-h-[80vh] flex flex-col overflow-hidden',
   error: 'sm:max-w-lg',
   question: 'sm:max-w-lg'
 }
@@ -1145,7 +1145,7 @@ function PlanReviewModeContent({
 
       <div
         data-testid="plan-review-content"
-        className="flex-1 overflow-y-auto rounded-md border border-border/60 bg-muted/20 p-4 prose prose-sm dark:prose-invert max-w-none"
+        className="flex-1 min-h-0 overflow-y-auto rounded-md border border-border/60 bg-muted/20 p-4 prose prose-sm dark:prose-invert max-w-none"
       >
         <MarkdownRenderer content={planContent} />
       </div>
@@ -1199,7 +1199,7 @@ function PlanReviewModeContent({
         </div>
       </div>
 
-      <DialogFooter className="flex-shrink-0 gap-1.5">
+      <DialogFooter className="flex-shrink-0 gap-1.5 flex-wrap">
         <Button
           type="button"
           data-testid="plan-review-handoff-btn"
@@ -1443,7 +1443,7 @@ function ReviewModeContent({
       {!dualPane && (
         <div
           data-testid="review-content"
-          className="flex-1 overflow-y-auto rounded-md border border-border/60 bg-muted/20 p-4 space-y-3"
+          className="flex-1 min-h-0 overflow-y-auto rounded-md border border-border/60 bg-muted/20 p-4 space-y-3"
         >
           {reviewDescription ? (
             <div className="prose prose-sm dark:prose-invert max-w-none">
