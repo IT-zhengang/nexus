@@ -257,7 +257,7 @@ export function KanbanColumn({ column, tickets, archivedTickets, projectId, conn
               if (worktree) {
                 // Resolve the effective base branch
                 const defaultWorktrees = await window.db.worktree.getActiveByProject(ticketProjectId)
-                const defaultWt = defaultWorktrees.find((w: any) => w.is_default)
+                const defaultWt = defaultWorktrees.find((w) => w.is_default)
                 const resolvedBaseBranch = worktree.base_branch ?? defaultWt?.branch_name
 
                 if (resolvedBaseBranch && worktree.branch_name !== resolvedBaseBranch) {

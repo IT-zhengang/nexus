@@ -1649,7 +1649,7 @@ function ReviewModeContent({
         const worktree = await window.db.worktree.get(ticket.worktree_id)
         if (worktree) {
           const defaultWorktrees = await window.db.worktree.getActiveByProject(ticket.project_id)
-          const defaultWt = defaultWorktrees.find((w: any) => w.is_default)
+          const defaultWt = defaultWorktrees.find((w) => w.is_default)
           const resolvedBaseBranch = worktree.base_branch ?? defaultWt?.branch_name
 
           if (resolvedBaseBranch && worktree.branch_name !== resolvedBaseBranch) {

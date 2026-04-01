@@ -65,6 +65,7 @@ interface Worktree {
   context: string | null
   github_pr_number: number | null
   github_pr_url: string | null
+  base_branch: string | null
   created_at: string
   last_accessed_at: string
 }
