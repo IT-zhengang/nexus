@@ -897,6 +897,32 @@ const gitOps = {
     conflicts?: string[]
   }> => ipcRenderer.invoke('git:merge', worktreePath, sourceBranch),
 
+  // Abort an in-progress merge
+  mergeAbort: (
+    worktreePath: string
+  ): Promise<{
+    success: boolean
+    error?: string
+  }> => ipcRenderer.invoke('git:mergeAbort', worktreePath),
+
+  // Check if a worktree has uncommitted changes
+  hasUncommittedChanges: (
+    worktreePath: string
+  ): Promise<boolean> => ipcRenderer.invoke('git:hasUncommittedChanges', worktreePath),
+
+  // Get branch divergence stats vs base branch
+  branchDiffShortStat: (
+    worktreePath: string,
+    baseBranch: string
+  ): Promise<{
+    success: boolean
+    filesChanged: number
+    insertions: number
+    deletions: number
+    commitsAhead: number
+    error?: string
+  }> => ipcRenderer.invoke('git:branchDiffShortStat', worktreePath, baseBranch),
+
   // Get raw file content from disk
   getFileContent: (
     worktreePath: string,
