@@ -30,6 +30,7 @@ export interface CreateWorktreeResult {
   branchName?: string
   path?: string
   error?: string
+  baseBranch?: string
   pullInfo?: {
     pulled: boolean
     updated: boolean
@@ -331,6 +332,7 @@ export class GitService {
           name: breedName,
           branchName: breedName,
           path: worktreePath,
+          baseBranch: defaultBranch,
           pullInfo: {
             pulled: pullResult.success && autoPull,
             updated: pullResult.updated || false
@@ -1275,7 +1277,7 @@ export class GitService {
         cpSync(srcPath, destPath)
       }
 
-      return { success: true, name: newBranchName, branchName: newBranchName, path: worktreePath }
+      return { success: true, name: newBranchName, branchName: newBranchName, path: worktreePath, baseBranch: sourceBranch }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error'
       log.error(
@@ -1413,7 +1415,8 @@ export class GitService {
           const wtPath = lines.find((l) => l.startsWith('worktree '))?.replace('worktree ', '')
           if (branch === branchName && wtPath) {
             // Already checked out — duplicate it
-            return this.duplicateWorktree(branchName, wtPath, projectName, options?.nameHint)
+            const dupResult = await this.duplicateWorktree(branchName, wtPath, projectName, options?.nameHint)
+            return { ...dupResult, baseBranch: branchName }
           }
         }
       }
@@ -1494,6 +1497,7 @@ export class GitService {
             path: worktreePath,
             branchName: worktreeName,
             name: worktreeName,
+            baseBranch: branchName,
             pullInfo: {
               pulled: prNumber == null && pullResult.success && autoPull,
               updated: pullResult.updated || false
