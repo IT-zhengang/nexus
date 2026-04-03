@@ -18,6 +18,7 @@ export type TerminalOption =
   | 'cmd'
   | 'custom'
 export type EmbeddedTerminalBackend = 'xterm' | 'ghostty'
+export type MergeConflictMode = 'build' | 'plan' | 'always-ask'
 
 export interface SelectedModel {
   providerID: string
@@ -47,6 +48,7 @@ export interface AppSettings {
   autoPullBeforeWorktree: boolean
   breedType: 'dogs' | 'cats'
   vimModeEnabled: boolean
+  mergeConflictMode: MergeConflictMode
 
   // Editor
   defaultEditor: EditorOption
@@ -115,6 +117,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   autoPullBeforeWorktree: true,
   breedType: 'dogs',
   vimModeEnabled: false,
+  mergeConflictMode: 'build',
   defaultEditor: 'vscode',
   customEditorCommand: '',
   defaultTerminal: 'terminal',
@@ -235,6 +238,7 @@ function extractSettings(state: SettingsState): AppSettings {
     autoPullBeforeWorktree: state.autoPullBeforeWorktree,
     breedType: state.breedType,
     vimModeEnabled: state.vimModeEnabled,
+    mergeConflictMode: state.mergeConflictMode,
     defaultEditor: state.defaultEditor,
     customEditorCommand: state.customEditorCommand,
     defaultTerminal: state.defaultTerminal,
@@ -445,6 +449,7 @@ export const useSettingsStore = create<SettingsState>()(
         autoPullBeforeWorktree: state.autoPullBeforeWorktree,
         breedType: state.breedType,
         vimModeEnabled: state.vimModeEnabled,
+        mergeConflictMode: state.mergeConflictMode,
         defaultEditor: state.defaultEditor,
         customEditorCommand: state.customEditorCommand,
         defaultTerminal: state.defaultTerminal,
