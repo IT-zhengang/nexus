@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { useSettingsStore } from '@/stores/useSettingsStore'
 import { patternMatches } from '@/lib/permissionUtils'
+import { useKeyboardShortcut } from '@/hooks/useKeyboardShortcut'
 import type { CommandApprovalRequest, SubCommandSuggestions } from '@/stores/useCommandApprovalStore'
 
 interface CommandApprovalPromptProps {
@@ -350,6 +351,13 @@ export function CommandApprovalPrompt({ request, onReply }: CommandApprovalPromp
       onReply(request.id, false, 'block', flatSuggestions[0])
     }
   }, [sending, flatSuggestions, onReply, request.id])
+
+  // Enter key handler: approve once (default) or confirm pattern if picker is open
+  useKeyboardShortcut({
+    key: 'Enter',
+    callback: patternPickerMode ? handleConfirmPattern : handleAllow,
+    enabled: !sending
+  })
 
   return (
     <div
