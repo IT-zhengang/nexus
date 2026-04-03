@@ -89,17 +89,15 @@ function usePinAndActivateSession(onClose: () => void) {
   const pinAndActivate = useCallback(async (createFn: () => Promise<string | null>) => {
     setLoading(true)
     try {
-      console.log('[pinAndActivate] Calling createFn')
       const sessionId = await createFn()
-      console.log('[pinAndActivate] createFn returned', { sessionId })
       if (sessionId) {
         const sessionStore = useSessionStore.getState()
         await sessionStore.pinSessionToBoard(sessionId)
         sessionStore.setActivePinnedSession(sessionId)
         onClose()
       }
-    } catch (err) {
-      console.error('[pinAndActivate] Error in createFn or pin flow', err)
+    } catch {
+      // Session creation itself shows toasts; nothing extra needed
     } finally {
       setLoading(false)
     }
@@ -778,6 +776,11 @@ function EditModeContent({
   const lifecycle = useLifecycleActions(ticket.worktree_id)
   const { pinAndActivate: pinAndActivateSession, lifecycleLoading } = usePinAndActivateSession(onClose)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+
+  // Load live PR state so merge-button guard works (hide if already merged/closed)
+  useEffect(() => {
+    if (lifecycle.hasAttachedPR) lifecycle.loadPRState()
+  }, [lifecycle.hasAttachedPR])
 
   const detectedAttachment = attachUrl.trim() ? parseAttachmentUrl(attachUrl.trim()) : null
 
@@ -1619,6 +1622,11 @@ function ReviewModeContent({
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const lifecycle = useLifecycleActions(ticket.worktree_id)
   const { pinAndActivate: pinAndActivateSession, lifecycleLoading } = usePinAndActivateSession(onClose)
+
+  // Load live PR state so merge-button guard works (hide if already merged/closed)
+  useEffect(() => {
+    if (lifecycle.hasAttachedPR) lifecycle.loadPRState()
+  }, [lifecycle.hasAttachedPR])
 
   // Display ticket description as context, with notice to view session for full conversation
   const reviewDescription = ticket.description ?? null
