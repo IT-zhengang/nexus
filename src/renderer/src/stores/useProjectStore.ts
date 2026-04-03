@@ -11,6 +11,7 @@ interface Project {
   tags: string | null
   language: string | null
   custom_icon: string | null
+  detected_icon: string | null
   setup_script: string | null
   run_script: string | null
   archive_script: string | null
@@ -45,6 +46,7 @@ interface ProjectState {
       tags?: string[] | null
       language?: string | null
       custom_icon?: string | null
+      detected_icon?: string | null
       setup_script?: string | null
       run_script?: string | null
       archive_script?: string | null
@@ -80,6 +82,26 @@ export const useProjectStore = create<ProjectState>()(
         try {
           const projects = await window.db.project.getAll()
           set({ projects, isLoading: false })
+
+          // Backfill favicon detection for projects that haven't been scanned yet
+          const unscanned = projects.filter((p) => p.detected_icon === null || p.detected_icon === undefined)
+          for (const project of unscanned) {
+            window.projectOps
+              .detectFavicon(project.path)
+              .then(async (detectedIcon) => {
+                await window.db.project.update(project.id, {
+                  detected_icon: detectedIcon ?? 'none'
+                })
+                set((state) => ({
+                  projects: state.projects.map((p) =>
+                    p.id === project.id
+                      ? { ...p, detected_icon: detectedIcon ?? 'none' }
+                      : p
+                  )
+                }))
+              })
+              .catch(() => {})
+          }
         } catch (error) {
           set({
             error: error instanceof Error ? error.message : 'Failed to load projects',
@@ -125,6 +147,23 @@ export const useProjectStore = create<ProjectState>()(
             .catch(() => {
               // Ignore detection errors
             })
+
+          // Auto-detect favicon (fire and forget for speed)
+          window.projectOps
+            .detectFavicon(validation.path!)
+            .then(async (detectedIcon) => {
+              await window.db.project.update(project.id, {
+                detected_icon: detectedIcon ?? 'none'
+              })
+              set((state) => ({
+                projects: state.projects.map((p) =>
+                  p.id === project.id
+                    ? { ...p, detected_icon: detectedIcon ?? 'none' }
+                    : p
+                )
+              }))
+            })
+            .catch(() => {})
 
           // Add to state
           set((state) => ({
@@ -198,6 +237,7 @@ export const useProjectStore = create<ProjectState>()(
           tags?: string[] | null
           language?: string | null
           custom_icon?: string | null
+          detected_icon?: string | null
           setup_script?: string | null
           run_script?: string | null
           archive_script?: string | null
@@ -276,11 +316,29 @@ export const useProjectStore = create<ProjectState>()(
         const project = get().projects.find((p) => p.id === projectId)
         if (!project) return
         try {
-          const language = await window.projectOps.detectLanguage(detectionPath ?? project.path)
+          const path = detectionPath ?? project.path
+          const language = await window.projectOps.detectLanguage(path)
           await window.db.project.update(projectId, { language })
           set((state) => ({
             projects: state.projects.map((p) => (p.id === projectId ? { ...p, language } : p))
           }))
+
+          // Also refresh favicon detection
+          window.projectOps
+            .detectFavicon(path)
+            .then(async (detectedIcon) => {
+              await window.db.project.update(projectId, {
+                detected_icon: detectedIcon ?? 'none'
+              })
+              set((state) => ({
+                projects: state.projects.map((p) =>
+                  p.id === projectId
+                    ? { ...p, detected_icon: detectedIcon ?? 'none' }
+                    : p
+                )
+              }))
+            })
+            .catch(() => {})
         } catch {
           // Ignore refresh errors
         }

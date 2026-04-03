@@ -60,6 +60,22 @@ export function createProjectOpsAdapter(): ProjectOpsApi {
       return data.projectIconPath
     },
 
+    async detectFavicon(projectPath: string): Promise<string | null> {
+      const data = await graphqlQuery<{ projectDetectFavicon: string | null }>(
+        `query ($projectPath: String!) { projectDetectFavicon(projectPath: $projectPath) }`,
+        { projectPath }
+      )
+      return data.projectDetectFavicon
+    },
+
+    async getAbsoluteIconDataUrl(absolutePath: string): Promise<string | null> {
+      const data = await graphqlQuery<{ projectAbsoluteIconDataUrl: string | null }>(
+        `query ($absolutePath: String!) { projectAbsoluteIconDataUrl(absolutePath: $absolutePath) }`,
+        { absolutePath }
+      )
+      return data.projectAbsoluteIconDataUrl
+    },
+
     async isGitRepository(path: string): Promise<boolean> {
       const data = await graphqlQuery<{ projectIsGitRepository: boolean }>(
         `query ($path: String!) { projectIsGitRepository(path: $path) }`,

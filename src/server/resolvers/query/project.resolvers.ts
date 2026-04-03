@@ -3,8 +3,10 @@ import {
   validateProject,
   isGitRepository,
   detectProjectLanguage,
+  detectProjectFavicon,
   loadLanguageIcons,
-  getIconDataUrl
+  getIconDataUrl,
+  getAbsoluteIconDataUrl
 } from '../../../main/services/project-ops'
 
 export const projectQueryResolvers: Resolvers = {
@@ -23,6 +25,12 @@ export const projectQueryResolvers: Resolvers = {
     },
     projectIconPath: (_parent, { filename }) => {
       return getIconDataUrl(filename)
+    },
+    projectDetectFavicon: async (_parent, { projectPath }) => {
+      return detectProjectFavicon(projectPath)
+    },
+    projectAbsoluteIconDataUrl: (_parent, { absolutePath }) => {
+      return getAbsoluteIconDataUrl(absolutePath)
     }
   }
 }
