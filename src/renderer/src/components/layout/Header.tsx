@@ -16,7 +16,9 @@ import {
   FileSearch,
   X,
   ExternalLink,
-  Copy
+  Copy,
+  Hammer,
+  Map
 } from 'lucide-react'
 import { KanbanIcon } from '@/components/kanban/KanbanIcon'
 import { Button } from '@/components/ui/button'
@@ -101,6 +103,7 @@ export function Header(): React.JSX.Element {
   const setActiveSession = useSessionStore((s) => s.setActiveSession)
   const vimMode = useVimModeStore((s) => s.mode)
   const vimModeEnabled = useSettingsStore((s) => s.vimModeEnabled)
+  const mergeConflictMode = useSettingsStore((s) => s.mergeConflictMode)
   const showVimHints = vimModeEnabled && vimMode === 'normal'
   const isBoardViewActive = useKanbanStore((s) => s.isBoardViewActive)
   const toggleBoardView = useKanbanStore((s) => s.toggleBoardView)
@@ -476,22 +479,24 @@ export function Header(): React.JSX.Element {
     toast.success('PR URL copied')
   }, [attachedPR?.url])
 
-  const handleFixConflicts = async () => {
+  const handleFixConflicts = async (modeOverride?: 'build' | 'plan') => {
     if (!selectedWorktreeId || !selectedProjectId || !selectedWorktree?.path) return
+
+    const resolvedMode = modeOverride ?? (mergeConflictMode === 'always-ask' ? 'build' : mergeConflictMode)
 
     setConflictFixFlow({
       phase: 'starting',
       worktreePath: selectedWorktree.path
     })
 
-    const { success, session } = await createSession(selectedWorktreeId, selectedProjectId)
+    const { success, session } = await createSession(selectedWorktreeId, selectedProjectId, undefined, resolvedMode)
     if (!success || !session) {
       setConflictFixFlow(null)
       return
     }
 
     const branchName = selectedWorktree?.branch_name || 'unknown'
-    await updateSessionName(session.id, `Merge Conflicts -- ${branchName}`)
+    await updateSessionName(session.id, `Merge Conflicts — ${branchName}`)
     setPendingMessage(session.id, 'Fix merge conflicts')
     setActiveSession(session.id)
 
@@ -566,21 +571,52 @@ export function Header(): React.JSX.Element {
       </div>
       {!isConnectionMode && showFixConflictsButton && (
         <div style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
-          <Button
-            size="sm"
-            variant="destructive"
-            className="h-7 text-xs font-semibold"
-            onClick={handleFixConflicts}
-            disabled={isFixConflictsLoading}
-            data-testid="fix-conflicts-button"
-          >
-            {isFixConflictsLoading ? (
-              <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
-            ) : (
-              <AlertTriangle className="h-3.5 w-3.5 mr-1" />
-            )}
-            {isFixConflictsLoading ? 'Fixing conflicts...' : 'Fix conflicts'}
-          </Button>
+          {mergeConflictMode === 'always-ask' ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  className="h-7 text-xs font-semibold"
+                  disabled={isFixConflictsLoading}
+                  data-testid="fix-conflicts-button"
+                >
+                  {isFixConflictsLoading ? (
+                    <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                  ) : (
+                    <AlertTriangle className="h-3.5 w-3.5 mr-1" />
+                  )}
+                  {isFixConflictsLoading ? 'Fixing conflicts...' : 'Fix conflicts'}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => handleFixConflicts('build')}>
+                  <Hammer className="h-4 w-4 mr-2" />
+                  Fix in Build mode
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleFixConflicts('plan')}>
+                  <Map className="h-4 w-4 mr-2" />
+                  Fix in Plan mode
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Button
+              size="sm"
+              variant="destructive"
+              className="h-7 text-xs font-semibold"
+              onClick={() => handleFixConflicts()}
+              disabled={isFixConflictsLoading}
+              data-testid="fix-conflicts-button"
+            >
+              {isFixConflictsLoading ? (
+                <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+              ) : (
+                <AlertTriangle className="h-3.5 w-3.5 mr-1" />
+              )}
+              {isFixConflictsLoading ? 'Fixing conflicts...' : 'Fix conflicts'}
+            </Button>
+          )}
         </div>
       )}
       <div className="flex-1" />
