@@ -325,6 +325,13 @@ export function WorktreePickerModal({
         const sessionId = sessionResult.session.id
         const sessionAgentSdk = sessionResult.session.agent_sdk
 
+        // Set status tracking immediately so the sidebar shows spinning right away.
+        messageSendTimes.set(sessionId, Date.now())
+        userExplicitSendTimes.set(sessionId, Date.now())
+        snapshotTokenBaseline(sessionId)
+        lastSendMode.set(sessionId, mode)
+        useWorktreeStatusStore.getState().setSessionStatus(sessionId, isPlanLike(mode) ? 'planning' : 'working')
+
         // Apply model override
         const effectiveModel = selectedModel ?? autoResolvedModel ?? undefined
         if (selectedModel) {
@@ -360,13 +367,6 @@ export function WorktreePickerModal({
 
         useSessionStore.getState().setOpenCodeSessionId(sessionId, connectResult.sessionId)
         await window.db.session.update(sessionId, { opencode_session_id: connectResult.sessionId })
-
-        // Set status tracking
-        messageSendTimes.set(sessionId, Date.now())
-        userExplicitSendTimes.set(sessionId, Date.now())
-        snapshotTokenBaseline(sessionId)
-        lastSendMode.set(sessionId, mode)
-        useWorktreeStatusStore.getState().setSessionStatus(sessionId, isPlanLike(mode) ? 'planning' : 'working')
 
         // Send prompt
         if (promptText.trim()) {
@@ -468,6 +468,18 @@ export function WorktreePickerModal({
       const sessionId = sessionResult.session.id
       const sessionAgentSdk = sessionResult.session.agent_sdk
 
+      // Set status tracking immediately so the sidebar shows spinning right away.
+      // This must happen before any async work (connect, prompt) to avoid a race
+      // where loadSessions wipes the session from sessionsByWorktree before the
+      // status is set.
+      messageSendTimes.set(sessionId, Date.now())
+      userExplicitSendTimes.set(sessionId, Date.now())
+      snapshotTokenBaseline(sessionId)
+      lastSendMode.set(sessionId, mode)
+      useWorktreeStatusStore
+        .getState()
+        .setSessionStatus(sessionId, isPlanLike(mode) ? 'planning' : 'working')
+
       // Apply user's model override to the session if they explicitly picked one
       const effectiveModel = selectedModel ?? autoResolvedModel ?? undefined
       if (selectedModel) {
@@ -513,15 +525,6 @@ export function WorktreePickerModal({
       await window.db.session.update(sessionId, {
         opencode_session_id: connectResult.sessionId
       })
-
-      // Set status tracking so the global listener can compute completion badges
-      messageSendTimes.set(sessionId, Date.now())
-      userExplicitSendTimes.set(sessionId, Date.now())
-      snapshotTokenBaseline(sessionId)
-      lastSendMode.set(sessionId, mode)
-      useWorktreeStatusStore
-        .getState()
-        .setSessionStatus(sessionId, isPlanLike(mode) ? 'planning' : 'working')
 
       // Send the prompt — apply plan mode prefix for opencode SDK
       if (promptText.trim()) {
