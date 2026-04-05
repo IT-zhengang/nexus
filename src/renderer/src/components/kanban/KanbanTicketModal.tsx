@@ -1408,7 +1408,7 @@ function PlanReviewModeContent({
 
       // Create session in the new worktree
       const sessionStore = useSessionStore.getState()
-      const sessionResult = await sessionStore.createSession(dupResult.worktree.id, project.id)
+      const sessionResult = await sessionStore.createSession(dupResult.worktree.id, project.id, undefined, undefined, { autoFocus: false })
       if (!sessionResult.success || !sessionResult.session) {
         toast.error(sessionResult.error ?? 'Failed to create supercharge session')
         return
@@ -1453,7 +1453,7 @@ function PlanReviewModeContent({
 
       // Create a new session in the SAME worktree
       const sessionStore = useSessionStore.getState()
-      const sessionResult = await sessionStore.createSession(ticket.worktree_id, ticket.project_id)
+      const sessionResult = await sessionStore.createSession(ticket.worktree_id, ticket.project_id, undefined, undefined, { autoFocus: false })
       if (!sessionResult.success || !sessionResult.session) {
         toast.error(sessionResult.error ?? 'Failed to create local supercharge session')
         return
