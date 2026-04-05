@@ -1059,18 +1059,13 @@ function EditModeContent({
               type="button"
               variant="outline"
               className="gap-1.5 border-red-500/30 text-red-500 hover:bg-red-500/10"
-              onClick={async () => {
-                const success = await lifecycle.archiveWorktree()
-                if (success) onClose()
+              onClick={() => {
+                onClose()
+                lifecycle.archiveWorktree()
               }}
-              disabled={lifecycle.isArchiving}
             >
-              {lifecycle.isArchiving ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Archive className="h-3.5 w-3.5" />
-              )}
-              {lifecycle.isArchiving ? 'Archiving...' : 'Archive'}
+              <Archive className="h-3.5 w-3.5" />
+              Archive
             </Button>
           )}
           <Button
@@ -1762,7 +1757,6 @@ function ReviewModeContent({
             const doneTickets = kanbanStore.getTicketsByColumn(ticket.project_id, 'done')
             const sortOrder = kanbanStore.computeSortOrder(doneTickets, doneTickets.length)
             kanbanStore.setPendingDoneMove({ ticketId: ticket.id, projectId: ticket.project_id, sortOrder })
-            onClose()
             return
           }
         }
@@ -1778,11 +1772,10 @@ function ReviewModeContent({
       const sortOrder = kanbanStore.computeSortOrder(doneTickets, doneTickets.length)
       await moveTicket(ticket.id, ticket.project_id, 'done', sortOrder)
       toast.success('Ticket moved to Done')
-      onClose()
     } catch {
       toast.error('Failed to move ticket')
     }
-  }, [ticket, moveTicket, onClose])
+  }, [ticket, moveTicket])
 
   // ── Run / Stop handlers ────────────────────────────────────────────
   const handleRunScript = useCallback(() => {
