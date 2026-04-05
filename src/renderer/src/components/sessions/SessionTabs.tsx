@@ -1036,6 +1036,9 @@ export function SessionTabs(): React.JSX.Element | null {
   // Determine if a file/diff tab is the active one
   const isFileTabActive = activeFilePath !== null
 
+  // Sticky-tab mode: board is visible when its tab is selected and no file is foregrounded
+  const isStickyBoardActive = boardMode === 'sticky-tab' && activeSessionId === BOARD_TAB_ID && !isFileTabActive
+
   /** Renders connection tabs + session tabs — shared between sticky-tab and normal mode */
   const renderSessionTabs = () => (
     <>
@@ -1409,7 +1412,7 @@ export function SessionTabs(): React.JSX.Element | null {
       )}
 
       {/* Import dropdown — kanban mode, sits on the tab bar line (hidden in connection board — board has its own) */}
-      {isBoardViewActive && !isConnectionBoardActive && (
+      {(isBoardViewActive || isStickyBoardActive) && !isConnectionMode && (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
@@ -1461,7 +1464,7 @@ export function SessionTabs(): React.JSX.Element | null {
       )}
 
       {/* Ticket creation modal — kanban mode */}
-      {isBoardViewActive && project && (
+      {(isBoardViewActive || isStickyBoardActive) && project && (
         <>
           <TicketCreateModal
             open={isTicketCreateOpen}
