@@ -48,6 +48,7 @@ import {
   type CodexSessionContext,
   type CodexProviderSession
 } from '../../../src/main/services/codex-app-server-manager'
+import { toJsonSnapshot } from '../../../src/main/services/codex-utils'
 
 // ── Helper: create a mock child process ─────────────────────────────
 
@@ -317,6 +318,28 @@ describe('CodexAppServerManager', () => {
     })
   })
 
+  describe('toJsonSnapshot', () => {
+    it('returns a stable string for undefined', () => {
+      expect(toJsonSnapshot(undefined, 50)).toBe('undefined')
+    })
+
+    it('stringifies plain objects', () => {
+      expect(toJsonSnapshot({ ok: true }, 50)).toBe('{"ok":true}')
+    })
+
+    it('truncates long snapshots', () => {
+      expect(toJsonSnapshot({ text: 'abcdefghij' }, 10)).toBe('{"text":"a')
+    })
+
+    it('falls back safely for circular objects', () => {
+      const circular: Record<string, unknown> = {}
+      circular.self = circular
+
+      expect(() => toJsonSnapshot(circular, 50)).not.toThrow()
+      expect(toJsonSnapshot(circular, 50)).toBe('[object Object]')
+    })
+  })
+
   // ── sendRequest ─────────────────────────────────────────────────
 
   describe('sendRequest', () => {
@@ -399,6 +422,22 @@ describe('CodexAppServerManager', () => {
       expect(events).toHaveLength(1)
       expect(events[0].kind).toBe('notification')
       expect(events[0].method).toBe('item/agentMessage/delta')
+    })
+
+    it('emits event for notifications when params are omitted', () => {
+      const { context } = createTestContext()
+      const events: any[] = []
+      manager.on('event', (event) => events.push(event))
+
+      expect(() =>
+        manager.handleStdoutLine(context, JSON.stringify({ method: 'process/stderr' }))
+      ).not.toThrow()
+
+      expect(events).toHaveLength(1)
+      expect(events[0].kind).toBe('notification')
+      expect(events[0].method).toBe('process/stderr')
+      expect(events[0].threadId).toBe('thread-123')
+      expect(events[0].payload).toBeUndefined()
     })
 
     it('emits event for server requests', () => {

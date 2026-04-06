@@ -596,5 +596,46 @@ describe('Codex Question Prompts', () => {
       // Nothing should be sent to renderer
       expect(mockWindow.webContents.send).not.toHaveBeenCalled()
     })
+
+    it('does not throw for notification events with undefined payload', async () => {
+      const { CodexImplementer } = await import('../../../src/main/services/codex-implementer')
+      const impl = new CodexImplementer()
+      const internalManager = impl.getManager() as any
+      const mockWindow = {
+        isDestroyed: () => false,
+        webContents: { send: vi.fn() }
+      }
+      impl.setMainWindow(mockWindow as any)
+
+      impl.getSessions().set('/test::thread-q-1', {
+        threadId: 'thread-q-1',
+        hiveSessionId: 'hive-q-1',
+        worktreePath: '/test',
+        status: 'ready',
+        messages: [],
+        revertMessageID: null,
+        revertDiff: null
+      })
+
+      let managerListener: any
+      internalManager.on = vi.fn().mockImplementation((_: string, handler: any) => {
+        managerListener = handler
+      })
+      ;(impl as any).attachManagerListener()
+
+      expect(() =>
+        managerListener({
+          id: 'evt-4',
+          kind: 'notification',
+          provider: 'codex',
+          threadId: 'thread-q-1',
+          createdAt: new Date().toISOString(),
+          method: 'process/stderr',
+          payload: undefined
+        })
+      ).not.toThrow()
+
+      expect(mockWindow.webContents.send).not.toHaveBeenCalled()
+    })
   })
 })

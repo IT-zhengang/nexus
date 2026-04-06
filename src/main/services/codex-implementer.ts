@@ -12,7 +12,7 @@ import { createLogger } from './logger'
 import { CodexAppServerManager, type CodexManagerEvent } from './codex-app-server-manager'
 import { mapCodexManagerEventToActivity } from './codex-activity-mapper'
 import { mapCodexEventToStreamEvents, contentStreamKindFromMethod } from './codex-event-mapper'
-import { asNumber, asObject, asString } from './codex-utils'
+import { asNumber, asObject, asString, toJsonSnapshot } from './codex-utils'
 import { generateCodexSessionTitle } from './codex-session-title'
 import type { DatabaseService } from '../db/database'
 import { autoRenameWorktreeBranch } from './git-service'
@@ -156,7 +156,7 @@ export class CodexImplementer implements AgentSdkImplementer {
         method: event.method,
         threadId: event.threadId,
         payloadKeys: event.payload ? Object.keys(event.payload as Record<string, unknown>) : [],
-        payloadSnapshot: JSON.stringify(event.payload).slice(0, 500)
+        payloadSnapshot: toJsonSnapshot(event.payload, 500)
       })
     }
 
@@ -296,7 +296,7 @@ export class CodexImplementer implements AgentSdkImplementer {
     const payload = asObject(event.payload)
     log.info('DEBUG handleProviderTitleUpdate: raw payload', {
       payloadKeys: payload ? Object.keys(payload) : [],
-      fullPayload: JSON.stringify(event.payload).slice(0, 1000)
+      fullPayload: toJsonSnapshot(event.payload, 1000)
     })
     const title = asString(payload?.threadName)
     if (!title) {

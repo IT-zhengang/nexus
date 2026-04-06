@@ -14,3 +14,19 @@ export function asString(value: unknown): string | undefined {
 export function asNumber(value: unknown): number | undefined {
   return typeof value === 'number' ? value : undefined
 }
+
+export function toJsonSnapshot(value: unknown, maxLength: number): string {
+  let snapshot: string
+
+  if (value === undefined) {
+    snapshot = 'undefined'
+  } else {
+    try {
+      snapshot = JSON.stringify(value) ?? String(value)
+    } catch {
+      snapshot = String(value)
+    }
+  }
+
+  return snapshot.length > maxLength ? snapshot.slice(0, maxLength) : snapshot
+}
