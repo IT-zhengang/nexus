@@ -401,8 +401,14 @@ export function KanbanColumn({ column, tickets, archivedTickets, projectId, conn
       <ContextMenu>
         <ContextMenuTrigger asChild disabled={!isDoneColumn}>
           <div className="relative flex items-center px-2 pb-3">
+            {/* Left spacer — mirrors right toggle width to keep title centered.
+                Shrinks when the counter badge needs more room. */}
+            {(isDoneColumn || isInProgressColumn) && (
+              <div className="w-[50px] shrink" aria-hidden="true" />
+            )}
+
             {/* Title group — centered */}
-            <div className="flex w-full items-center justify-center gap-2">
+            <div className="flex flex-1 items-center justify-center gap-2">
               {/* Collapse toggle for Done column */}
               {isDoneColumn && (
                 <button
@@ -429,11 +435,11 @@ export function KanbanColumn({ column, tickets, archivedTickets, projectId, conn
               </span>
             </div>
 
-            {/* Flow mode toggle — top-right, vertically centered with title.
+            {/* Flow mode toggle — right of title, vertically centered.
                 ON (default) = flow mode: automated worktree picker on drop.
                 OFF = simple mode: direct drop, no modal. */}
             {isInProgressColumn && (
-              <div className="absolute right-2 flex items-center gap-1.5">
+              <div className="ml-2 flex shrink-0 items-center gap-1.5">
                 <Zap className={cn('h-3 w-3', !isSimpleMode ? 'text-amber-500' : 'text-muted-foreground/50')} />
                 <Switch
                   data-testid="simple-mode-toggle"
@@ -444,9 +450,9 @@ export function KanbanColumn({ column, tickets, archivedTickets, projectId, conn
               </div>
             )}
 
-            {/* Archive toggle — top-right, vertically centered with title */}
+            {/* Archive toggle — right of title, vertically centered */}
             {isDoneColumn && (
-              <div className="absolute right-2 flex items-center gap-1.5">
+              <div className="ml-2 flex shrink-0 items-center gap-1.5">
                 <Archive className={cn('h-3 w-3', showArchived ? 'text-muted-foreground' : 'text-muted-foreground/50')} />
                 <Switch
                   data-testid="archive-toggle"
