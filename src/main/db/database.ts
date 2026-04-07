@@ -1922,7 +1922,7 @@ export class DatabaseService {
     const db = this.getDb()
     const now = new Date().toISOString()
     const result = db.prepare(
-      'UPDATE kanban_tickets SET worktree_id = NULL, github_pr_number = NULL, github_pr_url = NULL, updated_at = ? WHERE worktree_id = ?'
+      'UPDATE kanban_tickets SET worktree_id = NULL, updated_at = ? WHERE worktree_id = ?'
     ).run(now, worktreeId)
     return result.changes
   }

@@ -150,8 +150,8 @@ describe('Session 3: Kanban IPC Handlers', () => {
 
     const updated = testDb.getKanbanTicket(ticket.id)
     expect(updated?.worktree_id).toBeNull()
-    expect(updated?.github_pr_number).toBeNull()
-    expect(updated?.github_pr_url).toBeNull()
+    expect(updated?.github_pr_number).toBe(123)
+    expect(updated?.github_pr_url).toBe('https://github.com/acme/repo/pull/123')
   })
 
   test('kanban:ticket:delete calls deleteKanbanTicket', () => {

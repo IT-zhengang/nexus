@@ -362,8 +362,6 @@ export const useKanbanStore = create<KanbanState>()(
               return {
                 ...ticket,
                 worktree_id: null,
-                github_pr_number: null,
-                github_pr_url: null,
                 updated_at: now
               }
             })

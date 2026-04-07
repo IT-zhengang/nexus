@@ -352,7 +352,7 @@ describe('Session 2: Kanban CRUD', () => {
     expect(tickets).toEqual([])
   })
 
-  test('detachWorktreeFromTickets clears worktree and PR metadata for matching tickets only', () => {
+  test('detachWorktreeFromTickets clears worktree_id but preserves PR metadata for matching tickets only', () => {
     const worktreeA = db.createWorktree({
       project_id: projectId,
       name: 'detach-a',
@@ -386,8 +386,8 @@ describe('Session 2: Kanban CRUD', () => {
 
     const detached = db.getKanbanTicket(target.id)
     expect(detached!.worktree_id).toBeNull()
-    expect(detached!.github_pr_number).toBeNull()
-    expect(detached!.github_pr_url).toBeNull()
+    expect(detached!.github_pr_number).toBe(101)
+    expect(detached!.github_pr_url).toBe('https://github.com/acme/repo/pull/101')
 
     const stillAttached = db.getKanbanTicket(untouched.id)
     expect(stillAttached!.worktree_id).toBe(worktreeB.id)

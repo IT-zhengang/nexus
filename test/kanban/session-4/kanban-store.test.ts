@@ -204,7 +204,7 @@ describe('Session 4: Kanban Store', () => {
     expect(mockKanban.ticket.reorder).toHaveBeenCalledWith('t1', 2.5)
   })
 
-  test('detachWorktreeTickets clears worktree and PR fields across loaded projects', async () => {
+  test('detachWorktreeTickets clears worktree_id but preserves PR fields across loaded projects', async () => {
     mockKanban.ticket.detachWorktree.mockResolvedValue(2)
 
     act(() => {
@@ -240,10 +240,12 @@ describe('Session 4: Kanban Store', () => {
     const proj1 = useKanbanStore.getState().tickets.get('proj-1') ?? []
     const proj2 = useKanbanStore.getState().tickets.get('proj-2') ?? []
     expect(proj1.find((t) => t.id === 't1')?.worktree_id).toBeNull()
-    expect(proj1.find((t) => t.id === 't1')?.github_pr_number).toBeNull()
-    expect(proj1.find((t) => t.id === 't1')?.github_pr_url).toBeNull()
+    expect(proj1.find((t) => t.id === 't1')?.github_pr_number).toBe(10)
+    expect(proj1.find((t) => t.id === 't1')?.github_pr_url).toBe('https://github.com/acme/repo/pull/10')
     expect(proj1.find((t) => t.id === 't2')?.worktree_id).toBe('wt-2')
     expect(proj2.find((t) => t.id === 't3')?.worktree_id).toBeNull()
+    expect(proj2.find((t) => t.id === 't3')?.github_pr_number).toBe(20)
+    expect(proj2.find((t) => t.id === 't3')?.github_pr_url).toBe('https://github.com/acme/repo/pull/20')
     expect(mockKanban.ticket.detachWorktree).toHaveBeenCalledWith('wt-1')
   })
 
