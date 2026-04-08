@@ -1661,7 +1661,16 @@ export class ClaudeCodeImplementer implements AgentSdkImplementer {
     userMessage: string
   ): Promise<void> {
     try {
-      const title = await generateSessionTitle(userMessage, 'claude-code')
+      log.info('handleTitleGeneration: starting', {
+        hiveSessionId: session.hiveSessionId,
+        claudeBinaryPath: this.claudeBinaryPath,
+        messagePreview: userMessage.slice(0, 80)
+      })
+      const title = await generateSessionTitle(userMessage, this.claudeBinaryPath)
+      log.info('handleTitleGeneration: generateSessionTitle returned', {
+        hiveSessionId: session.hiveSessionId,
+        title
+      })
       if (!title) return
 
       // 1. Update session name in DB
@@ -1676,6 +1685,12 @@ export class ClaudeCodeImplementer implements AgentSdkImplementer {
       // 2. Notify renderer with session.updated event (same format as OpenCode)
       // The renderer's SessionView.tsx and useOpenCodeGlobalListener.ts both
       // read: event.data?.info?.title || event.data?.title
+      log.info('handleTitleGeneration: sending session.updated to renderer', {
+        hiveSessionId: session.hiveSessionId,
+        title,
+        hasMainWindow: !!this.mainWindow,
+        windowDestroyed: this.mainWindow ? this.mainWindow.isDestroyed() : 'n/a'
+      })
       this.sendToRenderer('opencode:stream', {
         type: 'session.updated',
         sessionId: session.hiveSessionId,
