@@ -54,6 +54,7 @@ import { useSessionStore } from '@/stores/useSessionStore'
 import { useWorktreeStore } from '@/stores/useWorktreeStore'
 import { useConnectionStore } from '@/stores/useConnectionStore'
 import { useWorktreeStatusStore } from '@/stores/useWorktreeStatusStore'
+import { useCommandApprovalStore } from '@/stores/useCommandApprovalStore'
 import { useProjectStore } from '@/stores/useProjectStore'
 import { useSettingsStore, resolveModelForSdk } from '@/stores/useSettingsStore'
 import { useGitStore } from '@/stores/useGitStore'
@@ -621,6 +622,8 @@ function KanbanTicketModalContent({
           sessionRecord={effectiveSession}
           updateTicket={updateTicket}
           dualPane={wantsDualPane}
+          worktreePath={worktreePath}
+          opcSessionId={opcSessionId}
         />
       )
       break
@@ -1143,7 +1146,9 @@ function PlanReviewModeContent({
   pendingPlan,
   sessionRecord,
   updateTicket,
-  dualPane = false
+  dualPane = false,
+  worktreePath,
+  opcSessionId
 }: {
   ticket: KanbanTicket
   onClose: () => void
@@ -1155,6 +1160,8 @@ function PlanReviewModeContent({
   } | null
   updateTicket: (ticketId: string, projectId: string, data: KanbanTicketUpdate) => Promise<void>
   dualPane?: boolean
+  worktreePath: string | null
+  opcSessionId: string | null
 }) {
   const [isActioning, setIsActioning] = useState(false)
   const [followUpText, setFollowUpText] = useState('')
@@ -1450,6 +1457,12 @@ function PlanReviewModeContent({
       useSessionStore.getState().clearPendingPlan(sessionId)
       useWorktreeStatusStore.getState().clearSessionStatus(sessionId)
 
+      // Abort the original backend session so it stops spinning
+      if (worktreePath && opcSessionId) {
+        useCommandApprovalStore.getState().clearSession(sessionId)
+        await window.opencodeOps.abort(worktreePath, opcSessionId)
+      }
+
       // Look up worktree and project for duplication
       const worktree = findWorktreeById(ticket.worktree_id!)
       if (!worktree) {
@@ -1503,7 +1516,7 @@ function PlanReviewModeContent({
     } finally {
       setIsActioning(false)
     }
-  }, [ticket, isActioning, planContent, onClose, eagerSuperchargeStart])
+  }, [ticket, isActioning, planContent, onClose, eagerSuperchargeStart, worktreePath, opcSessionId])
 
   // ── Supercharge Local handler (same worktree, no duplication) ───
   const handleSuperchargeLocal = useCallback(async () => {
@@ -1515,8 +1528,14 @@ function PlanReviewModeContent({
       useSessionStore.getState().clearPendingPlan(sessionId)
       useWorktreeStatusStore.getState().clearSessionStatus(sessionId)
 
-      const worktreePath = findWorktreePathById(ticket.worktree_id)
-      if (!worktreePath) {
+      // Abort the original backend session so it stops spinning
+      if (worktreePath && opcSessionId) {
+        useCommandApprovalStore.getState().clearSession(sessionId)
+        await window.opencodeOps.abort(worktreePath, opcSessionId)
+      }
+
+      const localWorktreePath = findWorktreePathById(ticket.worktree_id)
+      if (!localWorktreePath) {
         toast.error('Could not find worktree path')
         return
       }
@@ -1542,13 +1561,13 @@ function PlanReviewModeContent({
       onClose()
 
       // Eagerly connect + send /using-superpowers in background; follow-up dispatched by global listener
-      await eagerSuperchargeStart(worktreePath, newSessionId)
+      await eagerSuperchargeStart(localWorktreePath, newSessionId)
     } catch {
       toast.error('Failed to supercharge locally')
     } finally {
       setIsActioning(false)
     }
-  }, [ticket, isActioning, planContent, onClose, eagerSuperchargeStart])
+  }, [ticket, isActioning, planContent, onClose, eagerSuperchargeStart, worktreePath, opcSessionId])
 
   return (
     <>
