@@ -72,6 +72,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Tip } from '@/components/ui/Tip'
 import { useTipStore } from '@/stores/useTipStore'
+import { useI18n } from '@/i18n/useI18n'
 
 interface SessionTabProps {
   sessionId: string
@@ -114,6 +115,7 @@ const SessionTab = memo(function SessionTab({
   onCloseToRight,
   hintCode
 }: SessionTabProps): React.JSX.Element {
+  const { tr } = useI18n()
   const [isEditing, setIsEditing] = useState(false)
   const [editName, setEditName] = useState(name)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -237,7 +239,7 @@ const SessionTab = memo(function SessionTab({
               data-testid={`rename-input-${sessionId}`}
             />
           ) : (
-            <span className="truncate flex-1">{name || 'Untitled'}</span>
+            <span className="truncate flex-1">{name || tr('Untitled', '未命名')}</span>
           )}
           {hintCode && vimModeEnabled && vimMode === 'normal' && (
             <HintBadge
@@ -262,14 +264,16 @@ const SessionTab = memo(function SessionTab({
       </ContextMenuTrigger>
       <ContextMenuContent>
         <ContextMenuItem onSelect={(e) => onClose(e as unknown as React.MouseEvent)}>
-          Close
+          {tr('Close', '关闭')}
           <ContextMenuShortcut>&#8984;W</ContextMenuShortcut>
         </ContextMenuItem>
         {onCloseOthers && (
-          <ContextMenuItem onSelect={onCloseOthers}>Close Others</ContextMenuItem>
+          <ContextMenuItem onSelect={onCloseOthers}>{tr('Close Others', '关闭其他')}</ContextMenuItem>
         )}
         {onCloseToRight && (
-          <ContextMenuItem onSelect={onCloseToRight}>Close Others to the Right</ContextMenuItem>
+          <ContextMenuItem onSelect={onCloseToRight}>
+            {tr('Close Others to the Right', '关闭右侧其他项')}
+          </ContextMenuItem>
         )}
       </ContextMenuContent>
     </ContextMenu>
@@ -353,26 +357,28 @@ function FileTab({
       </ContextMenuTrigger>
       <ContextMenuContent>
         <ContextMenuItem onSelect={(e) => onClose(e as unknown as React.MouseEvent)}>
-          Close
+          {tr('Close', '关闭')}
           <ContextMenuShortcut>&#8984;W</ContextMenuShortcut>
         </ContextMenuItem>
-        <ContextMenuItem onSelect={onCloseOthers}>Close Others</ContextMenuItem>
-        <ContextMenuItem onSelect={onCloseToRight}>Close Others to the Right</ContextMenuItem>
-        <ContextMenuSeparator />
-        <ContextMenuItem onSelect={() => copyToClipboard(relativePath)}>
-          Copy Relative Path
+        <ContextMenuItem onSelect={onCloseOthers}>{tr('Close Others', '关闭其他')}</ContextMenuItem>
+        <ContextMenuItem onSelect={onCloseToRight}>
+          {tr('Close Others to the Right', '关闭右侧其他项')}
         </ContextMenuItem>
-        <ContextMenuItem onSelect={() => copyToClipboard(filePath)}>
-          Copy Absolute Path
+        <ContextMenuSeparator />
+        <ContextMenuItem onSelect={() => copyToClipboard(relativePath, tr)}>
+          {tr('Copy Relative Path', '复制相对路径')}
+        </ContextMenuItem>
+        <ContextMenuItem onSelect={() => copyToClipboard(filePath, tr)}>
+          {tr('Copy Absolute Path', '复制绝对路径')}
         </ContextMenuItem>
       </ContextMenuContent>
     </ContextMenu>
   )
 }
 
-function copyToClipboard(text: string) {
+function copyToClipboard(text: string, tr: (en: string, zh: string) => string) {
   navigator.clipboard.writeText(text)
-  toast.success('Copied to clipboard')
+  toast.success(tr('Copied to clipboard', '已复制到剪贴板'))
 }
 
 interface DiffTabItemProps {
@@ -435,17 +441,19 @@ function DiffTabItem({
       </ContextMenuTrigger>
       <ContextMenuContent>
         <ContextMenuItem onSelect={(e) => onClose(e as unknown as React.MouseEvent)}>
-          Close
+          {tr('Close', '关闭')}
           <ContextMenuShortcut>&#8984;W</ContextMenuShortcut>
         </ContextMenuItem>
-        <ContextMenuItem onSelect={onCloseOthers}>Close Others</ContextMenuItem>
-        <ContextMenuItem onSelect={onCloseToRight}>Close Others to the Right</ContextMenuItem>
-        <ContextMenuSeparator />
-        <ContextMenuItem onSelect={() => copyToClipboard(tab.filePath)}>
-          Copy Relative Path
+        <ContextMenuItem onSelect={onCloseOthers}>{tr('Close Others', '关闭其他')}</ContextMenuItem>
+        <ContextMenuItem onSelect={onCloseToRight}>
+          {tr('Close Others to the Right', '关闭右侧其他项')}
         </ContextMenuItem>
-        <ContextMenuItem onSelect={() => copyToClipboard(absolutePath)}>
-          Copy Absolute Path
+        <ContextMenuSeparator />
+        <ContextMenuItem onSelect={() => copyToClipboard(tab.filePath, tr)}>
+          {tr('Copy Relative Path', '复制相对路径')}
+        </ContextMenuItem>
+        <ContextMenuItem onSelect={() => copyToClipboard(absolutePath, tr)}>
+          {tr('Copy Absolute Path', '复制绝对路径')}
         </ContextMenuItem>
       </ContextMenuContent>
     </ContextMenu>
@@ -485,7 +493,7 @@ const ConnectionSessionTab = memo(function ConnectionSessionTab({
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') onClick()
       }}
-      title={`${connectionName} — ${name || 'Untitled'}`}
+      title={`${connectionName} — ${name || tr('Untitled', '未命名')}`}
       className={cn(
         'group relative flex items-center gap-1.5 px-3 py-1.5 text-sm cursor-pointer select-none',
         'border-r border-border/50 transition-colors min-w-[100px] max-w-[200px]'
@@ -518,12 +526,13 @@ const ConnectionSessionTab = memo(function ConnectionSessionTab({
         <span className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />
       )}
 
-      <span className="truncate flex-1">{name || 'Untitled'}</span>
+      <span className="truncate flex-1">{name || tr('Untitled', '未命名')}</span>
     </div>
   )
 })
 
 export function SessionTabs(): React.JSX.Element | null {
+  const { tr } = useI18n()
   const tabsContainerRef = useRef<HTMLDivElement>(null)
   const [showLeftArrow, setShowLeftArrow] = useState(false)
   const [showRightArrow, setShowRightArrow] = useState(false)
@@ -804,7 +813,7 @@ export function SessionTabs(): React.JSX.Element | null {
     if (isConnectionMode && selectedConnectionId) {
       const result = await createConnectionSession(selectedConnectionId)
       if (!result.success) {
-        toast.error(result.error || 'Failed to create session')
+        toast.error(result.error || tr('Failed to create session', '创建会话失败'))
       }
       return
     }
@@ -813,7 +822,7 @@ export function SessionTabs(): React.JSX.Element | null {
 
     const result = await createSession(selectedWorktreeId, project.id)
     if (!result.success) {
-      toast.error(result.error || 'Failed to create session')
+      toast.error(result.error || tr('Failed to create session', '创建会话失败'))
     }
   }
 
@@ -824,7 +833,7 @@ export function SessionTabs(): React.JSX.Element | null {
     if (isConnectionMode && selectedConnectionId) {
       const result = await createConnectionSession(selectedConnectionId, sdk)
       if (!result.success) {
-        toast.error(result.error || 'Failed to create session')
+        toast.error(result.error || tr('Failed to create session', '创建会话失败'))
       }
       // Tip logic for AI providers (not terminal)
       if (sdk !== 'terminal') {
@@ -840,7 +849,7 @@ export function SessionTabs(): React.JSX.Element | null {
 
     const result = await createSession(selectedWorktreeId, project.id, sdk)
     if (!result.success) {
-      toast.error(result.error || 'Failed to create session')
+      toast.error(result.error || tr('Failed to create session', '创建会话失败'))
     }
     // Tip logic for AI providers (not terminal)
     if (sdk !== 'terminal') {
@@ -856,7 +865,7 @@ export function SessionTabs(): React.JSX.Element | null {
     e.stopPropagation()
     const result = await closeSession(sessionId)
     if (!result.success) {
-      toast.error(result.error || 'Failed to close session')
+      toast.error(result.error || tr('Failed to close session', '关闭会话失败'))
     }
   }
 
@@ -864,7 +873,7 @@ export function SessionTabs(): React.JSX.Element | null {
   const handleRenameSession = async (sessionId: string, newName: string) => {
     const success = await updateSessionName(sessionId, newName)
     if (!success) {
-      toast.error('Failed to rename session')
+      toast.error(tr('Failed to rename session', '重命名会话失败'))
     }
   }
 
@@ -1061,7 +1070,7 @@ export function SessionTabs(): React.JSX.Element | null {
                 <ConnectionSessionTab
                   key={session.id}
                   sessionId={session.id}
-                  name={session.name || 'Untitled'}
+                  name={session.name || tr('Untitled', '未命名')}
                   isActive={session.id === inlineConnectionSessionId && !isFileTabActive}
                   onClick={() => handleConnectionSessionTabClick(session.id)}
                   connectionColor={connection.color}
@@ -1079,7 +1088,7 @@ export function SessionTabs(): React.JSX.Element | null {
           <SessionTab
             key={session.id}
             sessionId={session.id}
-            name={session.name || 'Untitled'}
+            name={session.name || tr('Untitled', '未命名')}
             agentSdk={session.agent_sdk}
             isActive={
               session.id === activeSessionId && !isFileTabActive && !inlineConnectionSessionId
@@ -1139,7 +1148,7 @@ export function SessionTabs(): React.JSX.Element | null {
                   onClick={handleCreateSession}
                   className="p-1.5 hover:bg-accent transition-colors border-r border-border"
                   data-testid="create-session"
-                  title="Create new session (right-click for options)"
+                  title={tr('Create new session (right-click for options)', '创建新会话（右键查看更多选项）')}
                 >
                   <Plus className="h-4 w-4" />
                 </button>
@@ -1147,17 +1156,17 @@ export function SessionTabs(): React.JSX.Element | null {
               <ContextMenuContent>
                 {availableAgentSdks?.opencode && (
                   <ContextMenuItem onSelect={() => handleCreateSessionWithSdk('opencode')}>
-                    New OpenCode Session
+                    {tr('New OpenCode Session', '新建 OpenCode 会话')}
                   </ContextMenuItem>
                 )}
                 {availableAgentSdks?.claude && (
                   <ContextMenuItem onSelect={() => handleCreateSessionWithSdk('claude-code')}>
-                    New Claude Code Session
+                    {tr('New Claude Code Session', '新建 Claude Code 会话')}
                   </ContextMenuItem>
                 )}
                 {availableAgentSdks?.codex && (
                   <ContextMenuItem onSelect={() => handleCreateSessionWithSdk('codex')}>
-                    New Codex Session
+                    {tr('New Codex Session', '新建 Codex 会话')}
                   </ContextMenuItem>
                 )}
                 {(availableAgentSdks?.opencode ||
@@ -1165,7 +1174,7 @@ export function SessionTabs(): React.JSX.Element | null {
                   availableAgentSdks?.codex) && <ContextMenuSeparator />}
                 <ContextMenuItem onSelect={() => handleCreateSessionWithSdk('terminal')}>
                   <TerminalSquare className="h-4 w-4 mr-2 text-emerald-500" />
-                  New Terminal
+                  {tr('New Terminal', '新建终端')}
                 </ContextMenuItem>
               </ContextMenuContent>
             </ContextMenu>
@@ -1177,7 +1186,7 @@ export function SessionTabs(): React.JSX.Element | null {
           onClick={() => setIsTicketCreateOpen(true)}
           className="p-1.5 hover:bg-accent transition-colors shrink-0 border-r border-border"
           data-testid="kanban-add-ticket-btn"
-          title="Create new ticket"
+          title={tr('Create new ticket', '创建新工单')}
         >
           <Plus className="h-4 w-4" />
         </button>
@@ -1228,7 +1237,7 @@ export function SessionTabs(): React.JSX.Element | null {
               )}
             >
               <KanbanIcon className="h-3.5 w-3.5 flex-shrink-0 text-blue-400" />
-              <span className="truncate flex-1">Board</span>
+              <span className="truncate flex-1">{tr('Board', '看板')}</span>
               {activeSessionId === BOARD_TAB_ID && !isFileTabActive && (
                 <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
               )}
@@ -1254,7 +1263,7 @@ export function SessionTabs(): React.JSX.Element | null {
               )}
             >
               <KanbanIcon className="h-3.5 w-3.5 flex-shrink-0 text-blue-400" />
-              <span className="truncate flex-1">Board</span>
+              <span className="truncate flex-1">{tr('Board', '看板')}</span>
               {!isFileTabActive && !activePinnedSessionId && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />}
             </div>
             {/* Pinned session tabs */}
@@ -1287,7 +1296,7 @@ export function SessionTabs(): React.JSX.Element | null {
                   )}
                 >
                   <Icon className="h-3.5 w-3.5 flex-shrink-0 text-blue-400" />
-                  <span className="truncate flex-1">{session.name || 'Session'}</span>
+                  <span className="truncate flex-1">{session.name || tr('Session', '会话')}</span>
                   <button
                     onClick={(e) => {
                       e.stopPropagation()
@@ -1375,10 +1384,10 @@ export function SessionTabs(): React.JSX.Element | null {
                 ? 'bg-background text-foreground'
                 : 'bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground'
             )}
-            title="Worktree Context"
+            title={tr('Worktree Context', '工作树上下文')}
           >
             <FileText className="h-3.5 w-3.5 flex-shrink-0 text-emerald-400" />
-            <span className="truncate flex-1">Context</span>
+            <span className="truncate flex-1">{tr('Context', '上下文')}</span>
             <button
               onClick={(e) => {
                 e.stopPropagation()
@@ -1418,7 +1427,7 @@ export function SessionTabs(): React.JSX.Element | null {
             <button
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors shrink-0 border-l border-border cursor-pointer select-none"
               data-testid="kanban-import-btn"
-              title="Import tickets"
+              title={tr('Import tickets', '导入工单')}
             >
               <Download className="h-3.5 w-3.5" />
               Import
@@ -1452,12 +1461,12 @@ export function SessionTabs(): React.JSX.Element | null {
                 if (!project) return
                 const result = await window.kanban.board.export(project.id, project.name)
                 if (result.success) {
-                  toast.success(`Exported ${result.ticketCount} tickets`)
+                  toast.success(tr(`Exported ${result.ticketCount} tickets`, `已导出 ${result.ticketCount} 个工单`))
                 }
               }}
             >
               <Upload className="h-4 w-4 mr-2" />
-              Export Board
+              {tr('Export Board', '导出看板')}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

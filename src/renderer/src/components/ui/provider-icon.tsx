@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { Github, ClipboardList, type LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 

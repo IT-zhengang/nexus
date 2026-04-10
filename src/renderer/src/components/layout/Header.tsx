@@ -38,6 +38,7 @@ import {
 } from '@/components/ui/context-menu'
 import { cn } from '@/lib/utils'
 import { useLayoutStore } from '@/stores/useLayoutStore'
+import { useI18n } from '@/i18n/useI18n'
 import { useSessionHistoryStore } from '@/stores/useSessionHistoryStore'
 import { useSettingsStore } from '@/stores/useSettingsStore'
 import { useProjectStore } from '@/stores/useProjectStore'
@@ -82,6 +83,7 @@ function isConflictFixActiveStatus(status: string | null): boolean {
 }
 
 export function Header(): React.JSX.Element {
+  const { tr } = useI18n()
   const isWebMode = useIsWebMode()
   const webServerUrl = useMemo(() => {
     if (!isWebMode) return null
@@ -168,7 +170,7 @@ export function Header(): React.JSX.Element {
   const {
     attachedPR, hasAttachedPR, prLiveState, isGitHub,
     isMergingPR, isArchiving: isArchivingWorktree, branchInfo, remoteBranches,
-    prTargetBranch, reviewTargetBranch, isCleanTree
+    prTargetBranch, reviewTargetBranch, isCleanTree, loadPRList, loadPRState
   } = lifecycle
 
   const conflictFixSessionStatus = useWorktreeStatusStore((state) =>
@@ -240,16 +242,14 @@ export function Header(): React.JSX.Element {
     if (!prPickerOpen) return
     setPrListLoading(true)
 
-    const fetchPRs = lifecycle.loadPRList().then((list) => {
+    const fetchPRs = loadPRList().then((list) => {
       setPrList(list)
     })
 
-    const fetchState = lifecycle.hasAttachedPR
-      ? lifecycle.loadPRState()
-      : Promise.resolve()
+    const fetchState = hasAttachedPR ? loadPRState() : Promise.resolve()
 
     Promise.all([fetchPRs, fetchState]).finally(() => setPrListLoading(false))
-  }, [prPickerOpen, lifecycle.hasAttachedPR])
+  }, [prPickerOpen, hasAttachedPR, loadPRList, loadPRState])
 
   // Thin wrappers for actions that also manage UI-local state (prPickerOpen)
   const handleSelectPR = (pr: { number: number }) => {
@@ -279,8 +279,11 @@ export function Header(): React.JSX.Element {
     }
 
     const branchName = selectedWorktree?.branch_name || 'unknown'
-    await updateSessionName(session.id, `Merge Conflicts — ${branchName}`)
-    setPendingMessage(session.id, 'Fix merge conflicts')
+    await updateSessionName(
+      session.id,
+      tr(`Merge Conflicts - ${branchName}`, `合并冲突 - ${branchName}`)
+    )
+    setPendingMessage(session.id, tr('Fix merge conflicts', '修复合并冲突'))
     setActiveSession(session.id)
 
     setConflictFixFlow({
@@ -289,7 +292,7 @@ export function Header(): React.JSX.Element {
       sessionId: session.id,
       seenBusy: false
     })
-  }, [mergeConflictMode, selectedWorktreeId, selectedProjectId, selectedWorktree, createSession, updateSessionName, setPendingMessage, setActiveSession])
+  }, [mergeConflictMode, selectedWorktreeId, selectedProjectId, selectedWorktree, createSession, updateSessionName, setPendingMessage, setActiveSession, tr])
 
   const isFixConflictsLoading =
     !!selectedWorktree?.path &&
@@ -331,7 +334,7 @@ export function Header(): React.JSX.Element {
             className="text-[10px] font-mono px-1.5 py-0.5 rounded border select-none text-emerald-500 bg-emerald-500/10 border-emerald-500/30"
             data-testid="web-connection-indicator"
           >
-            Connected to {webServerUrl}
+            {tr('Connected to', '已连接到')} {webServerUrl}
           </span>
         )}
         {vimModeEnabled && (
@@ -344,7 +347,7 @@ export function Header(): React.JSX.Element {
             )}
             data-testid="vim-mode-pill"
           >
-            {vimMode === 'normal' ? 'NORMAL' : 'INSERT'}
+            {vimMode === 'normal' ? tr('NORMAL', '普通') : tr('INSERT', '插入')}
           </span>
         )}
       </div>
@@ -369,18 +372,20 @@ export function Header(): React.JSX.Element {
                   ) : (
                     <AlertTriangle className="h-3.5 w-3.5 mr-1" />
                   )}
-                  {isFixConflictsLoading ? 'Fixing conflicts...' : 'Fix conflicts'}
+                  {isFixConflictsLoading
+                    ? tr('Fixing conflicts...', '正在修复冲突...')
+                    : tr('Fix conflicts', '修复冲突')}
                   {!isFixConflictsLoading && <ChevronDown className="h-3 w-3 ml-1" />}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => handleFixConflicts('build')}>
                   <Hammer className="h-4 w-4 mr-2" />
-                  Fix in Build mode
+                  {tr('Fix in Build mode', '以 Build 模式修复')}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => handleFixConflicts('plan')}>
                   <Map className="h-4 w-4 mr-2" />
-                  Fix in Plan mode
+                  {tr('Fix in Plan mode', '以 Plan 模式修复')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -398,7 +403,9 @@ export function Header(): React.JSX.Element {
               ) : (
                 <AlertTriangle className="h-3.5 w-3.5 mr-1" />
               )}
-              {isFixConflictsLoading ? 'Fixing conflicts...' : 'Fix conflicts'}
+              {isFixConflictsLoading
+                ? tr('Fixing conflicts...', '正在修复冲突...')
+                : tr('Fix conflicts', '修复冲突')}
             </Button>
           )}
         </div>
@@ -419,7 +426,7 @@ export function Header(): React.JSX.Element {
               className="h-7 text-xs"
               onClick={() => lifecycle.archiveWorktree()}
               disabled={isArchivingWorktree}
-              title="Archive worktree"
+              title={tr('Archive worktree', '归档工作树')}
               data-testid="pr-archive-button"
             >
               {isArchivingWorktree ? (
@@ -428,13 +435,14 @@ export function Header(): React.JSX.Element {
                 <Archive className="h-3.5 w-3.5 mr-1" />
               )}
               {isArchivingWorktree ? (
-                'Archiving...'
+                tr('Archiving...', '归档中...')
               ) : showVimHints ? (
                 <span>
-                  <span className="text-primary font-bold">A</span>rchive
+                  <span className="text-primary font-bold">A</span>
+                  {tr('rchive', '归档')}
                 </span>
               ) : (
-                'Archive'
+                tr('Archive', '归档')
               )}
             </Button>
           )}
@@ -450,7 +458,7 @@ export function Header(): React.JSX.Element {
               className="h-7 text-xs bg-emerald-600/10 border-emerald-600/30 text-emerald-500 hover:bg-emerald-600/20"
               onClick={() => lifecycle.mergePR()}
               disabled={isMergingPR}
-              title="Merge Pull Request"
+              title={tr('Merge Pull Request', '合并拉取请求')}
               data-testid="pr-merge-button"
             >
               {isMergingPR ? (
@@ -459,13 +467,14 @@ export function Header(): React.JSX.Element {
                 <GitMerge className="h-3.5 w-3.5 mr-1" />
               )}
               {isMergingPR ? (
-                'Merging...'
+                tr('Merging...', '合并中...')
               ) : showVimHints ? (
                 <span>
-                  <span className="text-primary font-bold">M</span>erge PR
+                  <span className="text-primary font-bold">M</span>
+                  {tr('erge PR', '合并 PR')}
                 </span>
               ) : (
-                'Merge PR'
+                tr('Merge PR', '合并 PR')
               )}
             </Button>
           )}
@@ -477,7 +486,7 @@ export function Header(): React.JSX.Element {
               className="h-7 text-xs"
               onClick={() => pinAndActivate(() => lifecycle.createCodeReview())}
               disabled={isOperating || lifecycleLoading}
-              title="Review branch changes with AI"
+              title={tr('Review branch changes with AI', '使用 AI 审查分支变更')}
               data-testid="review-button"
             >
               {lifecycleLoading ? (
@@ -487,10 +496,11 @@ export function Header(): React.JSX.Element {
               )}
               {showVimHints ? (
                 <span>
-                  <span className="text-primary font-bold">R</span>eview
+                  <span className="text-primary font-bold">R</span>
+                  {tr('eview', '审查')}
                 </span>
               ) : (
-                'Review'
+                tr('Review', '审查')
               )}
             </Button>
             <DropdownMenu>
@@ -507,7 +517,7 @@ export function Header(): React.JSX.Element {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="max-h-60 overflow-y-auto">
                 {remoteBranches.length === 0 ? (
-                  <DropdownMenuItem disabled>No remote branches</DropdownMenuItem>
+                  <DropdownMenuItem disabled>{tr('No remote branches', '没有远程分支')}</DropdownMenuItem>
                 ) : (
                   remoteBranches.map((branch) => (
                     <DropdownMenuItem
@@ -533,16 +543,19 @@ export function Header(): React.JSX.Element {
                     size="sm"
                     variant="outline"
                     className="h-7 text-xs"
-                    title={`PR #${attachedPR!.number} (right-click for options)`}
+                    title={tr(
+                      `PR #${attachedPR!.number} (right-click for options)`,
+                      `PR #${attachedPR!.number}（右键查看选项）`
+                    )}
                     data-testid="pr-badge"
                   >
                     <GitPullRequest className="h-3.5 w-3.5 mr-1" />
                     PR #{attachedPR!.number}
                     {prLiveState?.state === 'MERGED' && (
-                      <span className="text-muted-foreground ml-1">· merged</span>
+                      <span className="text-muted-foreground ml-1">{tr('· merged', '· 已合并')}</span>
                     )}
                     {prLiveState?.state === 'CLOSED' && (
-                      <span className="text-muted-foreground ml-1">· closed</span>
+                      <span className="text-muted-foreground ml-1">{tr('· closed', '· 已关闭')}</span>
                     )}
                   </Button>
                 </PopoverTrigger>
@@ -551,14 +564,14 @@ export function Header(): React.JSX.Element {
                 {/* Attached PR header */}
                 <div className="px-3 py-2 border-b">
                   <div className="text-xs font-medium text-muted-foreground">
-                    Attached: #{attachedPR!.number}
+                    {tr(`Attached: #${attachedPR!.number}`, `已附加：#${attachedPR!.number}`)}
                   </div>
                   {prLiveState?.title && (
                     <div className="text-sm truncate">
                       {prLiveState.title}
                       {prLiveState.state && (
                         <span className="text-muted-foreground ml-1 text-xs">
-                          ({prLiveState.state.toLowerCase()})
+                          ({tr(prLiveState.state.toLowerCase(), prLiveState.state === 'MERGED' ? '已合并' : prLiveState.state === 'CLOSED' ? '已关闭' : prLiveState.state.toLowerCase())})
                         </span>
                       )}
                     </div>
@@ -569,11 +582,11 @@ export function Header(): React.JSX.Element {
                   {prListLoading ? (
                     <div className="px-3 py-4 text-center text-xs text-muted-foreground">
                       <Loader2 className="h-3.5 w-3.5 animate-spin inline mr-1" />
-                      Loading PRs...
+                      {tr('Loading PRs...', '正在加载 PR...')}
                     </div>
                   ) : prList.length === 0 ? (
                     <div className="px-3 py-4 text-center text-xs text-muted-foreground">
-                      No open PRs found
+                      {tr('No open PRs found', '未找到开放中的 PR')}
                     </div>
                   ) : (
                     prList.map((pr) => (
@@ -606,7 +619,7 @@ export function Header(): React.JSX.Element {
                     data-testid="pr-detach-button"
                   >
                     <X className="h-3.5 w-3.5" />
-                    Detach PR
+                    {tr('Detach PR', '分离 PR')}
                   </button>
                 </div>
               </PopoverContent>
@@ -614,11 +627,11 @@ export function Header(): React.JSX.Element {
             <ContextMenuContent>
               <ContextMenuItem onClick={lifecycle.openPRInBrowser}>
                 <ExternalLink className="h-4 w-4 mr-2" />
-                Open PR in Browser
+                {tr('Open PR in Browser', '在浏览器中打开 PR')}
               </ContextMenuItem>
               <ContextMenuItem onClick={lifecycle.copyPRUrl}>
                 <Copy className="h-4 w-4 mr-2" />
-                Copy PR URL
+                {tr('Copy PR URL', '复制 PR 链接')}
               </ContextMenuItem>
               <ContextMenuSeparator />
               <ContextMenuItem
@@ -626,7 +639,7 @@ export function Header(): React.JSX.Element {
                 className="text-destructive focus:text-destructive focus:bg-destructive/10"
               >
                 <X className="h-4 w-4 mr-2" />
-                Detach PR
+                {tr('Detach PR', '分离 PR')}
               </ContextMenuItem>
             </ContextMenuContent>
           </ContextMenu>
@@ -652,7 +665,7 @@ export function Header(): React.JSX.Element {
                   setPrPickerOpen(true)
                 }}
                 disabled={isOperating || lifecycleLoading}
-                title="Create Pull Request (right-click to attach existing)"
+                title={tr('Create Pull Request (right-click to attach existing)', '创建拉取请求（右键可附加现有 PR）')}
                 data-testid="pr-button"
               >
                 {lifecycleLoading ? (
@@ -672,18 +685,18 @@ export function Header(): React.JSX.Element {
             <PopoverContent align="end" className="w-80 p-0">
               <div className="px-3 py-2 border-b">
                 <div className="text-xs font-medium text-muted-foreground">
-                  Attach existing PR
+                  {tr('Attach existing PR', '附加现有 PR')}
                 </div>
               </div>
               <div className="max-h-48 overflow-y-auto">
                 {prListLoading ? (
                   <div className="px-3 py-4 text-center text-xs text-muted-foreground">
                     <Loader2 className="h-3.5 w-3.5 animate-spin inline mr-1" />
-                    Loading PRs...
+                    {tr('Loading PRs...', '正在加载 PR...')}
                   </div>
                 ) : prList.length === 0 ? (
                   <div className="px-3 py-4 text-center text-xs text-muted-foreground">
-                    No open PRs found
+                    {tr('No open PRs found', '未找到开放中的 PR')}
                   </div>
                 ) : (
                   prList.map((pr) => (
@@ -719,7 +732,7 @@ export function Header(): React.JSX.Element {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="max-h-60 overflow-y-auto">
                 {remoteBranches.length === 0 ? (
-                  <DropdownMenuItem disabled>No remote branches</DropdownMenuItem>
+                  <DropdownMenuItem disabled>{tr('No remote branches', '没有远程分支')}</DropdownMenuItem>
                 ) : (
                   remoteBranches.map((branch) => (
                     <DropdownMenuItem
@@ -754,7 +767,11 @@ export function Header(): React.JSX.Element {
                   toggleBoardView()
                 }
               }}
-              title={isBoardViewActive ? 'Close Board' : 'Open Board'}
+              title={
+                isBoardViewActive
+                  ? tr('Close Board', '关闭看板')
+                  : tr('Open Board', '打开看板')
+              }
               data-testid="kanban-board-toggle"
               className={cn(
                 isBoardViewActive && 'bg-accent text-accent-foreground'
@@ -768,7 +785,7 @@ export function Header(): React.JSX.Element {
           variant="ghost"
           size="icon"
           onClick={openSessionHistory}
-          title="Session History (⌘K)"
+          title={tr('Session History (⌘K)', '会话历史（⌘K）')}
           data-testid="session-history-toggle"
         >
           <History className="h-4 w-4" />
@@ -778,7 +795,7 @@ export function Header(): React.JSX.Element {
             variant="ghost"
             size="icon"
             onClick={() => openSettings()}
-            title="Settings (⌘,)"
+            title={tr('Settings (⌘,)', '设置（⌘,）')}
             data-testid="settings-toggle"
           >
             <Settings className="h-4 w-4" />
@@ -788,7 +805,11 @@ export function Header(): React.JSX.Element {
           onClick={toggleRightSidebar}
           variant="ghost"
           size="icon"
-          title={rightSidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'}
+          title={
+            rightSidebarCollapsed
+              ? tr('Show sidebar', '显示侧边栏')
+              : tr('Hide sidebar', '隐藏侧边栏')
+          }
           data-testid="right-sidebar-toggle"
         >
           {rightSidebarCollapsed ? (

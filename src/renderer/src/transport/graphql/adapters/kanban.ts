@@ -29,13 +29,6 @@ interface GqlKanbanTicket {
   totalTokens: number
 }
 
-interface GqlTicketFollowupMessage {
-  id: string
-  ticketId: string
-  message: string
-  createdAt: string
-}
-
 function mapTicket(t: GqlKanbanTicket) {
   return {
     id: t.id,
@@ -63,21 +56,7 @@ function mapTicketOrNull(t: GqlKanbanTicket | null) {
   return t ? mapTicket(t) : null
 }
 
-function mapFollowup(f: GqlTicketFollowupMessage) {
-  return {
-    id: f.id,
-    ticket_id: f.ticketId,
-    content: f.message,
-    role: 'user' as const,
-    mode: 'build' as const,
-    session_id: null,
-    source: 'direct' as const,
-    created_at: f.createdAt
-  }
-}
-
 const TICKET_FIELDS = `id projectId sessionId worktreeId title description column sortOrder archived createdAt updatedAt externalProvider externalId externalUrl totalTokens`
-const FOLLOWUP_FIELDS = `id ticketId message createdAt`
 
 export function createKanbanAdapter(): KanbanApi {
   return {

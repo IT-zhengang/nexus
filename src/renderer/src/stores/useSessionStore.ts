@@ -27,7 +27,7 @@ export interface PendingPlan {
 }
 
 // Session type matching the database schema
-interface Session {
+export interface Session {
   id: string
   worktree_id: string | null
   project_id: string

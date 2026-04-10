@@ -311,7 +311,7 @@ export const gitQueryResolvers: Resolvers = {
       try {
         const gitService = createGitService(worktreePath)
         return await gitService.getRangeDiff(baseBranch)
-      } catch (error) {
+      } catch {
         return {
           commitSummary: '',
           diffSummary: '',

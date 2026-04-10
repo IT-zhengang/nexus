@@ -54,8 +54,7 @@ export function useSidebarBranchWatcher(worktreePaths: string[]): void {
     }
 
     previousPathsRef.current = worktreePaths
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathsKey])
+  }, [pathsKey, worktreePaths])
 
   // Subscribe to branch change events
   useEffect(() => {
@@ -71,8 +70,7 @@ export function useSidebarBranchWatcher(worktreePaths: string[]): void {
     return () => {
       unsubscribe()
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathsKey])
+  }, [pathsKey, worktreePaths.length])
 
   // Cleanup all watchers on unmount
   useEffect(() => {

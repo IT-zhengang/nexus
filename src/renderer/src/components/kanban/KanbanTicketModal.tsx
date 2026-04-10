@@ -78,6 +78,7 @@ import { ProviderIcon, getProviderLabel } from '@/components/ui/provider-icon'
 import { useLifecycleActions } from '@/hooks/useLifecycleActions'
 import { usePinAndActivateSession } from '@/hooks/usePinAndActivateSession'
 import type { KanbanTicket, KanbanTicketUpdate, Worktree } from '../../../../main/db/types'
+import { useI18n } from '@/i18n/useI18n'
 
 // ── Types ───────────────────────────────────────────────────────────
 type ModalMode = 'edit' | 'plan_review' | 'review' | 'error' | 'question'
@@ -422,9 +423,9 @@ function KanbanTicketModalContent({
       // worktreePath is still needed as a fallback until dbWorktreePath
       // loads from its own async effect.
       // Only clear if it belongs to a different session (ticket switched).
-      if (dbSessionInfo && dbSessionInfo.session.id !== ticket.current_session_id) {
-        setDbSessionInfo(null)
-      }
+      setDbSessionInfo((current) =>
+        current && current.session.id !== ticket.current_session_id ? null : current
+      )
       setSessionLoadFailed(false)
       isLoadingDbSession.current = false
       return
@@ -762,6 +763,7 @@ function EditModeContent({
   updateTicket: (ticketId: string, projectId: string, data: KanbanTicketUpdate) => Promise<void>
   deleteTicket: (ticketId: string, projectId: string) => Promise<void>
 }) {
+  const { tr } = useI18n()
   const [title, setTitle] = useState(ticket.title)
   const [description, setDescription] = useState(ticket.description ?? '')
   const [showPreview, setShowPreview] = useState(false)
@@ -778,13 +780,14 @@ function EditModeContent({
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [isSaving, setIsSaving] = useState(false)
   const lifecycle = useLifecycleActions(ticket.worktree_id)
+  const { hasAttachedPR, loadPRState } = lifecycle
   const { pinAndActivate: pinAndActivateSession, lifecycleLoading } = usePinAndActivateSession(onClose)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   // Load live PR state so merge-button guard works (hide if already merged/closed)
   useEffect(() => {
-    if (lifecycle.hasAttachedPR) lifecycle.loadPRState()
-  }, [lifecycle.hasAttachedPR])
+    if (hasAttachedPR) void loadPRState()
+  }, [hasAttachedPR, loadPRState])
 
   const detectedAttachment = attachUrl.trim() ? parseAttachmentUrl(attachUrl.trim()) : null
 
@@ -821,24 +824,24 @@ function EditModeContent({
         description: description.trim() || null,
         attachments: attachments.map((a) => ({ type: a.type, url: a.url, label: a.label }))
       })
-      toast.success('Ticket updated')
+      toast.success(tr('Ticket updated', '工单已更新'))
       onClose()
     } catch {
-      toast.error('Failed to update ticket')
+      toast.error(tr('Failed to update ticket', '更新工单失败'))
     } finally {
       setIsSaving(false)
     }
-  }, [title, description, attachments, isSaving, updateTicket, ticket.id, ticket.project_id, onClose])
+  }, [title, description, attachments, isSaving, updateTicket, ticket.id, ticket.project_id, onClose, tr])
 
   const handleDelete = useCallback(async () => {
     try {
       await deleteTicket(ticket.id, ticket.project_id)
-      toast.success('Ticket deleted')
+      toast.success(tr('Ticket deleted', '工单已删除'))
       onClose()
     } catch {
-      toast.error('Failed to delete ticket')
+      toast.error(tr('Failed to delete ticket', '删除工单失败'))
     }
-  }, [deleteTicket, ticket.id, ticket.project_id, onClose])
+  }, [deleteTicket, ticket.id, ticket.project_id, onClose, tr])
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -855,7 +858,7 @@ function EditModeContent({
       <DialogHeader>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <DialogTitle>Edit Ticket</DialogTitle>
+            <DialogTitle>{tr('Edit Ticket', '编辑工单')}</DialogTitle>
             {ticket.external_provider && ticket.external_url && (
               <button
                 onClick={() => window.systemOps.openInChrome(ticket.external_url!)}
@@ -868,7 +871,7 @@ function EditModeContent({
           </div>
           <JumpToSessionButton ticket={ticket} onClose={onClose} />
         </div>
-        <DialogDescription>Update ticket details.</DialogDescription>
+        <DialogDescription>{tr('Update ticket details.', '更新工单详情。')}</DialogDescription>
       </DialogHeader>
 
       <div className="space-y-4">
@@ -880,7 +883,7 @@ function EditModeContent({
           <Input
             id="ticket-edit-title"
             data-testid="ticket-edit-title-input"
-            placeholder="What needs to be done?"
+            placeholder={tr('What needs to be done?', '需要完成什么？')}
             value={title}
             onChange={(e) => setTitle(e.target.value)}
           />
@@ -905,11 +908,11 @@ function EditModeContent({
             >
               {showPreview ? (
                 <>
-                  <EyeOff className="h-3.5 w-3.5" /> Edit
+                  <EyeOff className="h-3.5 w-3.5" /> {tr('Edit', '编辑')}
                 </>
               ) : (
                 <>
-                  <Eye className="h-3.5 w-3.5" /> Preview
+                  <Eye className="h-3.5 w-3.5" /> {tr('Preview', '预览')}
                 </>
               )}
             </Button>
@@ -923,14 +926,14 @@ function EditModeContent({
               {description.trim() ? (
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>{description}</ReactMarkdown>
               ) : (
-                <p className="text-muted-foreground/60 italic">No description</p>
+                <p className="text-muted-foreground/60 italic">{tr('No description', '暂无描述')}</p>
               )}
             </div>
           ) : (
             <Textarea
               id="ticket-edit-description"
               data-testid="ticket-edit-description-input"
-              placeholder="Describe the ticket (supports markdown)..."
+              placeholder={tr('Describe the ticket (supports markdown)...', '描述工单内容（支持 Markdown）...')}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={5}
@@ -975,7 +978,7 @@ function EditModeContent({
             <div className="flex items-center gap-2">
               <Input
                 data-testid="ticket-edit-attachment-url-input"
-                placeholder="Paste a Jira or Figma URL"
+                placeholder={tr('Paste a Jira or Figma URL', '粘贴 Jira 或 Figma 链接')}
                 value={attachUrl}
                 onChange={(e) => setAttachUrl(e.target.value)}
                 onKeyDown={(e) => {
@@ -998,7 +1001,7 @@ function EditModeContent({
                 disabled={!detectedAttachment}
                 onClick={handleAddAttachment}
               >
-                Add
+                {tr('Add', '添加')}
               </Button>
               <Button
                 type="button"
@@ -1025,17 +1028,17 @@ function EditModeContent({
                     className="gap-1 text-xs"
                   >
                     <Plus className="h-3.5 w-3.5" />
-                    Add attachment
+                    {tr('Add attachment', '添加附件')}
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start">
                   <DropdownMenuItem onSelect={() => setShowAttachInput(true)}>
                     <LinkIcon className="h-4 w-4 mr-2" />
-                    URL
+                    {tr('URL', '链接')}
                   </DropdownMenuItem>
                   <DropdownMenuItem onSelect={() => fileInputRef.current?.click()}>
                     <FileUp className="h-4 w-4 mr-2" />
-                    File / Image
+                    {tr('File / Image', '文件 / 图片')}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -1049,7 +1052,7 @@ function EditModeContent({
         <div>
           {showDeleteConfirm ? (
             <div className="flex items-center gap-2">
-              <span className="text-sm text-destructive">Delete this ticket?</span>
+              <span className="text-sm text-destructive">{tr('Delete this ticket?', '删除此工单？')}</span>
               <Button
                 type="button"
                 variant="destructive"
@@ -1057,7 +1060,7 @@ function EditModeContent({
                 data-testid="ticket-edit-delete-confirm-btn"
                 onClick={handleDelete}
               >
-                Yes, delete
+                {tr('Yes, delete', '是的，删除')}
               </Button>
               <Button
                 type="button"
@@ -1065,7 +1068,7 @@ function EditModeContent({
                 size="sm"
                 onClick={() => setShowDeleteConfirm(false)}
               >
-                Cancel
+                {tr('Cancel', '取消')}
               </Button>
             </div>
           ) : (
@@ -1091,7 +1094,7 @@ function EditModeContent({
               onClick={() => pinAndActivateSession(() => lifecycle.createCodeReview())}
             >
               <FileSearch className="h-3.5 w-3.5" />
-              Review
+              {tr('Review', '评审')}
             </Button>
           )}
           {ticket.column === 'done' && ticket.worktree_id && lifecycle.isGitHub &&
@@ -1109,7 +1112,7 @@ function EditModeContent({
               ) : (
                 <GitMerge className="h-3.5 w-3.5" />
               )}
-              {lifecycle.isMergingPR ? 'Merging...' : 'Merge PR'}
+              {lifecycle.isMergingPR ? tr('Merging...', '合并中...') : tr('Merge PR', '合并 PR')}
             </Button>
           )}
           {ticket.column === 'done' && ticket.worktree_id && (
@@ -1123,7 +1126,7 @@ function EditModeContent({
               }}
             >
               <Archive className="h-3.5 w-3.5" />
-              Archive
+              {tr('Archive', '归档')}
             </Button>
           )}
           <Button
@@ -1132,7 +1135,7 @@ function EditModeContent({
             data-testid="ticket-edit-cancel-btn"
             onClick={onClose}
           >
-            Cancel
+            {tr('Cancel', '取消')}
           </Button>
           <Button
             type="button"
@@ -1140,7 +1143,7 @@ function EditModeContent({
             disabled={!title.trim() || isSaving}
             onClick={handleSave}
           >
-            {isSaving ? 'Saving...' : 'Save'}
+            {isSaving ? tr('Saving...', '保存中...') : tr('Save', '保存')}
           </Button>
         </div>
       </DialogFooter>
@@ -1175,6 +1178,7 @@ function PlanReviewModeContent({
   worktreePath: string | null
   opcSessionId: string | null
 }) {
+  const { tr } = useI18n()
   const [isActioning, setIsActioning] = useState(false)
   const [followUpText, setFollowUpText] = useState('')
   const [followUpMode, setFollowUpMode] = useState<FollowUpMode>('plan')
@@ -1227,7 +1231,7 @@ function PlanReviewModeContent({
           }
           if (!rejectPath) {
             console.error(`[KanbanTicketModal] planReject: working path not found — worktree_id=${sessionRecord.worktree_id}, connection_id=${sessionRecord.connection_id}`)
-            toast.error('Failed to reject plan: working path not found')
+            toast.error(tr('Failed to reject plan: working path not found', '拒绝计划失败：未找到工作路径'))
             return
           }
           await updateTicket(ticket.id, ticket.project_id, { plan_ready: false, mode: 'plan' })
@@ -1241,7 +1245,7 @@ function PlanReviewModeContent({
           useWorktreeStatusStore
             .getState()
             .setSessionStatus(sessionId, 'planning')
-          toast.success('Plan rejected with feedback')
+          toast.success(tr('Plan rejected with feedback', '计划已连同反馈一起拒绝'))
           onClose()
 
           // Send the rejection feedback to the session in background.
@@ -1254,7 +1258,7 @@ function PlanReviewModeContent({
           }).catch((err) => {
             console.error('[KanbanTicketModal] sendFollowupToSession failed:', err)
             const reason = err instanceof Error ? err.message : String(err)
-            toast.error(`Failed to send followup: ${reason}`)
+            toast.error(`${tr('Failed to send followup', '发送后续消息失败')}: ${reason}`)
             useWorktreeStatusStore.getState().clearSessionStatus(sessionId)
           })
           return
@@ -1275,7 +1279,7 @@ function PlanReviewModeContent({
         .setSessionStatus(sessionId, isPlanLike(followUpMode) ? 'planning' : 'working')
 
       await updateTicket(ticket.id, ticket.project_id, { mode: followUpMode, plan_ready: false })
-      toast.success('Followup sent')
+      toast.success(tr('Followup sent', '后续消息已发送'))
       onClose()
 
       sendFollowupToSession({
@@ -1286,17 +1290,17 @@ function PlanReviewModeContent({
       }).catch((err) => {
         console.error('[KanbanTicketModal] sendFollowupToSession failed:', err)
         const reason = err instanceof Error ? err.message : String(err)
-        toast.error(`Failed to send followup: ${reason}`)
+        toast.error(`${tr('Failed to send followup', '发送后续消息失败')}: ${reason}`)
         useWorktreeStatusStore.getState().clearSessionStatus(sessionId)
       })
     } catch (err) {
       console.error('[KanbanTicketModal] handleSendFollowup failed:', err)
       const reason = err instanceof Error ? err.message : String(err)
-      toast.error(`Failed to send followup: ${reason}`)
+      toast.error(`${tr('Failed to send followup', '发送后续消息失败')}: ${reason}`)
     } finally {
       setIsSending(false)
     }
-  }, [followUpText, followUpMode, ticket, isSending, pendingPlan, sessionRecord, updateTicket, onClose])
+  }, [followUpText, followUpMode, ticket, isSending, pendingPlan, sessionRecord, updateTicket, onClose, tr])
 
   // Enter sends, Shift+Enter for newline
   const handleKeyDown = useCallback(
@@ -1332,7 +1336,7 @@ function PlanReviewModeContent({
       notifyKanbanSessionSync(sessionId, { type: 'implement' })
 
       if (!isClaudeCode && pendingBeforeAction) {
-        toast.success('Implementation started')
+        toast.success(tr('Implementation started', '已开始执行'))
         onClose()
 
         sendFollowupToSession({
@@ -1346,7 +1350,7 @@ function PlanReviewModeContent({
         }).catch((err) => {
           const reason = err instanceof Error ? err.message : String(err)
           console.error('[KanbanTicketModal] background implement send failed:', err)
-          toast.error(`Failed to start implementation: ${reason}`)
+          toast.error(tr(`Failed to start implementation: ${reason}`, `启动执行失败：${reason}`))
           useWorktreeStatusStore.getState().clearSessionStatus(sessionId)
         })
         return
@@ -1362,23 +1366,23 @@ function PlanReviewModeContent({
         }
         if (!approvePath) {
           console.error(`[KanbanTicketModal] handleImplement: working path not found — worktree_id=${sessionRecord.worktree_id}, connection_id=${sessionRecord.connection_id}`)
-          toast.error('Failed to approve plan: working path not found')
+          toast.error(tr('Failed to approve plan: working path not found', '审批计划失败：未找到工作路径'))
           return
         }
         await window.opencodeOps.planApprove(approvePath, sessionId, pendingBeforeAction.requestId)
       }
 
-      toast.success('Implementation started')
+      toast.success(tr('Implementation started', '已开始执行'))
       onClose()
     } catch (err) {
       const reason = err instanceof Error ? err.message : String(err)
       console.error('[KanbanTicketModal] handleImplement failed:', err)
-      toast.error(`Failed to start implementation: ${reason}`)
+      toast.error(tr(`Failed to start implementation: ${reason}`, `启动执行失败：${reason}`))
       useWorktreeStatusStore.getState().clearSessionStatus(ticket.current_session_id)
     } finally {
       setIsActioning(false)
     }
-  }, [ticket.current_session_id, ticket.id, ticket.project_id, isActioning, pendingPlan, sessionRecord, onClose])
+  }, [ticket.current_session_id, ticket.id, ticket.project_id, isActioning, pendingPlan, sessionRecord, onClose, tr])
 
   // ── Handoff handler ───────────────────────────────────────────────
   const handleHandoff = useCallback(async () => {
@@ -1393,7 +1397,7 @@ function PlanReviewModeContent({
       const sessionStore = useSessionStore.getState()
       const result = await sessionStore.createSession(ticket.worktree_id, ticket.project_id)
       if (!result.success || !result.session) {
-        toast.error(result.error ?? 'Failed to create handoff session')
+        toast.error(result.error ?? tr('Failed to create handoff session', '创建交接会话失败'))
         return
       }
 
@@ -1416,14 +1420,14 @@ function PlanReviewModeContent({
         mode: 'build'
       })
 
-      toast.success('Handoff session created')
+      toast.success(tr('Handoff session created', '交接会话已创建'))
       onClose()
     } catch {
-      toast.error('Failed to create handoff session')
+      toast.error(tr('Failed to create handoff session', '创建交接会话失败'))
     } finally {
       setIsActioning(false)
     }
-  }, [ticket, isActioning, planContent, onClose])
+  }, [ticket, isActioning, planContent, onClose, tr])
 
   // ── Shared: eagerly connect, send /using-superpowers, queue follow-up for global listener ──
   const eagerSuperchargeStart = useCallback(async (
@@ -1478,13 +1482,13 @@ function PlanReviewModeContent({
       // Look up worktree and project for duplication
       const worktree = findWorktreeById(ticket.worktree_id!)
       if (!worktree) {
-        toast.error('Could not find worktree')
+        toast.error(tr('Could not find worktree', '找不到工作树'))
         return
       }
 
       const project = useProjectStore.getState().projects.find((p) => p.id === worktree.project_id)
       if (!project) {
-        toast.error('Could not find project')
+        toast.error(tr('Could not find project', '找不到项目'))
         return
       }
 
@@ -1497,7 +1501,7 @@ function PlanReviewModeContent({
         worktree.path
       )
       if (!dupResult.success || !dupResult.worktree) {
-        toast.error(dupResult.error ?? 'Failed to duplicate worktree')
+        toast.error(dupResult.error ?? tr('Failed to duplicate worktree', '复制工作树失败'))
         return
       }
 
@@ -1505,7 +1509,7 @@ function PlanReviewModeContent({
       const sessionStore = useSessionStore.getState()
       const sessionResult = await sessionStore.createSession(dupResult.worktree.id, project.id, undefined, undefined, { autoFocus: false })
       if (!sessionResult.success || !sessionResult.session) {
-        toast.error(sessionResult.error ?? 'Failed to create supercharge session')
+        toast.error(sessionResult.error ?? tr('Failed to create supercharge session', '创建增强执行会话失败'))
         return
       }
 
@@ -1518,17 +1522,17 @@ function PlanReviewModeContent({
         newSessionId
       })
 
-      toast.success('Supercharge session started')
+      toast.success(tr('Supercharge session started', '增强执行会话已启动'))
       onClose()
 
       // Eagerly connect + send /using-superpowers in background; follow-up dispatched by global listener
       await eagerSuperchargeStart(dupResult.worktree.path, newSessionId)
     } catch {
-      toast.error('Failed to supercharge')
+      toast.error(tr('Failed to supercharge', '增强执行失败'))
     } finally {
       setIsActioning(false)
     }
-  }, [ticket, isActioning, planContent, onClose, eagerSuperchargeStart, worktreePath, opcSessionId])
+  }, [ticket, isActioning, onClose, eagerSuperchargeStart, worktreePath, opcSessionId, tr])
 
   // ── Supercharge Local handler (same worktree, no duplication) ───
   const handleSuperchargeLocal = useCallback(async () => {
@@ -1548,7 +1552,7 @@ function PlanReviewModeContent({
 
       const localWorktreePath = findWorktreePathById(ticket.worktree_id)
       if (!localWorktreePath) {
-        toast.error('Could not find worktree path')
+        toast.error(tr('Could not find worktree path', '找不到工作树路径'))
         return
       }
 
@@ -1556,7 +1560,7 @@ function PlanReviewModeContent({
       const sessionStore = useSessionStore.getState()
       const sessionResult = await sessionStore.createSession(ticket.worktree_id, ticket.project_id, undefined, undefined, { autoFocus: false })
       if (!sessionResult.success || !sessionResult.session) {
-        toast.error(sessionResult.error ?? 'Failed to create local supercharge session')
+        toast.error(sessionResult.error ?? tr('Failed to create local supercharge session', '创建本地增强执行会话失败'))
         return
       }
 
@@ -1569,17 +1573,17 @@ function PlanReviewModeContent({
         newSessionId
       })
 
-      toast.success('Local supercharge session started')
+      toast.success(tr('Local supercharge session started', '本地增强执行会话已启动'))
       onClose()
 
       // Eagerly connect + send /using-superpowers in background; follow-up dispatched by global listener
       await eagerSuperchargeStart(localWorktreePath, newSessionId)
     } catch {
-      toast.error('Failed to supercharge locally')
+      toast.error(tr('Failed to supercharge locally', '本地增强执行失败'))
     } finally {
       setIsActioning(false)
     }
-  }, [ticket, isActioning, planContent, onClose, eagerSuperchargeStart, worktreePath, opcSessionId])
+  }, [ticket, isActioning, onClose, eagerSuperchargeStart, worktreePath, opcSessionId, tr])
 
   return (
     <>
@@ -1587,13 +1591,13 @@ function PlanReviewModeContent({
         <div className="flex items-center justify-between">
           <DialogTitle className="flex items-center gap-2">
             {!dualPane && ticket.title}
-            <span className="inline-flex items-center rounded-full bg-violet-500/10 border border-violet-500/30 px-2 py-0.5 text-[11px] font-medium text-violet-500">
-              Plan ready
+            <span className="inline-flex items-center rounded-full bg-violet-500/10 border border-violet-500/30 px-2 py-0.5 text-[11px] font-medium text-violet-500" >
+              {tr('Plan ready', '计划已就绪')}
             </span>
           </DialogTitle>
           <JumpToSessionButton ticket={ticket} onClose={onClose} />
         </div>
-        <DialogDescription>Review the plan and choose an action.</DialogDescription>
+        <DialogDescription>{tr('Review the plan and choose an action.', '查看计划并选择操作。')}</DialogDescription>
       </DialogHeader>
 
       <div
@@ -1607,7 +1611,7 @@ function PlanReviewModeContent({
       <div className="space-y-1.5 flex-shrink-0">
         <div className="flex items-center gap-2">
           <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-            Followup
+            {tr('Followup', '后续指令')}
           </label>
           <button
             data-testid="plan-review-mode-toggle"
@@ -1625,7 +1629,13 @@ function PlanReviewModeContent({
             )}
           >
             {followUpMode === 'build' ? <Hammer className="h-3 w-3" /> : followUpMode === 'plan' ? <Map className="h-3 w-3" /> : <Sparkles className="h-3 w-3" />}
-            <span>{followUpMode === 'build' ? 'Build' : followUpMode === 'plan' ? 'Plan' : 'Super Plan'}</span>
+            <span>
+              {followUpMode === 'build'
+                ? tr('Build', '构建')
+                : followUpMode === 'plan'
+                  ? tr('Plan', '计划')
+                  : tr('Super Plan', '超级计划')}
+            </span>
           </button>
         </div>
         <div className="flex gap-2 items-end">
@@ -1636,7 +1646,7 @@ function PlanReviewModeContent({
             onChange={(e) => setFollowUpText(e.target.value)}
             onKeyDown={handleKeyDown}
             rows={2}
-            placeholder="Iterate on the plan… (Enter to send)"
+            placeholder={tr('Iterate on the plan… (Enter to send)', '继续完善计划…（回车发送）')}
             className="resize-y font-mono text-xs leading-relaxed flex-1"
           />
           <Button
@@ -1665,7 +1675,7 @@ function PlanReviewModeContent({
             variant="outline"
           >
             <ArrowRight className="h-3.5 w-3.5" />
-            Handoff
+            {tr('Handoff', '交接')}
           </Button>
           <Button
             type="button"
@@ -1675,7 +1685,7 @@ function PlanReviewModeContent({
             className="gap-1.5 bg-violet-600 hover:bg-violet-700 text-white"
           >
             <Bolt className="h-3.5 w-3.5" />
-            Supercharge
+            {tr('Supercharge', '增强执行')}
           </Button>
           <Button
             type="button"
@@ -1686,7 +1696,7 @@ function PlanReviewModeContent({
             variant="outline"
           >
             <Zap className="h-3.5 w-3.5" />
-            Supercharge (new branch)
+            {tr('Supercharge (new branch)', '增强执行（新分支）')}
           </Button>
           <Button
             type="button"
@@ -1696,7 +1706,7 @@ function PlanReviewModeContent({
             className="gap-1.5 bg-blue-600 hover:bg-blue-700 text-white"
           >
             <Hammer className="h-3.5 w-3.5" />
-            Implement
+            {tr('Implement', '执行')}
           </Button>
         </DialogFooter>
       )}
@@ -1721,6 +1731,7 @@ function ReviewModeContent({
   updateTicket: (ticketId: string, projectId: string, data: KanbanTicketUpdate) => Promise<void>
   dualPane?: boolean
 }) {
+  const { tr } = useI18n()
   const worktree = useMemo(
     () => (ticket.worktree_id ? findWorktreeById(ticket.worktree_id) : null),
     [ticket.worktree_id]
@@ -1735,6 +1746,7 @@ function ReviewModeContent({
   const [diffSummaryError, setDiffSummaryError] = useState<string | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const lifecycle = useLifecycleActions(ticket.worktree_id)
+  const { hasAttachedPR, loadPRState } = lifecycle
   const isCreatingPR = useGitStore((s) =>
     ticket.worktree_id ? s.creatingPRByWorktreeId.get(ticket.worktree_id) === true : false
   )
@@ -1742,8 +1754,8 @@ function ReviewModeContent({
 
   // Load live PR state so merge-button guard works (hide if already merged/closed)
   useEffect(() => {
-    if (lifecycle.hasAttachedPR) lifecycle.loadPRState()
-  }, [lifecycle.hasAttachedPR])
+    if (hasAttachedPR) void loadPRState()
+  }, [hasAttachedPR, loadPRState])
 
   // Display ticket description as context, with notice to view session for full conversation
   const reviewDescription = ticket.description ?? null
@@ -1832,12 +1844,14 @@ function ReviewModeContent({
           setDiffSummaryError(null)
         } else {
           setDiffSummary([])
-          setDiffSummaryError(result.error ?? 'Failed to load changed files')
+          setDiffSummaryError(result.error ?? tr('Failed to load changed files', '加载已更改文件失败'))
         }
       } catch (error) {
         if (!cancelled) {
           setDiffSummary([])
-          setDiffSummaryError(error instanceof Error ? error.message : 'Failed to load changed files')
+          setDiffSummaryError(
+            error instanceof Error ? error.message : tr('Failed to load changed files', '加载已更改文件失败')
+          )
         }
       } finally {
         if (!cancelled) {
@@ -1858,7 +1872,7 @@ function ReviewModeContent({
       cancelled = true
       cleanup()
     }
-  }, [dualPane, resolvedWorktree?.path, resolvedBaseBranch])
+  }, [dualPane, resolvedWorktree?.path, resolvedBaseBranch, tr])
 
   const runRunning = useScriptStore((s) =>
     ticket.worktree_id ? (s.scriptStates[ticket.worktree_id]?.runRunning ?? false) : false
@@ -1916,7 +1930,7 @@ function ReviewModeContent({
         .setSessionStatus(sessionId, isPlanLike(mode) ? 'planning' : 'working')
 
       await updateTicket(ticketId, projectId, { mode, plan_ready: false })
-      toast.success('Followup sent')
+      toast.success(tr('Followup sent', '后续消息已发送'))
       onClose()
 
       // Send followup in background. sendFollowupToSession awaits the full
@@ -1930,7 +1944,7 @@ function ReviewModeContent({
       }).catch((err) => {
         console.error('[KanbanTicketModal] sendFollowupToSession failed:', err)
         const reason = err instanceof Error ? err.message : String(err)
-        toast.error(`Failed to send followup: ${reason}`)
+        toast.error(`${tr('Failed to send followup', '发送后续消息失败')}: ${reason}`)
         useWorktreeStatusStore.getState().clearSessionStatus(sessionId)
       })
     } catch (err) {
@@ -1940,7 +1954,7 @@ function ReviewModeContent({
     } finally {
       setIsSending(false)
     }
-  }, [followUpText, followUpMode, ticket, isSending, moveTicket, updateTicket, onClose])
+  }, [followUpText, followUpMode, ticket, isSending, moveTicket, updateTicket, onClose, tr])
 
   // Enter sends, Shift+Enter for newline
   const handleKeyDown = useCallback(
@@ -1983,11 +1997,11 @@ function ReviewModeContent({
       const doneTickets = kanbanStore.getTicketsByColumn(ticket.project_id, 'done')
       const sortOrder = kanbanStore.computeSortOrder(doneTickets, doneTickets.length)
       await moveTicket(ticket.id, ticket.project_id, 'done', sortOrder)
-      toast.success('Ticket moved to Done')
+      toast.success(tr('Ticket moved to Done', '工单已移至已完成'))
     } catch {
-      toast.error('Failed to move ticket')
+      toast.error(tr('Failed to move ticket', '移动工单失败'))
     }
-  }, [ticket, moveTicket])
+  }, [ticket, moveTicket, tr])
 
   // ── Run / Stop handlers ────────────────────────────────────────────
   const handleRunScript = useCallback(() => {
@@ -1997,14 +2011,14 @@ function ReviewModeContent({
       .map((l) => l.trim())
       .filter((l) => l && !l.startsWith('#'))
     fireRunScript(ticket.worktree_id, commands, resolvedWorktree.path)
-    toast.success('Run script started')
-  }, [ticket.worktree_id, resolvedWorktree, project, runRunning])
+    toast.success(tr('Run script started', '运行脚本已启动'))
+  }, [ticket.worktree_id, resolvedWorktree, project, runRunning, tr])
 
   const handleStopScript = useCallback(async () => {
     if (!ticket.worktree_id) return
     await killRunScript(ticket.worktree_id)
-    toast.success('Run script stopped')
-  }, [ticket.worktree_id])
+    toast.success(tr('Run script stopped', '运行脚本已停止'))
+  }, [ticket.worktree_id, tr])
 
   // Cmd+R / Ctrl+R toggles run/stop while the review modal is open
   useEffect(() => {
@@ -2028,13 +2042,17 @@ function ReviewModeContent({
   }, [hasRunScript, runRunning, handleRunScript, handleStopScript])
 
   const ModeIcon = followUpMode === 'build' ? Hammer : followUpMode === 'plan' ? Map : Sparkles
-  const modeLabel = followUpMode === 'build' ? 'Build' : followUpMode === 'plan' ? 'Plan' : 'Super Plan'
+  const modeLabel = followUpMode === 'build'
+    ? tr('Build', '构建')
+    : followUpMode === 'plan'
+      ? tr('Plan', '计划')
+      : tr('Super Plan', '超级计划')
 
   return (
     <>
       <DialogHeader>
         <div className="flex items-center justify-between">
-          <DialogTitle>{dualPane ? 'Review' : ticket.title}</DialogTitle>
+          <DialogTitle>{dualPane ? tr('Review', '评审') : ticket.title}</DialogTitle>
           <div className="flex items-center gap-2">
             {lifecycle.hasAttachedPR && lifecycle.attachedPR && (
               <button
@@ -2048,7 +2066,7 @@ function ReviewModeContent({
             <JumpToSessionButton ticket={ticket} onClose={onClose} />
           </div>
         </div>
-        <DialogDescription>Review the session output and provide followup.</DialogDescription>
+        <DialogDescription>{tr('Review the session output and provide followup.', '查看会话输出并提供后续指令。')}</DialogDescription>
       </DialogHeader>
 
       {!dualPane && (
@@ -2061,10 +2079,13 @@ function ReviewModeContent({
               <MarkdownRenderer content={reviewDescription} />
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">Session completed.</p>
+            <p className="text-sm text-muted-foreground">{tr('Session completed.', '会话已完成。')}</p>
           )}
           <p data-testid="review-session-notice" className="text-xs text-muted-foreground/80">
-            View the full session conversation by clicking &quot;Jump to session&quot; above.
+            {tr(
+              'View the full session conversation by clicking "Jump to session" above.',
+              '点击上方“跳转到会话”可查看完整会话内容。'
+            )}
           </p>
         </div>
       )}
@@ -2082,7 +2103,7 @@ function ReviewModeContent({
       <div className="space-y-2 flex-shrink-0">
         <div className="flex items-center gap-2">
           <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-            Followup
+            {tr('Followup', '后续指令')}
           </label>
           <button
             data-testid="review-mode-toggle"
@@ -2110,7 +2131,7 @@ function ReviewModeContent({
           onChange={(e) => setFollowUpText(e.target.value)}
           onKeyDown={handleKeyDown}
           rows={2}
-          placeholder="Provide followup instructions… (Enter to send)"
+          placeholder={tr('Provide followup instructions… (Enter to send)', '提供后续指令…（回车发送）')}
           className="resize-y font-mono text-xs leading-relaxed"
         />
       </div>
@@ -2122,7 +2143,7 @@ function ReviewModeContent({
           data-testid="review-cancel-btn"
           onClick={onClose}
         >
-          Cancel
+          {tr('Cancel', '取消')}
         </Button>
         {hasRunScript && (
           <Button
@@ -2137,7 +2158,9 @@ function ReviewModeContent({
                 : 'border-green-500/30 text-green-500 hover:bg-green-500/10'
             )}
           >
-            {runRunning ? <><Square className="h-3.5 w-3.5" /> Stop</> : <><Play className="h-3.5 w-3.5" /> Run</>}
+            {runRunning
+              ? <><Square className="h-3.5 w-3.5" /> {tr('Stop', '停止')}</>
+              : <><Play className="h-3.5 w-3.5" /> {tr('Run', '运行')}</>}
               <kbd className="ml-1 text-[10px] opacity-60 font-sans">⌘R</kbd>
           </Button>
         )}
@@ -2150,7 +2173,7 @@ function ReviewModeContent({
             onClick={() => pinAndActivateSession(() => lifecycle.createCodeReview())}
           >
             <FileSearch className="h-3.5 w-3.5" />
-            Review
+            {tr('Review', '评审')}
           </Button>
         )}
         {ticket.worktree_id && lifecycle.isGitHub && !lifecycle.hasAttachedPR && (
@@ -2162,7 +2185,7 @@ function ReviewModeContent({
               disabled
             >
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              Creating PR...
+              {tr('Creating PR...', '正在创建 PR...')}
             </Button>
           ) : (
             <Button
@@ -2178,12 +2201,12 @@ function ReviewModeContent({
                     worktreePath,
                   })
                 } else {
-                  toast.error('Could not find worktree path')
+                  toast.error(tr('Could not find worktree path', '找不到工作树路径'))
                 }
               }}
             >
               <GitPullRequest className="h-3.5 w-3.5" />
-              Create PR
+              {tr('Create PR', '创建 PR')}
             </Button>
           )
         )}
@@ -2201,7 +2224,7 @@ function ReviewModeContent({
             ) : (
               <GitMerge className="h-3.5 w-3.5" />
             )}
-            {lifecycle.isMergingPR ? 'Merging...' : 'Merge PR'}
+            {lifecycle.isMergingPR ? tr('Merging...', '合并中...') : tr('Merge PR', '合并 PR')}
           </Button>
         )}
         <Button
@@ -2210,7 +2233,7 @@ function ReviewModeContent({
           variant="outline"
           onClick={handleMoveToDone}
         >
-          Move to Done
+          {tr('Move to Done', '移至已完成')}
         </Button>
         <Button
           type="button"
@@ -2225,7 +2248,7 @@ function ReviewModeContent({
           )}
         >
           <Send className="h-3.5 w-3.5" />
-          {isSending ? 'Sending...' : 'Send'}
+          {isSending ? tr('Sending...', '发送中...') : tr('Send', '发送')}
         </Button>
       </DialogFooter>
     </>
@@ -2245,6 +2268,7 @@ function ErrorModeContent({
   onClose: () => void
   dualPane?: boolean
 }) {
+  const { tr } = useI18n()
   const [followUpText, setFollowUpText] = useState('')
   const [followUpMode, setFollowUpMode] = useState<FollowUpMode>('build')
   const [isSending, setIsSending] = useState(false)
@@ -2279,10 +2303,10 @@ function ErrorModeContent({
       })
 
       await updateTicket(ticket.id, ticket.project_id, { mode: followUpMode, plan_ready: false })
-      toast.success('Retry sent')
+      toast.success(tr('Retry sent', '重试消息已发送'))
       onClose()
     } catch {
-      toast.error('Failed to send retry')
+      toast.error(tr('Failed to send retry', '发送重试失败'))
       // Reset session status so the kanban card stops showing a progress bar
       if (ticket.current_session_id) {
         useWorktreeStatusStore.getState().clearSessionStatus(ticket.current_session_id)
@@ -2290,7 +2314,7 @@ function ErrorModeContent({
     } finally {
       setIsSending(false)
     }
-  }, [followUpText, followUpMode, ticket, isSending, updateTicket, onClose])
+  }, [followUpText, followUpMode, ticket, isSending, updateTicket, onClose, tr])
 
   // Enter sends, Shift+Enter for newline
   const handleKeyDown = useCallback(
@@ -2304,7 +2328,11 @@ function ErrorModeContent({
   )
 
   const ModeIcon = followUpMode === 'build' ? Hammer : followUpMode === 'plan' ? Map : Sparkles
-  const modeLabel = followUpMode === 'build' ? 'Build' : followUpMode === 'plan' ? 'Plan' : 'Super Plan'
+  const modeLabel = followUpMode === 'build'
+    ? tr('Build', '构建')
+    : followUpMode === 'plan'
+      ? tr('Plan', '计划')
+      : tr('Super Plan', '超级计划')
 
   return (
     <>
@@ -2314,29 +2342,31 @@ function ErrorModeContent({
             {!dualPane && ticket.title}
             <span className="inline-flex items-center gap-1 rounded-full bg-red-500/10 border border-red-500/30 px-2 py-0.5 text-[11px] font-medium text-red-500">
               <AlertCircle className="h-3 w-3" />
-              Error
+              {tr('Error', '错误')}
             </span>
           </DialogTitle>
           <JumpToSessionButton ticket={ticket} onClose={onClose} />
         </div>
-        <DialogDescription>The session encountered an error. Send a followup to retry or correct.</DialogDescription>
+        <DialogDescription>{tr('The session encountered an error. Send a followup to retry or correct.', '会话遇到错误。发送后续消息以重试或修正。')}</DialogDescription>
       </DialogHeader>
 
       <div
         data-testid="error-info"
         className="rounded-md border border-red-500/30 bg-red-500/5 p-4 text-sm text-red-400 space-y-1"
       >
-        <p>The linked session reported an error. You can send a followup message to retry or provide corrections.</p>
+        <p>{tr('The linked session reported an error. You can send a followup message to retry or provide corrections.', '关联会话报告了错误。你可以发送后续消息来重试或提供修正。')}</p>
         {sessionStatusEntry && (
           <p className="text-xs text-red-400/70" data-testid="error-status-detail">
-            Status: {sessionStatusEntry.status}
+            {tr('Status', '状态')}: {sessionStatusEntry.status}
             {sessionStatusEntry.word ? ` - ${sessionStatusEntry.word}` : ''}
-            {sessionStatusEntry.durationMs ? ` (${Math.round(sessionStatusEntry.durationMs / 1000)}s ago)` : ''}
+            {sessionStatusEntry.durationMs
+              ? tr(` (${Math.round(sessionStatusEntry.durationMs / 1000)}s ago)`, `（${Math.round(sessionStatusEntry.durationMs / 1000)} 秒前）`)
+              : ''}
           </p>
         )}
         <p className="text-xs text-red-400/70">
-          Session: {ticket.current_session_id}
-          {' \u2014 use "Jump to session" for full details.'}
+          {tr('Session', '会话')}: {ticket.current_session_id}
+          {tr(' — use "Jump to session" for full details.', ' —— 使用“跳转到会话”查看完整详情。')}
         </p>
       </div>
 
@@ -2344,7 +2374,7 @@ function ErrorModeContent({
       <div className="space-y-2">
         <div className="flex items-center gap-2">
           <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-            Followup
+            {tr('Followup', '后续指令')}
           </label>
           <button
             data-testid="error-mode-toggle"
@@ -2371,7 +2401,7 @@ function ErrorModeContent({
           onChange={(e) => setFollowUpText(e.target.value)}
           onKeyDown={handleKeyDown}
           rows={2}
-          placeholder="Describe the fix or retry instructions… (Enter to send)"
+          placeholder={tr('Describe the fix or retry instructions… (Enter to send)', '描述修复或重试说明…（回车发送）')}
           className="resize-y font-mono text-xs leading-relaxed"
         />
       </div>
@@ -2383,7 +2413,7 @@ function ErrorModeContent({
           data-testid="error-cancel-btn"
           onClick={onClose}
         >
-          Cancel
+          {tr('Cancel', '取消')}
         </Button>
         <Button
           type="button"
@@ -2398,7 +2428,7 @@ function ErrorModeContent({
           )}
         >
           <Send className="h-3.5 w-3.5" />
-          {isSending ? 'Sending...' : 'Send'}
+          {isSending ? tr('Sending...', '发送中...') : tr('Send', '发送')}
         </Button>
       </DialogFooter>
     </>
@@ -2439,7 +2469,7 @@ function QuestionModeContent({
       onClose()
     } catch (err) {
       console.error('Failed to send answer:', err)
-      toast.error('Failed to send answer')
+      toast.error(tr('Failed to send answer', '发送回答失败'))
     }
   }, [ticket.worktree_id, ticket.current_session_id, ticket.mode, onClose])
 
@@ -2462,7 +2492,7 @@ function QuestionModeContent({
       onClose()
     } catch (err) {
       console.error('Failed to dismiss question:', err)
-      toast.error('Failed to dismiss question')
+      toast.error(tr('Failed to dismiss question', '忽略问题失败'))
     }
   }, [ticket.worktree_id, ticket.current_session_id, ticket.mode, onClose])
 
@@ -2471,11 +2501,13 @@ function QuestionModeContent({
       <DialogHeader>
         <div className="flex items-center justify-between">
           <DialogTitle className="flex items-center gap-2">
-            Question from Agent
+            {tr('Question from Agent', '来自代理的问题')}
           </DialogTitle>
           <JumpToSessionButton ticket={ticket} onClose={onClose} />
         </div>
-        <DialogDescription>{dualPane ? 'An agent question needs your attention.' : ticket.title}</DialogDescription>
+        <DialogDescription>
+          {dualPane ? tr('An agent question needs your attention.', '有一个代理问题需要你处理。') : ticket.title}
+        </DialogDescription>
       </DialogHeader>
       <QuestionPrompt
         key={activeQuestion.id}
@@ -2502,6 +2534,7 @@ function JumpToSessionButton({
   label?: string
   testId?: string
 }) {
+  const { tr } = useI18n()
   const handleJump = useCallback(() => {
     if (!ticket.current_session_id) return
 
@@ -2535,7 +2568,7 @@ function JumpToSessionButton({
       onClick={handleJump}
     >
       <ExternalLink className="h-3.5 w-3.5" />
-      {label}
+      {label === 'Jump to session' ? tr('Jump to session', '跳转到会话') : label}
     </Button>
   )
 }

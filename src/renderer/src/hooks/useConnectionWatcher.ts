@@ -57,8 +57,7 @@ export function useConnectionWatcher(): void {
     }
 
     previousPathsRef.current = memberPaths
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathsKey])
+  }, [pathsKey, memberPaths])
 
   // Subscribe to git status change events for any member path
   useEffect(() => {

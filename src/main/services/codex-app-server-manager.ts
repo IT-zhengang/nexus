@@ -168,6 +168,17 @@ function getDefaultCodexRuntimeConfig(): {
   }
 }
 
+function getCodexUserEnv(): Record<string, string> {
+  try {
+    return getUserEnvironmentVariables(getDatabase())
+  } catch (error) {
+    log.warn('Failed to load user environment variables for Codex session', {
+      error: error instanceof Error ? error.message : String(error)
+    })
+    return {}
+  }
+}
+
 const CODEX_DEFAULT_DEVELOPER_INSTRUCTIONS = `<collaboration_mode># Collaboration Mode: Default
 
 You are operating in **default** (autonomous execution) mode. This mode is set by developer instructions and does **not** change based on user requests or conversational intent.
@@ -353,7 +364,7 @@ export class CodexAppServerManager extends EventEmitter<CodexAppServerManagerEve
         cwd: resolvedCwd,
         env: {
           ...process.env,
-          ...getUserEnvironmentVariables(getDatabase()),
+          ...getCodexUserEnv(),
           ...(options.codexHomePath ? { CODEX_HOME: options.codexHomePath } : {})
         },
         stdio: ['pipe', 'pipe', 'pipe'],

@@ -811,7 +811,7 @@ export function registerOpenCodeHandlers(
         approved,
         remember,
         pattern,
-        worktreePath,
+        worktreePath: _worktreePath,
         patterns
       }: {
         requestId: string
@@ -822,6 +822,7 @@ export function registerOpenCodeHandlers(
         patterns?: string[]
       }
     ) => {
+      void _worktreePath
       log.info('IPC: opencode:commandApprovalReply', {
         requestId,
         approved,

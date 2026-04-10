@@ -47,6 +47,14 @@ const CLAUDE_MODELS = [
   }
 ]
 
+function resolveClaudeDebugFile(): string | undefined {
+  try {
+    return join(app.getPath('home'), '.hive', 'logs', 'claude-debug.log')
+  } catch {
+    return undefined
+  }
+}
+
 export interface ClaudeQuery {
   interrupt(): Promise<void>
   close(): void
@@ -492,7 +500,6 @@ export class ClaudeCodeImplementer implements AgentSdkImplementer {
         extraArgs: { 'replay-user-messages': null },
         thinking: { type: 'adaptive' },
         effort: effortLevel,
-        debugFile: join(app.getPath('home'), '.hive', 'logs', 'claude-debug.log'),
         env: {
           ...process.env,
           ...getUserEnvironmentVariables(this.dbService),
@@ -508,6 +515,10 @@ export class ClaudeCodeImplementer implements AgentSdkImplementer {
         },
         canUseTool: this.createCanUseToolCallback(session),
         ...(this.claudeBinaryPath ? { pathToClaudeCodeExecutable: this.claudeBinaryPath } : {})
+      }
+      const debugFile = resolveClaudeDebugFile()
+      if (debugFile) {
+        options.debugFile = debugFile
       }
 
       // If session is materialized (has real SDK ID), add resume
@@ -2893,7 +2904,8 @@ export class ClaudeCodeImplementer implements AgentSdkImplementer {
     let result: void | RewindFilesResult | undefined
     let gotMessage = false
     try {
-      for await (const _message of rewindQuery) {
+      for await (const message of rewindQuery) {
+        void message
         gotMessage = true
         result = await queryObj.rewindFiles(targetUuid)
         break
