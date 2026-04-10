@@ -16,6 +16,7 @@ import { useProjectStore } from '@/stores/useProjectStore'
 import { cn } from '@/lib/utils'
 import { ArchiveConfirmDialog } from '@/components/worktrees/ArchiveConfirmDialog'
 import { MergeConfirmDialog } from '@/components/worktrees/MergeConfirmDialog'
+import { useI18n } from '@/i18n'
 
 interface BranchInfo {
   name: string
@@ -33,6 +34,7 @@ export function GitPushPull({
   worktreePath,
   className
 }: GitPushPullProps): React.JSX.Element | null {
+  const { tr } = useI18n()
   const mergeBranch = useGitStore((s) =>
     worktreePath ? s.selectedMergeBranch.get(worktreePath) || '' : ''
   )
@@ -113,13 +115,13 @@ export function GitPushPull({
     const result = await push(worktreePath)
 
     if (result.success) {
-      toast.success('Pushed successfully')
+      toast.success(tr('Pushed successfully', '推送成功'))
     } else {
-      toast.error('Push failed', {
+      toast.error(tr('Push failed', '推送失败'), {
         description: result.error
       })
     }
-  }, [worktreePath, push])
+  }, [worktreePath, push, tr])
 
   const handlePull = useCallback(async () => {
     if (!worktreePath) return
@@ -127,13 +129,13 @@ export function GitPushPull({
     const result = await pull(worktreePath)
 
     if (result.success) {
-      toast.success('Pulled successfully')
+      toast.success(tr('Pulled successfully', '拉取成功'))
     } else {
-      toast.error('Pull failed', {
+      toast.error(tr('Pull failed', '拉取失败'), {
         description: result.error
       })
     }
-  }, [worktreePath, pull])
+  }, [worktreePath, pull, tr])
 
   // Load branches when dropdown opens
   useEffect(() => {
@@ -293,7 +295,9 @@ export function GitPushPull({
     try {
       const result = await window.gitOps.merge(worktreePath, mergeBranch.trim())
       if (result.success) {
-        toast.success(`Merged ${mergeBranch} successfully`)
+        toast.success(
+          tr(`Merged ${mergeBranch} successfully`, `已成功合并 ${mergeBranch}`)
+        )
         // Refresh file statuses and branch info after merge
         await refreshStatuses(worktreePath)
         // Refresh branch list so Archive/Delete decision has current isCheckedOut data
@@ -304,12 +308,12 @@ export function GitPushPull({
         // Re-check if the merged branch is now up-to-date
         setMergedCheckVersion((v) => v + 1)
       } else {
-        toast.error('Merge failed', { description: result.error })
+        toast.error(tr('Merge failed', '合并失败'), { description: result.error })
       }
     } finally {
       setIsMerging(false)
     }
-  }, [worktreePath, mergeBranch, refreshStatuses])
+  }, [worktreePath, mergeBranch, refreshStatuses, tr])
 
   const handleMerge = useCallback(async () => {
     if (!worktreePath || !mergeBranch.trim()) return
@@ -378,7 +382,7 @@ export function GitPushPull({
           ) : (
             <ArrowUpCircle className="h-3 w-3 mr-1" />
           )}
-          Push
+          {tr('Push', '推送')}
           {ahead > 0 && <span className="ml-1 text-[10px] opacity-75">({ahead})</span>}
         </Button>
 
@@ -396,14 +400,14 @@ export function GitPushPull({
           ) : (
             <ArrowDownCircle className="h-3 w-3 mr-1" />
           )}
-          Pull
+          {tr('Pull', '拉取')}
           {behind > 0 && <span className="ml-1 text-[10px] opacity-75">({behind})</span>}
         </Button>
       </div>
 
       {/* Merge section */}
       <div className="flex gap-2 items-center border-t pt-2" data-testid="merge-section">
-        <span className="text-[10px] text-muted-foreground whitespace-nowrap">Merge from</span>
+        <span className="text-[10px] text-muted-foreground whitespace-nowrap">{tr('Merge from', '合并来源')}</span>
         <div className="relative flex-1 min-w-0" ref={dropdownRef}>
           <button
             type="button"
@@ -419,7 +423,7 @@ export function GitPushPull({
             data-testid="merge-branch-trigger"
           >
             <span className="truncate">
-              {mergeBranch || <span className="text-muted-foreground">Select branch</span>}
+              {mergeBranch || <span className="text-muted-foreground">{tr('Select branch', '选择分支')}</span>}
             </span>
             <ChevronDown
               className={cn(
@@ -445,7 +449,7 @@ export function GitPushPull({
                   onChange={(e) => setBranchFilter(e.target.value)}
                   className="flex-1 bg-transparent text-xs focus:outline-none min-w-0
                              placeholder:text-muted-foreground"
-                  placeholder="Filter branches..."
+                  placeholder={tr('Filter branches...', '筛选分支...')}
                   onKeyDown={(e) => {
                     if (e.key === 'Escape') {
                       setBranchDropdownOpen(false)
@@ -461,11 +465,13 @@ export function GitPushPull({
                 {branchesLoading ? (
                   <div className="flex items-center justify-center py-3">
                     <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
-                    <span className="ml-1.5 text-xs text-muted-foreground">Loading...</span>
+                    <span className="ml-1.5 text-xs text-muted-foreground">{tr('Loading...', '加载中...')}</span>
                   </div>
                 ) : filteredBranches.length === 0 ? (
                   <div className="px-2 py-3 text-center text-xs text-muted-foreground">
-                    {branchFilter ? 'No matching branches' : 'No branches found'}
+                    {branchFilter
+                      ? tr('No matching branches', '没有匹配的分支')
+                      : tr('No branches found', '未找到分支')}
                   </div>
                 ) : (
                   filteredBranches.map((branch) => (
@@ -497,7 +503,7 @@ export function GitPushPull({
             data-testid="archive-merged-button"
           >
             <Archive className="h-3 w-3 mr-1" />
-            Archive
+            {tr('Archive', '归档')}
           </Button>
         ) : isBranchMerged && !selectedBranchInfo?.isRemote ? (
           null
@@ -510,7 +516,7 @@ export function GitPushPull({
             disabled={isMerging || isOperating || !mergeBranch.trim()}
             data-testid="merge-button"
           >
-            {isMerging ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Merge'}
+            {isMerging ? <Loader2 className="h-3 w-3 animate-spin" /> : tr('Merge', '合并')}
           </Button>
         )}
       </div>

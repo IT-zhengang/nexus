@@ -7,6 +7,7 @@ import { useWorktreeStore } from '@/stores/useWorktreeStore'
 import { useConnectionStore } from '@/stores/useConnectionStore'
 import { useSettingsStore, type EditorOption, type TerminalOption } from '@/stores/useSettingsStore'
 import { useProjectStore } from '@/stores/useProjectStore'
+import { useI18n } from '@/i18n/useI18n'
 
 function CursorIcon({ className }: { className?: string }): React.JSX.Element {
   return (
@@ -309,6 +310,7 @@ function TerminalIcon({
 }
 
 export function QuickActions(): React.JSX.Element | null {
+  const { tr } = useI18n()
   const isWebMode = useIsWebMode()
   const { selectedWorktreeId, worktreesByProject } = useWorktreeStore()
   const selectedConnectionId = useConnectionStore((s) => s.selectedConnectionId)
@@ -441,7 +443,7 @@ export function QuickActions(): React.JSX.Element | null {
           className="h-7 px-2 gap-1.5 text-xs cursor-pointer"
           disabled={disabled}
           onClick={() => window.projectOps.openPath(xcworkspacePath)}
-          title="Open in Xcode"
+          title={tr('Open in Xcode', '在 Xcode 中打开')}
           data-testid="quick-action-xcode"
         >
           <XcodeIcon className="h-3.5 w-3.5" />
@@ -458,7 +460,7 @@ export function QuickActions(): React.JSX.Element | null {
             const openPath = activePath || selectedProject?.path
             if (openPath) window.systemOps.openInApp('android-studio', openPath)
           }}
-          title="Open in Android Studio"
+          title={tr('Open in Android Studio', '在 Android Studio 中打开')}
           data-testid="quick-action-android-studio"
         >
           <AndroidStudioIcon className="h-3.5 w-3.5" />
@@ -503,7 +505,7 @@ export function QuickActions(): React.JSX.Element | null {
         className="h-7 px-2 gap-1.5 text-xs cursor-pointer"
         disabled={disabled}
         onClick={() => handleAction('copy-path')}
-        title="Copy Path"
+        title={tr('Copy Path', '复制路径')}
         data-testid="quick-action-copy-path"
       >
         {copied ? (
@@ -511,7 +513,7 @@ export function QuickActions(): React.JSX.Element | null {
         ) : (
           <Copy className="h-3.5 w-3.5" />
         )}
-        <span>{copied ? 'Copied' : 'Copy Path'}</span>
+        <span>{copied ? tr('Copied', '已复制') : tr('Copy Path', '复制路径')}</span>
       </Button>
       {!isWebMode && (
         <Button
@@ -533,7 +535,7 @@ export function QuickActions(): React.JSX.Element | null {
           size="sm"
           className="h-7 px-2 gap-1.5 text-xs cursor-pointer"
           onClick={() => handleAction('copy-branch')}
-          title="Copy branch name"
+          title={tr('Copy branch name', '复制分支名称')}
           data-testid="quick-action-copy-branch"
         >
           {branchCopied ? (
@@ -541,7 +543,9 @@ export function QuickActions(): React.JSX.Element | null {
           ) : (
             <GitBranch className="h-3.5 w-3.5" />
           )}
-          <span>{branchCopied ? 'Copied' : 'Copy branch name'}</span>
+          <span>
+            {branchCopied ? tr('Copied', '已复制') : tr('Copy branch name', '复制分支名称')}
+          </span>
         </Button>
       )}
     </div>

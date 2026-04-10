@@ -9,6 +9,7 @@ import {
   DialogDescription
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { useI18n } from '@/i18n'
 
 interface BranchInfo {
   name: string
@@ -39,6 +40,7 @@ export function BranchPickerDialog({
   projectPath,
   onSelect
 }: BranchPickerDialogProps): React.JSX.Element {
+  const { tr } = useI18n()
   const [branches, setBranches] = useState<BranchInfo[]>([])
   const [loading, setLoading] = useState(false)
   const [filter, setFilter] = useState('')
@@ -68,16 +70,16 @@ export function BranchPickerDialog({
         if (result.success) {
           setBranches(result.branches)
         } else {
-          setError(result.error || 'Failed to load branches')
+          setError(result.error || tr('Failed to load branches', '加载分支失败'))
         }
       })
       .catch((err) => {
-        setError(err instanceof Error ? err.message : 'Failed to load branches')
+        setError(err instanceof Error ? err.message : tr('Failed to load branches', '加载分支失败'))
       })
       .finally(() => {
         setLoading(false)
       })
-  }, [open, projectPath])
+  }, [open, projectPath, tr])
 
   // Fetch PRs when PRs tab is selected (lazy)
   useEffect(() => {
@@ -92,16 +94,16 @@ export function BranchPickerDialog({
         if (result.success) {
           setPrs(result.prs)
         } else {
-          setPrsError(result.error || 'Failed to load pull requests')
+          setPrsError(result.error || tr('Failed to load pull requests', '加载拉取请求失败'))
         }
       })
       .catch((err) => {
-        setPrsError(err instanceof Error ? err.message : 'Failed to load pull requests')
+        setPrsError(err instanceof Error ? err.message : tr('Failed to load pull requests', '加载拉取请求失败'))
       })
       .finally(() => {
         setPrsLoading(false)
       })
-  }, [open, projectPath, activeTab])
+  }, [open, projectPath, activeTab, tr])
 
   // Filter and sort branches
   const filteredBranches = useMemo(() => {
@@ -138,9 +140,9 @@ export function BranchPickerDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>New Workspace</DialogTitle>
+          <DialogTitle>{tr('New Workspace', '新建工作区')}</DialogTitle>
           <DialogDescription>
-            Select a branch or pull request to create a new workspace from.
+            {tr('Select a branch or pull request to create a new workspace from.', '选择一个分支或拉取请求来创建新的工作区。')}
           </DialogDescription>
         </DialogHeader>
 
@@ -157,7 +159,7 @@ export function BranchPickerDialog({
             onClick={() => setActiveTab('branches')}
           >
             <GitBranch className="inline h-3.5 w-3.5 mr-1.5 -mt-0.5" />
-            Branches
+            {tr('Branches', '分支')}
           </button>
           <button
             className={cn(
@@ -170,7 +172,7 @@ export function BranchPickerDialog({
             onClick={() => setActiveTab('prs')}
           >
             <GitPullRequest className="inline h-3.5 w-3.5 mr-1.5 -mt-0.5" />
-            PRs
+            {tr('PRs', 'PR')}
           </button>
         </div>
 
@@ -179,7 +181,9 @@ export function BranchPickerDialog({
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder={
-              activeTab === 'branches' ? 'Filter branches...' : 'Filter pull requests...'
+              activeTab === 'branches'
+                ? tr('Filter branches...', '筛选分支...')
+                : tr('Filter pull requests...', '筛选拉取请求...')
             }
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
@@ -194,13 +198,15 @@ export function BranchPickerDialog({
             {loading ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                <span className="ml-2 text-sm text-muted-foreground">Loading branches...</span>
+                <span className="ml-2 text-sm text-muted-foreground">{tr('Loading branches...', '正在加载分支...')}</span>
               </div>
             ) : error ? (
               <div className="px-4 py-8 text-center text-sm text-destructive">{error}</div>
             ) : filteredBranches.length === 0 ? (
               <div className="px-4 py-8 text-center text-sm text-muted-foreground">
-                {filter ? 'No branches match your filter' : 'No branches found'}
+                {filter
+                  ? tr('No branches match your filter', '没有匹配筛选条件的分支')
+                  : tr('No branches found', '未找到分支')}
               </div>
             ) : (
               <div className="py-1">
@@ -217,15 +223,15 @@ export function BranchPickerDialog({
                     <GitBranch className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                     <span className="flex-1 truncate">{branch.name}</span>
                     {branch.isRemote && (
-                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium rounded bg-muted text-muted-foreground shrink-0">
-                        <Globe className="h-2.5 w-2.5" />
-                        remote
-                      </span>
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium rounded bg-muted text-muted-foreground shrink-0">
+                          <Globe className="h-2.5 w-2.5" />
+                          {tr('remote', '远程')}
+                        </span>
                     )}
                     {branch.isCheckedOut && (
                       <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium rounded bg-primary/10 text-primary shrink-0">
                         <CheckCircle2 className="h-2.5 w-2.5" />
-                        active
+                        {tr('active', '活动中')}
                       </span>
                     )}
                   </button>
@@ -241,13 +247,15 @@ export function BranchPickerDialog({
             {prsLoading ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                <span className="ml-2 text-sm text-muted-foreground">Loading pull requests...</span>
+                <span className="ml-2 text-sm text-muted-foreground">{tr('Loading pull requests...', '正在加载拉取请求...')}</span>
               </div>
             ) : prsError ? (
               <div className="px-4 py-8 text-center text-sm text-destructive">{prsError}</div>
             ) : filteredPRs.length === 0 ? (
               <div className="px-4 py-8 text-center text-sm text-muted-foreground">
-                {filter ? 'No pull requests match your filter' : 'No open pull requests'}
+                {filter
+                  ? tr('No pull requests match your filter', '没有匹配筛选条件的拉取请求')
+                  : tr('No open pull requests', '没有打开的拉取请求')}
               </div>
             ) : (
               <div className="py-1">

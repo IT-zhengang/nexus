@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { toast } from '@/lib/toast'
 import type { ToolUseInfo, ToolStatus } from './ToolCard'
+import { useI18n } from '@/i18n/useI18n'
 
 function statusColor(status: ToolStatus): string {
   switch (status) {
@@ -32,23 +33,24 @@ function formatDuration(ms: number): string {
 }
 
 function CopyButton({ text, label }: { text: string; label: string }) {
+  const { tr } = useI18n()
   const [copied, setCopied] = useState(false)
 
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(text)
       setCopied(true)
-      toast.success(`${label} copied to clipboard`)
+      toast.success(tr(`${label} copied to clipboard`, `${label} 已复制到剪贴板`))
       setTimeout(() => setCopied(false), 2000)
     } catch {
-      toast.error('Failed to copy')
+      toast.error(tr('Failed to copy', '复制失败'))
     }
   }
 
   return (
     <Button variant="ghost" size="sm" onClick={handleCopy} className="h-7 gap-1.5 text-xs">
       {copied ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
-      {copied ? 'Copied' : `Copy ${label}`}
+      {copied ? tr('Copied', '已复制') : tr(`Copy ${label}`, `复制${label}`)}
     </Button>
   )
 }
@@ -60,6 +62,7 @@ interface ToolCallDebugModalProps {
 }
 
 export function ToolCallDebugModal({ open, onOpenChange, toolUse }: ToolCallDebugModalProps) {
+  const { tr } = useI18n()
   const [activeTab, setActiveTab] = useState<'input' | 'output'>('input')
 
   useEffect(() => {
@@ -70,13 +73,13 @@ export function ToolCallDebugModal({ open, onOpenChange, toolUse }: ToolCallDebu
     try {
       return JSON.stringify(toolUse.input, null, 2)
     } catch {
-      return '(unable to serialize input)'
+      return tr('(unable to serialize input)', '（无法序列化输入）')
     }
-  }, [toolUse.input])
+  }, [toolUse.input, tr])
 
   const outputText = useMemo(
-    () => (toolUse.error ? `[ERROR]\n${toolUse.error}` : (toolUse.output ?? '(no output)')),
-    [toolUse.error, toolUse.output]
+    () => (toolUse.error ? `[ERROR]\n${toolUse.error}` : (toolUse.output ?? tr('(no output)', '（无输出）'))),
+    [toolUse.error, toolUse.output, tr]
   )
 
   const duration =
@@ -93,7 +96,7 @@ export function ToolCallDebugModal({ open, onOpenChange, toolUse }: ToolCallDebu
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-base">
             <Bug className="h-4 w-4 text-muted-foreground" />
-            Tool Call Inspector
+            {tr('Tool Call Inspector', '工具调用检查器')}
           </DialogTitle>
           <DialogDescription asChild>
             <div className="flex flex-wrap items-center gap-2 pt-1">
@@ -133,7 +136,7 @@ export function ToolCallDebugModal({ open, onOpenChange, toolUse }: ToolCallDebu
                 : 'border-transparent text-muted-foreground hover:text-foreground'
             )}
           >
-            Input
+            {tr('Input', '输入')}
           </button>
           <button
             role="tab"
@@ -147,12 +150,12 @@ export function ToolCallDebugModal({ open, onOpenChange, toolUse }: ToolCallDebu
                 : 'border-transparent text-muted-foreground hover:text-foreground'
             )}
           >
-            Output
+            {tr('Output', '输出')}
           </button>
           <div className="flex-1" />
           <CopyButton
             text={activeTab === 'input' ? inputJson : outputText}
-            label={activeTab === 'input' ? 'Input' : 'Output'}
+            label={activeTab === 'input' ? tr('Input', '输入') : tr('Output', '输出')}
           />
         </div>
 

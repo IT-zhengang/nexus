@@ -2,6 +2,7 @@ import { useCallback } from 'react'
 import { ChevronUp, ChevronDown, Columns2, AlignJustify, Copy, X } from 'lucide-react'
 import { toast } from '@/lib/toast'
 import { Button } from '@/components/ui/button'
+import { useI18n } from '@/i18n'
 
 interface MonacoDiffToolbarProps {
   fileName: string
@@ -28,18 +29,19 @@ export function MonacoDiffToolbar({
   onCopy,
   onClose
 }: MonacoDiffToolbarProps): React.JSX.Element {
+  const { tr } = useI18n()
   const statusLabel = compareBranch
-    ? `vs ${compareBranch}`
+    ? tr(`vs ${compareBranch}`, `对比 ${compareBranch}`)
     : staged
-      ? 'Staged'
+      ? tr('Staged', '已暂存')
       : isUntracked
-        ? 'New file'
-        : 'Unstaged'
+        ? tr('New file', '新文件')
+        : tr('Unstaged', '未暂存')
 
   const handleCopy = useCallback(async () => {
     onCopy()
-    toast.success('Diff content copied to clipboard')
-  }, [onCopy])
+    toast.success(tr('Diff content copied to clipboard', 'Diff 内容已复制到剪贴板'))
+  }, [onCopy, tr])
 
   return (
     <div className="flex items-center justify-between px-3 py-1.5 border-b bg-muted/30 shrink-0">
@@ -56,7 +58,7 @@ export function MonacoDiffToolbar({
           size="icon"
           className="h-6 w-6"
           onClick={onPrevHunk}
-          title="Previous change (Alt+Up)"
+          title={tr('Previous change (Alt+Up)', '上一个变更（Alt+上）')}
           data-testid="monaco-diff-prev-hunk"
         >
           <ChevronUp className="h-3.5 w-3.5" />
@@ -66,7 +68,7 @@ export function MonacoDiffToolbar({
           size="icon"
           className="h-6 w-6"
           onClick={onNextHunk}
-          title="Next change (Alt+Down)"
+          title={tr('Next change (Alt+Down)', '下一个变更（Alt+下）')}
           data-testid="monaco-diff-next-hunk"
         >
           <ChevronDown className="h-3.5 w-3.5" />
@@ -80,7 +82,11 @@ export function MonacoDiffToolbar({
           size="icon"
           className="h-6 w-6"
           onClick={onToggleSideBySide}
-          title={sideBySide ? 'Switch to inline view' : 'Switch to side-by-side view'}
+          title={
+            sideBySide
+              ? tr('Switch to inline view', '切换为内联视图')
+              : tr('Switch to side-by-side view', '切换为并排视图')
+          }
           data-testid="monaco-diff-view-toggle"
         >
           {sideBySide ? (
@@ -96,7 +102,7 @@ export function MonacoDiffToolbar({
           size="icon"
           className="h-6 w-6"
           onClick={handleCopy}
-          title="Copy diff to clipboard"
+          title={tr('Copy diff to clipboard', '复制 diff 到剪贴板')}
           data-testid="monaco-diff-copy-button"
         >
           <Copy className="h-3.5 w-3.5" />
@@ -110,7 +116,7 @@ export function MonacoDiffToolbar({
           size="icon"
           className="h-6 w-6"
           onClick={onClose}
-          title="Close diff (Esc)"
+          title={tr('Close diff (Esc)', '关闭 diff（Esc）')}
           data-testid="monaco-diff-close-button"
         >
           <X className="h-3.5 w-3.5" />

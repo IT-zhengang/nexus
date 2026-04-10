@@ -3,6 +3,7 @@ import { useUsageStore, useSessionStore, resolveUsageProvider, resolveDefaultUsa
 import { useSettingsStore } from '@/stores/useSettingsStore'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
+import { useI18n } from '@/i18n/useI18n'
 import claudeIcon from '@/assets/model-icons/claude.svg'
 import openaiIcon from '@/assets/model-icons/openai.svg'
 import type { UsageProvider } from '@shared/types/usage'
@@ -109,6 +110,7 @@ function ProviderUsageBlock({
   provider: UsageProvider
   isExplicitlySelected: boolean
 }): React.JSX.Element | null {
+  const { tr } = useI18n()
   const anthropicUsage = useUsageStore((s) => s.anthropicUsage)
   const openaiUsage = useUsageStore((s) => s.openaiUsage)
 
@@ -137,7 +139,7 @@ function ProviderUsageBlock({
         <TooltipContent side="top" sideOffset={8}>
           <div className="space-y-1">
             <div className="font-medium">{tooltipTitle}</div>
-            <div className="text-[10px]">No credentials configured</div>
+            <div className="text-[10px]">{tr('No credentials configured', '未配置凭据')}</div>
           </div>
         </TooltipContent>
       </Tooltip>

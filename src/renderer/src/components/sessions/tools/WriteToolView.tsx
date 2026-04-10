@@ -5,11 +5,13 @@ import { ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { ToolViewProps } from './types'
 import { getPrismLanguage } from '@/lib/language-map'
+import { useI18n } from '@/i18n/useI18n'
 
 const MAX_PREVIEW_LINES = 20
 
 
 export function WriteToolView({ input, error }: ToolViewProps) {
+  const { tr } = useI18n()
   const [showAll, setShowAll] = useState(false)
 
   const filePath = (input.file_path || input.filePath || input.path || '') as string
@@ -72,7 +74,9 @@ export function WriteToolView({ input, error }: ToolViewProps) {
           <ChevronDown
             className={cn('h-3 w-3 transition-transform duration-150', showAll && 'rotate-180')}
           />
-          {showAll ? 'Show less' : `Show all ${lines.length} lines`}
+          {showAll
+            ? tr('Show less', '收起')
+            : tr(`Show all ${lines.length} lines`, `显示全部 ${lines.length} 行`)}
         </button>
       )}
     </div>

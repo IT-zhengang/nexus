@@ -10,6 +10,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle
 } from '@/components/ui/alert-dialog'
+import { useI18n } from '@/i18n/useI18n'
 
 const MAX_FILES_SHOWN = 5
 
@@ -81,6 +82,7 @@ export function DirtyFilesConfirmDialog({
   onCancel,
   onConfirm
 }: DirtyFilesConfirmDialogProps): React.JSX.Element {
+  const { tr } = useI18n()
   const shownFiles = files.slice(0, MAX_FILES_SHOWN)
   const remainingCount = files.length - shownFiles.length
 
@@ -116,7 +118,10 @@ export function DirtyFilesConfirmDialog({
                 </div>
                 {remainingCount > 0 && (
                   <div className="px-3 py-1.5 text-xs text-muted-foreground border-t bg-muted/30">
-                    +{remainingCount} more {remainingCount === 1 ? 'file' : 'files'}
+                    {tr(
+                      `+${remainingCount} more ${remainingCount === 1 ? 'file' : 'files'}`,
+                      `另有 ${remainingCount} 个文件`
+                    )}
                   </div>
                 )}
               </div>
@@ -124,7 +129,7 @@ export function DirtyFilesConfirmDialog({
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel onClick={onCancel}>Cancel</AlertDialogCancel>
+          <AlertDialogCancel onClick={onCancel}>{tr('Cancel', '取消')}</AlertDialogCancel>
           <AlertDialogAction variant={confirmVariant} onClick={onConfirm}>
             {confirmLabel}
           </AlertDialogAction>

@@ -68,6 +68,7 @@ import { ModelIcon } from './ModelIcon'
 import { ArchiveConfirmDialog } from './ArchiveConfirmDialog'
 import { AddAttachmentDialog } from './AddAttachmentDialog'
 import { useFileViewerStore } from '@/stores/useFileViewerStore'
+import { useI18n } from '@/i18n'
 
 interface Worktree {
   id: string
@@ -107,6 +108,7 @@ export function WorktreeItem({
   onDrop,
   onDragEnd
 }: WorktreeItemProps): React.JSX.Element {
+  const { tr } = useI18n()
   const { selectedWorktreeId, selectWorktree, archiveWorktree, unbranchWorktree } =
     useWorktreeStore()
   const selectProject = useProjectStore((s) => s.selectProject)
@@ -190,22 +192,22 @@ export function WorktreeItem({
 
   // Derive display status text + color for second-line row (always shown)
   const { displayStatus, statusClass } = isArchiving
-    ? { displayStatus: 'Archiving', statusClass: 'font-semibold text-muted-foreground' }
+    ? { displayStatus: tr('Archiving', '归档中'), statusClass: 'font-semibold text-muted-foreground' }
     : worktreeStatus === 'answering'
-      ? { displayStatus: 'Answer questions', statusClass: 'font-semibold text-amber-500' }
+      ? { displayStatus: tr('Answer questions', '回答问题'), statusClass: 'font-semibold text-amber-500' }
       : worktreeStatus === 'command_approval'
-        ? { displayStatus: 'Approve command', statusClass: 'font-semibold text-orange-500' }
+        ? { displayStatus: tr('Approve command', '批准命令'), statusClass: 'font-semibold text-orange-500' }
         : worktreeStatus === 'permission'
-          ? { displayStatus: 'Permission', statusClass: 'font-semibold text-amber-500' }
+          ? { displayStatus: tr('Permission', '权限确认'), statusClass: 'font-semibold text-amber-500' }
           : worktreeStatus === 'planning'
-            ? { displayStatus: 'Planning', statusClass: 'font-semibold text-blue-400' }
+            ? { displayStatus: tr('Planning', '规划中'), statusClass: 'font-semibold text-blue-400' }
             : worktreeStatus === 'working'
-              ? { displayStatus: 'Working', statusClass: 'font-semibold text-primary' }
+              ? { displayStatus: tr('Working', '处理中'), statusClass: 'font-semibold text-primary' }
               : worktreeStatus === 'plan_ready'
-                ? { displayStatus: 'Plan ready', statusClass: 'font-semibold text-blue-400' }
+                ? { displayStatus: tr('Plan ready', '计划已就绪'), statusClass: 'font-semibold text-blue-400' }
                 : worktreeStatus === 'completed'
-                  ? { displayStatus: 'Ready', statusClass: 'font-semibold text-green-400' }
-                  : { displayStatus: 'Ready', statusClass: 'text-muted-foreground' }
+                  ? { displayStatus: tr('Ready', '就绪'), statusClass: 'font-semibold text-green-400' }
+                  : { displayStatus: tr('Ready', '就绪'), statusClass: 'text-muted-foreground' }
 
   // Archive confirmation state
   const [archiveConfirmOpen, setArchiveConfirmOpen] = useState(false)
@@ -237,12 +239,12 @@ export function WorktreeItem({
       const result = await window.db.worktree.removeAttachment(worktree.id, attachmentId)
       if (result.success) {
         setAttachments((prev) => prev.filter((a) => a.id !== attachmentId))
-        toast.success('Attachment removed')
+        toast.success(tr('Attachment removed', '附件已移除'))
       } else {
-        toast.error(result.error || 'Failed to remove attachment')
+        toast.error(result.error || tr('Failed to remove attachment', '移除附件失败'))
       }
     },
-    [worktree.id]
+    [worktree.id, tr]
   )
 
   const handleAttachmentAdded = useCallback((): void => {
@@ -319,7 +321,7 @@ export function WorktreeItem({
       .replace(/-+$/, '')
 
     if (!newBranch) {
-      toast.error('Invalid branch name')
+      toast.error(tr('Invalid branch name', '分支名无效'))
       setIsRenamingBranch(false)
       return
     }
@@ -333,12 +335,12 @@ export function WorktreeItem({
 
     if (result.success) {
       useWorktreeStore.getState().updateWorktreeBranch(worktree.id, newBranch)
-      toast.success(`Branch renamed to ${newBranch}`)
+      toast.success(tr(`Branch renamed to ${newBranch}`, `分支已重命名为 ${newBranch}`))
     } else {
-      toast.error(result.error || 'Failed to rename branch')
+      toast.error(result.error || tr('Failed to rename branch', '重命名分支失败'))
     }
     setIsRenamingBranch(false)
-  }, [branchNameInput, worktree.id, worktree.path, worktree.branch_name])
+  }, [branchNameInput, worktree.id, worktree.path, worktree.branch_name, tr])
 
   const handleClick = (): void => {
     if (isInConnectionMode) {
@@ -353,26 +355,26 @@ export function WorktreeItem({
   const handleOpenInTerminal = useCallback(async (): Promise<void> => {
     const result = await window.worktreeOps.openInTerminal(worktree.path)
     if (result.success) {
-      toast.success('Opened in Terminal')
+      toast.success(tr('Opened in Terminal', '已在终端中打开'))
     } else {
-      toast.error(result.error || 'Failed to open in terminal', {
+      toast.error(result.error || tr('Failed to open in terminal', '在终端中打开失败'), {
         retry: handleOpenInTerminal,
-        description: 'Make sure the worktree directory exists'
+        description: tr('Make sure the worktree directory exists', '请确认工作树目录存在')
       })
     }
-  }, [worktree.path])
+  }, [worktree.path, tr])
 
   const handleOpenInEditor = useCallback(async (): Promise<void> => {
     const result = await window.worktreeOps.openInEditor(worktree.path)
     if (result.success) {
-      toast.success('Opened in Editor')
+      toast.success(tr('Opened in Editor', '已在编辑器中打开'))
     } else {
-      toast.error(result.error || 'Failed to open in editor', {
+      toast.error(result.error || tr('Failed to open in editor', '在编辑器中打开失败'), {
         retry: handleOpenInEditor,
-        description: 'Make sure VS Code is installed'
+        description: tr('Make sure VS Code is installed', '请确认 VS Code 已安装')
       })
     }
-  }, [worktree.path])
+  }, [worktree.path, tr])
 
   const handleOpenInFinder = async (): Promise<void> => {
     await window.projectOps.showInFolder(worktree.path)
@@ -380,7 +382,7 @@ export function WorktreeItem({
 
   const handleCopyPath = async (): Promise<void> => {
     await window.projectOps.copyToClipboard(worktree.path)
-    clipboardToast.copied('Path')
+    clipboardToast.copied(tr('Path', '路径'))
   }
 
   const doArchive = useCallback(async (): Promise<void> => {
@@ -433,16 +435,16 @@ export function WorktreeItem({
       if (hasNamedBranch) {
         gitToast.worktreeUnbranched(worktree.name)
       } else {
-        toast.success(`Worktree "${worktree.name}" removed`)
+        toast.success(tr(`Worktree "${worktree.name}" removed`, `工作树“${worktree.name}”已移除`))
       }
     } else {
       gitToast.operationFailed('unbranch worktree', result.error, handleUnbranch)
     }
-  }, [hasNamedBranch, unbranchWorktree, worktree, projectPath])
+  }, [hasNamedBranch, unbranchWorktree, worktree, projectPath, tr])
 
   const handleDuplicate = useCallback(async (): Promise<void> => {
     if (!hasNamedBranch) {
-      toast.error('Detached HEAD worktrees cannot be duplicated')
+      toast.error(tr('Detached HEAD worktrees cannot be duplicated', 'Detached HEAD 工作树无法复制'))
       return
     }
 
@@ -458,11 +460,16 @@ export function WorktreeItem({
         worktree.path
       )
     if (result.success) {
-      toast.success(`Duplicated to ${result.worktree?.name || 'new branch'}`)
+      toast.success(
+        tr(
+          `Duplicated to ${result.worktree?.name || 'new branch'}`,
+          `已复制到 ${result.worktree?.name || '新分支'}`
+        )
+      )
     } else {
-      toast.error(result.error || 'Failed to duplicate worktree')
+      toast.error(result.error || tr('Failed to duplicate worktree', '复制工作树失败'))
     }
-  }, [hasNamedBranch, worktree])
+  }, [hasNamedBranch, worktree, tr])
 
   // --- Connection mode rendering (simplified, no menus) ---
   if (isInConnectionMode) {
@@ -695,14 +702,14 @@ export function WorktreeItem({
                       <DropdownMenuSubContent className="w-40">
                         <DropdownMenuItem onClick={() => handleOpenAttachment(attachment.url)}>
                           <ExternalLink className="h-4 w-4 mr-2" />
-                          Open
+                          {tr('Open', '打开')}
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() => handleDetachAttachment(attachment.id)}
                           className="text-destructive focus:text-destructive focus:bg-destructive/10"
                         >
                           <Unlink className="h-4 w-4 mr-2" />
-                          Detach
+                          {tr('Detach', '分离')}
                         </DropdownMenuItem>
                       </DropdownMenuSubContent>
                     </DropdownMenuSub>
@@ -712,20 +719,20 @@ export function WorktreeItem({
               )}
               <DropdownMenuItem onClick={() => setAddAttachmentOpen(true)}>
                 <Plus className="h-4 w-4 mr-2" />
-                Add Attachment
+                {tr('Add Attachment', '添加附件')}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleEditContext}>
                 <FileText className="h-4 w-4 mr-2" />
-                Edit Context
+                {tr('Edit Context', '编辑上下文')}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleOpenInTerminal}>
                 <Terminal className="h-4 w-4 mr-2" />
-                Open in Terminal
+                {tr('Open in Terminal', '在终端中打开')}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleOpenInEditor}>
                 <Code className="h-4 w-4 mr-2" />
-                Open in Editor
+                {tr('Open in Editor', '在编辑器中打开')}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleOpenInFinder}>
                 <ExternalLink className="h-4 w-4 mr-2" />
@@ -733,16 +740,16 @@ export function WorktreeItem({
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleCopyPath}>
                 <Copy className="h-4 w-4 mr-2" />
-                Copy Path
+                {tr('Copy Path', '复制路径')}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleTogglePin}>
                 {isPinned ? <PinOff className="h-4 w-4 mr-2" /> : <Pin className="h-4 w-4 mr-2" />}
-                {isPinned ? 'Unpin' : 'Pin'}
+                {isPinned ? tr('Unpin', '取消固定') : tr('Pin', '固定')}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => enterConnectionMode(worktree.id)}>
                 <Link className="h-4 w-4 mr-2" />
-                Connect to...
+                {tr('Connect to...', '连接到...')}
               </DropdownMenuItem>
               {!worktree.is_default && (
                 <>
@@ -750,25 +757,25 @@ export function WorktreeItem({
                     <>
                       <DropdownMenuItem onClick={startBranchRename}>
                         <Pencil className="h-4 w-4 mr-2" />
-                        Rename Branch
+                        {tr('Rename Branch', '重命名分支')}
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={handleDuplicate}>
                         <GitBranchPlus className="h-4 w-4 mr-2" />
-                        Duplicate
+                        {tr('Duplicate', '复制')}
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem onClick={handleUnbranch}>
                         <GitBranchPlus className="h-4 w-4 mr-2" />
-                        Unbranch
-                        <span className="ml-auto text-xs text-muted-foreground">Keep branch</span>
+                        {tr('Unbranch', '取消分支')}
+                        <span className="ml-auto text-xs text-muted-foreground">{tr('Keep branch', '保留分支')}</span>
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={handleArchive}
                         className="text-destructive focus:text-destructive focus:bg-destructive/10"
                       >
                         <Archive className="h-4 w-4 mr-2" />
-                        Archive
-                        <span className="ml-auto text-xs text-muted-foreground">Delete branch</span>
+                        {tr('Archive', '归档')}
+                        <span className="ml-auto text-xs text-muted-foreground">{tr('Delete branch', '删除分支')}</span>
                       </DropdownMenuItem>
                     </>
                   ) : (
@@ -779,8 +786,8 @@ export function WorktreeItem({
                         className="text-destructive focus:text-destructive focus:bg-destructive/10"
                       >
                         <Archive className="h-4 w-4 mr-2" />
-                        Remove Worktree
-                        <span className="ml-auto text-xs text-muted-foreground">Detached HEAD</span>
+                        {tr('Remove Worktree', '移除工作树')}
+                        <span className="ml-auto text-xs text-muted-foreground">{tr('Detached HEAD', 'Detached HEAD')}</span>
                       </DropdownMenuItem>
                     </>
                   )}
@@ -816,14 +823,14 @@ export function WorktreeItem({
                 <ContextMenuSubContent className="w-40">
                   <ContextMenuItem onClick={() => handleOpenAttachment(attachment.url)}>
                     <ExternalLink className="h-4 w-4 mr-2" />
-                    Open
+                    {tr('Open', '打开')}
                   </ContextMenuItem>
                   <ContextMenuItem
                     onClick={() => handleDetachAttachment(attachment.id)}
                     className="text-destructive focus:text-destructive focus:bg-destructive/10"
                   >
                     <Unlink className="h-4 w-4 mr-2" />
-                    Detach
+                    {tr('Detach', '分离')}
                   </ContextMenuItem>
                 </ContextMenuSubContent>
               </ContextMenuSub>
@@ -833,37 +840,37 @@ export function WorktreeItem({
         )}
         <ContextMenuItem onClick={() => setAddAttachmentOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />
-          Add Attachment
+          {tr('Add Attachment', '添加附件')}
         </ContextMenuItem>
         <ContextMenuItem onClick={handleEditContext}>
           <FileText className="h-4 w-4 mr-2" />
-          Edit Context
+          {tr('Edit Context', '编辑上下文')}
         </ContextMenuItem>
         <ContextMenuSeparator />
         <ContextMenuItem onClick={handleOpenInTerminal}>
           <Terminal className="h-4 w-4 mr-2" />
-          Open in Terminal
+          {tr('Open in Terminal', '在终端中打开')}
         </ContextMenuItem>
         <ContextMenuItem onClick={handleOpenInEditor}>
           <Code className="h-4 w-4 mr-2" />
-          Open in Editor
+          {tr('Open in Editor', '在编辑器中打开')}
         </ContextMenuItem>
         <ContextMenuItem onClick={handleOpenInFinder}>
           <ExternalLink className="h-4 w-4 mr-2" />
-          Open in Finder
+          {tr('Open in Finder', '在访达中打开')}
         </ContextMenuItem>
         <ContextMenuItem onClick={handleCopyPath}>
           <Copy className="h-4 w-4 mr-2" />
-          Copy Path
+          {tr('Copy Path', '复制路径')}
         </ContextMenuItem>
         <ContextMenuItem onClick={handleTogglePin}>
           {isPinned ? <PinOff className="h-4 w-4 mr-2" /> : <Pin className="h-4 w-4 mr-2" />}
-          {isPinned ? 'Unpin' : 'Pin'}
+          {isPinned ? tr('Unpin', '取消固定') : tr('Pin', '固定')}
         </ContextMenuItem>
         <ContextMenuSeparator />
         <ContextMenuItem onClick={() => enterConnectionMode(worktree.id)}>
           <Link className="h-4 w-4 mr-2" />
-          Connect to...
+          {tr('Connect to...', '连接到...')}
         </ContextMenuItem>
         {!worktree.is_default && (
           <>
@@ -871,25 +878,25 @@ export function WorktreeItem({
               <>
                 <ContextMenuItem onClick={startBranchRename}>
                   <Pencil className="h-4 w-4 mr-2" />
-                  Rename Branch
+                  {tr('Rename Branch', '重命名分支')}
                 </ContextMenuItem>
                 <ContextMenuItem onClick={handleDuplicate}>
                   <GitBranchPlus className="h-4 w-4 mr-2" />
-                  Duplicate
+                  {tr('Duplicate', '复制')}
                 </ContextMenuItem>
                 <ContextMenuSeparator />
                 <ContextMenuItem onClick={handleUnbranch}>
                   <GitBranchPlus className="h-4 w-4 mr-2" />
-                  Unbranch
-                  <span className="ml-auto text-xs text-muted-foreground">Keep branch</span>
+                  {tr('Unbranch', '取消分支')}
+                  <span className="ml-auto text-xs text-muted-foreground">{tr('Keep branch', '保留分支')}</span>
                 </ContextMenuItem>
                 <ContextMenuItem
                   onClick={handleArchive}
                   className="text-destructive focus:text-destructive focus:bg-destructive/10"
                 >
                   <Archive className="h-4 w-4 mr-2" />
-                  Archive
-                  <span className="ml-auto text-xs text-muted-foreground">Delete branch</span>
+                  {tr('Archive', '归档')}
+                  <span className="ml-auto text-xs text-muted-foreground">{tr('Delete branch', '删除分支')}</span>
                 </ContextMenuItem>
               </>
             ) : (
@@ -900,8 +907,8 @@ export function WorktreeItem({
                   className="text-destructive focus:text-destructive focus:bg-destructive/10"
                 >
                   <Archive className="h-4 w-4 mr-2" />
-                  Remove Worktree
-                  <span className="ml-auto text-xs text-muted-foreground">Detached HEAD</span>
+                  {tr('Remove Worktree', '移除工作树')}
+                  <span className="ml-auto text-xs text-muted-foreground">{tr('Detached HEAD', 'Detached HEAD')}</span>
                 </ContextMenuItem>
               </>
             )}

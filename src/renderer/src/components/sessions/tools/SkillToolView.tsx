@@ -1,8 +1,10 @@
 import { useMemo } from 'react'
 import { MarkdownRenderer } from '../MarkdownRenderer'
 import type { ToolViewProps } from './types'
+import { useI18n } from '@/i18n/useI18n'
 
 export function SkillToolView({ output }: ToolViewProps): React.JSX.Element {
+  const { tr } = useI18n()
   const markdownContent = useMemo(() => {
     if (!output) return ''
     const match = output.match(/<skill_content[^>]*>([\s\S]*?)<\/skill_content>/)
@@ -17,7 +19,7 @@ export function SkillToolView({ output }: ToolViewProps): React.JSX.Element {
           <MarkdownRenderer content={markdownContent} />
         </div>
       ) : (
-        <div className="p-3 text-muted-foreground">Loading skill...</div>
+        <div className="p-3 text-muted-foreground">{tr('Loading skill...', '正在加载技能...')}</div>
       )}
     </div>
   )

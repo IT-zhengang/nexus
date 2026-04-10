@@ -28,8 +28,9 @@ import { toast } from '@/lib/toast'
 import { useSessionHistoryStore, type SessionWithWorktree } from '@/stores/useSessionHistoryStore'
 import { useProjectStore } from '@/stores/useProjectStore'
 import { useWorktreeStore } from '@/stores/useWorktreeStore'
-import { useSessionStore } from '@/stores/useSessionStore'
+import { useSessionStore, type Session } from '@/stores/useSessionStore'
 import { useConnectionStore } from '@/stores/useConnectionStore'
+import { useI18n } from '@/i18n/useI18n'
 
 // Debounce hook for search input
 function useDebounce<T>(value: T, delay: number): T {
@@ -44,16 +45,22 @@ function useDebounce<T>(value: T, delay: number): T {
 }
 
 // Format date for display
-function formatDate(dateString: string): string {
+function formatDate(dateString: string, tr: (en: string, zh: string) => string): string {
   const date = new Date(dateString)
   const now = new Date()
   const diffMs = now.getTime() - date.getTime()
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
 
   if (diffDays === 0) {
-    return `Today at ${date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}`
+    return tr(
+      `Today at ${date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}`,
+      `今天 ${date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}`
+    )
   } else if (diffDays === 1) {
-    return `Yesterday at ${date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}`
+    return tr(
+      `Yesterday at ${date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}`,
+      `昨天 ${date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}`
+    )
   } else if (diffDays < 7) {
     return date.toLocaleDateString(undefined, {
       weekday: 'long',
@@ -81,6 +88,7 @@ function SessionItem({
   onSelect,
   onLoad
 }: SessionItemProps): React.JSX.Element {
+  const { tr } = useI18n()
   return (
     <div
       className={cn(
@@ -96,7 +104,7 @@ function SessionItem({
         <div className="flex-1 min-w-0">
           {/* Session name */}
           <div className={cn('font-medium text-sm truncate', isOrphaned && 'italic')}>
-            {session.name || 'Untitled Session'}
+            {session.name || tr('Untitled Session', '未命名会话')}
           </div>
 
           {/* Project, worktree, and connection info */}
@@ -122,7 +130,7 @@ function SessionItem({
             {isOrphaned && (
               <span className="text-amber-500 flex items-center gap-1">
                 <AlertCircle className="h-3 w-3" />
-                Archived
+                {tr('Archived', '已归档')}
               </span>
             )}
           </div>
@@ -130,7 +138,7 @@ function SessionItem({
           {/* Timestamp */}
           <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
             <Clock className="h-3 w-3" />
-            {formatDate(session.updated_at)}
+            {formatDate(session.updated_at, tr)}
           </div>
         </div>
 
@@ -143,7 +151,7 @@ function SessionItem({
             e.stopPropagation()
             onLoad()
           }}
-          title="Load session in new tab"
+          title={tr('Load session in new tab', '在新标签页中加载会话')}
           data-testid="load-session-button"
         >
           <ExternalLink className="h-4 w-4" />
@@ -153,6 +161,26 @@ function SessionItem({
   )
 }
 
+function toOrphanedSession(session: SessionWithWorktree): Session {
+  return {
+    id: session.id,
+    worktree_id: session.worktree_id,
+    project_id: session.project_id,
+    connection_id: session.connection_id,
+    name: session.name,
+    status: session.status,
+    opencode_session_id: session.opencode_session_id,
+    agent_sdk: 'opencode',
+    mode: 'build',
+    model_provider_id: null,
+    model_id: null,
+    model_variant: null,
+    created_at: session.created_at,
+    updated_at: session.updated_at,
+    completed_at: session.completed_at
+  }
+}
+
 // Session preview component
 interface SessionPreviewProps {
   session: SessionWithWorktree
@@ -160,6 +188,7 @@ interface SessionPreviewProps {
 }
 
 function SessionPreview({ session, onLoad }: SessionPreviewProps): React.JSX.Element {
+  const { tr } = useI18n()
   const getSessionPreviewMessages = useSessionHistoryStore(
     (state) => state.getSessionPreviewMessages
   )
@@ -200,7 +229,7 @@ function SessionPreview({ session, onLoad }: SessionPreviewProps): React.JSX.Ele
       {/* Header */}
       <div className="p-4 border-b border-border">
         <h3 className={cn('font-semibold text-lg', isOrphaned && 'italic opacity-80')}>
-          {session.name || 'Untitled Session'}
+          {session.name || tr('Untitled Session', '未命名会话')}
         </h3>
         <div className="flex flex-col gap-1 mt-2 text-sm text-muted-foreground">
           {session.project_name && (
@@ -218,16 +247,16 @@ function SessionPreview({ session, onLoad }: SessionPreviewProps): React.JSX.Ele
           {isOrphaned && (
             <div className="flex items-center gap-2 text-amber-500">
               <AlertCircle className="h-4 w-4" />
-              This session's worktree has been archived
+              {tr("This session's worktree has been archived", '此会话的工作树已归档')}
             </div>
           )}
           <div className="flex items-center gap-2">
             <Calendar className="h-4 w-4" />
-            Created {formatDate(session.created_at)}
+            {tr('Created', '创建于')} {formatDate(session.created_at, tr)}
           </div>
           <div className="flex items-center gap-2">
             <Clock className="h-4 w-4" />
-            Updated {formatDate(session.updated_at)}
+            {tr('Updated', '更新于')} {formatDate(session.updated_at, tr)}
           </div>
         </div>
       </div>
@@ -236,7 +265,7 @@ function SessionPreview({ session, onLoad }: SessionPreviewProps): React.JSX.Ele
       <div className="flex-1 overflow-y-auto p-4">
         <div className="flex items-center gap-2 mb-3 text-sm font-medium text-muted-foreground">
           <MessageSquare className="h-4 w-4" />
-          Messages Preview
+          {tr('Messages Preview', '消息预览')}
         </div>
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
@@ -244,7 +273,7 @@ function SessionPreview({ session, onLoad }: SessionPreviewProps): React.JSX.Ele
           </div>
         ) : messages.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-8">
-            No messages in this session
+            {tr('No messages in this session', '此会话中没有消息')}
           </p>
         ) : (
           <div className="space-y-3">
@@ -265,7 +294,9 @@ function SessionPreview({ session, onLoad }: SessionPreviewProps): React.JSX.Ele
               </div>
             ))}
             {messages.length >= 5 && (
-              <p className="text-xs text-muted-foreground text-center">...and more messages</p>
+              <p className="text-xs text-muted-foreground text-center">
+                {tr('...and more messages', '……还有更多消息')}
+              </p>
             )}
           </div>
         )}
@@ -275,7 +306,7 @@ function SessionPreview({ session, onLoad }: SessionPreviewProps): React.JSX.Ele
       <div className="p-4 border-t border-border">
         <Button onClick={onLoad} className="w-full" data-testid="load-session-preview-button">
           <ExternalLink className="h-4 w-4 mr-2" />
-          Load Session
+          {tr('Load Session', '加载会话')}
         </Button>
       </div>
     </div>
@@ -284,14 +315,21 @@ function SessionPreview({ session, onLoad }: SessionPreviewProps): React.JSX.Ele
 
 // Empty state component
 function EmptyState({ hasFilters }: { hasFilters: boolean }): React.JSX.Element {
+  const { tr } = useI18n()
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
       <Clock className="h-12 w-12 text-muted-foreground opacity-50 mb-4" />
-      <h3 className="font-medium text-lg mb-2">No sessions found</h3>
+      <h3 className="font-medium text-lg mb-2">{tr('No sessions found', '未找到会话')}</h3>
       <p className="text-sm text-muted-foreground max-w-xs">
         {hasFilters
-          ? 'Try adjusting your search filters to find more sessions.'
-          : 'Start working in a worktree to create your first session.'}
+          ? tr(
+              'Try adjusting your search filters to find more sessions.',
+              '尝试调整搜索筛选条件以找到更多会话。'
+            )
+          : tr(
+              'Start working in a worktree to create your first session.',
+              '在工作树中开始工作以创建你的第一个会话。'
+            )}
       </p>
     </div>
   )
@@ -299,6 +337,7 @@ function EmptyState({ hasFilters }: { hasFilters: boolean }): React.JSX.Element 
 
 // Main SessionHistory component
 export function SessionHistory(): React.JSX.Element | null {
+  const { tr } = useI18n()
   const inputRef = useRef<HTMLInputElement>(null)
 
   // Stores
@@ -347,6 +386,7 @@ export function SessionHistory(): React.JSX.Element | null {
     filters.dateFrom,
     filters.dateTo,
     filters.includeArchived,
+    isOpen,
     performSearch
   ])
 
@@ -400,16 +440,23 @@ export function SessionHistory(): React.JSX.Element | null {
           if (result.success) {
             selectConnection(session.connection_id)
             closePanel()
-            toast.success(`Loaded session "${session.name || 'Untitled'}"`)
+            toast.success(
+              tr(
+                `Loaded session "${session.name || 'Untitled'}"`,
+                `已加载会话“${session.name || '未命名'}”`
+              )
+            )
           } else {
-            toast.error(result.error || 'Failed to load session')
+            toast.error(result.error || tr('Failed to load session', '加载会话失败'))
           }
           return
         } else {
           // Connection was deleted - open in read-only mode
-          openOrphanedSession(session as any)
+          openOrphanedSession(toOrphanedSession(session))
           closePanel()
-          toast.info('Opened in read-only mode: connection no longer exists.')
+          toast.info(
+            tr('Opened in read-only mode: connection no longer exists.', '已以只读模式打开：连接已不存在。')
+          )
           return
         }
       }
@@ -426,26 +473,39 @@ export function SessionHistory(): React.JSX.Element | null {
           if (result.success) {
             selectWorktree(session.worktree_id)
             closePanel()
-            toast.success(`Loaded session "${session.name || 'Untitled'}"`)
+            toast.success(
+              tr(
+                `Loaded session "${session.name || 'Untitled'}"`,
+                `已加载会话“${session.name || '未命名'}”`
+              )
+            )
           } else {
-            toast.error(result.error || 'Failed to load session')
+            toast.error(result.error || tr('Failed to load session', '加载会话失败'))
           }
         } else {
           // Worktree was deleted/archived - open in read-only mode
-          openOrphanedSession(session as any)
+          openOrphanedSession(toOrphanedSession(session))
           closePanel()
           toast.info(
-            `Opened in read-only mode: worktree "${session.worktree_name}" no longer exists.`
+            tr(
+              `Opened in read-only mode: worktree "${session.worktree_name}" no longer exists.`,
+              `已以只读模式打开：工作树“${session.worktree_name}”已不存在。`
+            )
           )
         }
       } else {
         // Session is orphaned (no worktree_id or connection_id) - open in read-only mode
-        openOrphanedSession(session as any)
+        openOrphanedSession(toOrphanedSession(session))
         closePanel()
-        toast.info('Opened in read-only mode: session is from an archived worktree.')
+        toast.info(
+          tr(
+            'Opened in read-only mode: session is from an archived worktree.',
+            '已以只读模式打开：该会话来自已归档工作树。'
+          )
+        )
       }
     },
-    [reopenSession, reopenConnectionSession, openOrphanedSession, closePanel, selectWorktree, selectConnection, worktreesByProject]
+    [reopenSession, reopenConnectionSession, openOrphanedSession, closePanel, selectWorktree, selectConnection, worktreesByProject, tr]
   )
 
   // Get selected session
@@ -472,7 +532,7 @@ export function SessionHistory(): React.JSX.Element | null {
         <div className="flex-1 flex flex-col min-w-0">
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-border">
-            <h2 className="text-lg font-semibold">Session History</h2>
+            <h2 className="text-lg font-semibold">{tr('Session History', '会话历史')}</h2>
             <Button
               variant="ghost"
               size="icon"
@@ -491,7 +551,7 @@ export function SessionHistory(): React.JSX.Element | null {
               <Input
                 ref={inputRef}
                 type="text"
-                placeholder="Search title, project, or worktree..."
+                placeholder={tr('Search title, project, or worktree...', '搜索标题、项目或工作树...')}
                 value={filters.keyword}
                 onChange={(e) => setKeyword(e.target.value)}
                 className="pl-9"
@@ -499,7 +559,10 @@ export function SessionHistory(): React.JSX.Element | null {
               />
             </div>
             <p className="text-xs text-muted-foreground">
-              Keyword search matches session metadata (title, project, and worktree) only.
+              {tr(
+                'Keyword search matches session metadata (title, project, and worktree) only.',
+                '关键词搜索仅匹配会话元数据（标题、项目和工作树）。'
+              )}
             </p>
 
             {/* Filter row */}
@@ -510,13 +573,14 @@ export function SessionHistory(): React.JSX.Element | null {
                   <Button variant="outline" size="sm" className="h-8">
                     <FolderGit2 className="h-3.5 w-3.5 mr-1.5" />
                     {filters.projectId
-                      ? projects.find((p) => p.id === filters.projectId)?.name || 'Project'
-                      : 'All Projects'}
+                      ? projects.find((p) => p.id === filters.projectId)?.name ||
+                        tr('Project', '项目')
+                      : tr('All Projects', '全部项目')}
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" data-testid="project-filter-dropdown">
                   <DropdownMenuItem onClick={() => setProjectFilter(null)}>
-                    All Projects
+                    {tr('All Projects', '全部项目')}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   {projects.map((project) => (
@@ -535,13 +599,13 @@ export function SessionHistory(): React.JSX.Element | null {
                       <GitBranch className="h-3.5 w-3.5 mr-1.5" />
                       {filters.worktreeId
                         ? availableWorktrees.find((w) => w.id === filters.worktreeId)?.name ||
-                          'Worktree'
-                        : 'All Worktrees'}
+                          tr('Worktree', '工作树')
+                        : tr('All Worktrees', '全部工作树')}
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="start" data-testid="worktree-filter-dropdown">
                     <DropdownMenuItem onClick={() => setWorktreeFilter(null)}>
-                      All Worktrees
+                      {tr('All Worktrees', '全部工作树')}
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     {availableWorktrees.map((worktree) => (
@@ -561,7 +625,9 @@ export function SessionHistory(): React.JSX.Element | null {
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm" className="h-8">
                     <Calendar className="h-3.5 w-3.5 mr-1.5" />
-                    {filters.dateFrom || filters.dateTo ? 'Date range' : 'Any time'}
+                    {filters.dateFrom || filters.dateTo
+                      ? tr('Date range', '日期范围')
+                      : tr('Any time', '任意时间')}
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
@@ -571,7 +637,7 @@ export function SessionHistory(): React.JSX.Element | null {
                 >
                   <div className="p-2 space-y-2">
                     <div>
-                      <label className="text-xs text-muted-foreground">From</label>
+                      <label className="text-xs text-muted-foreground">{tr('From', '从')}</label>
                       <Input
                         type="date"
                         value={filters.dateFrom || ''}
@@ -580,7 +646,7 @@ export function SessionHistory(): React.JSX.Element | null {
                       />
                     </div>
                     <div>
-                      <label className="text-xs text-muted-foreground">To</label>
+                      <label className="text-xs text-muted-foreground">{tr('To', '到')}</label>
                       <Input
                         type="date"
                         value={filters.dateTo || ''}
@@ -597,7 +663,7 @@ export function SessionHistory(): React.JSX.Element | null {
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm" className="h-8">
                     <Filter className="h-3.5 w-3.5 mr-1.5" />
-                    More
+                    {tr('More', '更多')}
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" data-testid="more-filters-dropdown">
@@ -605,7 +671,7 @@ export function SessionHistory(): React.JSX.Element | null {
                     checked={filters.includeArchived}
                     onCheckedChange={setIncludeArchived}
                   >
-                    Include archived worktrees
+                    {tr('Include archived worktrees', '包含已归档工作树')}
                   </DropdownMenuCheckboxItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -619,7 +685,7 @@ export function SessionHistory(): React.JSX.Element | null {
                   onClick={clearFilters}
                   data-testid="clear-filters-button"
                 >
-                  Clear filters
+                  {tr('Clear filters', '清除筛选')}
                 </Button>
               )}
             </div>
@@ -638,7 +704,10 @@ export function SessionHistory(): React.JSX.Element | null {
             ) : (
               <>
                 <div className="px-4 py-2 text-xs text-muted-foreground border-b border-border">
-                  {searchResults.length} session{searchResults.length === 1 ? '' : 's'} found
+                  {tr(
+                    `${searchResults.length} session${searchResults.length === 1 ? '' : 's'} found`,
+                    `找到 ${searchResults.length} 个会话`
+                  )}
                 </div>
                 {searchResults.map((session) => {
                   const isOrphaned = !session.worktree_id || session.worktree_name === undefined

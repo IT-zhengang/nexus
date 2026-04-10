@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { ProviderIcon } from '@/components/ui/provider-icon'
 import { toast } from 'sonner'
 import { saveProviderSettingsToDatabase, loadProviderSettingsFromDatabase } from '@/lib/provider-settings'
+import { useI18n } from '@/i18n'
 
 interface ProviderInfo {
   id: string
@@ -21,6 +22,7 @@ interface SettingsFieldDef {
 }
 
 export function SettingsIntegrations() {
+  const { tr } = useI18n()
   const [providers, setProviders] = useState<ProviderInfo[]>([])
   const [schemas, setSchemas] = useState<Record<string, SettingsFieldDef[]>>({})
   const [values, setValues] = useState<Record<string, string>>({})
@@ -37,7 +39,7 @@ export function SettingsIntegrations() {
       setSchemas(schemaMap)
 
       // Load saved values from dedicated provider-settings key (fast initial read)
-      let saved: Record<string, string> = {}
+      const saved: Record<string, string> = {}
       try {
         const raw = localStorage.getItem('hive-provider-settings')
         if (raw) {
@@ -111,13 +113,17 @@ export function SettingsIntegrations() {
       const result = await window.ticketImport.authenticate(providerId, providerSettings)
       setTestResult((prev) => ({ ...prev, [providerId]: result.success }))
       if (result.success) {
-        toast.success(`${providers.find((p) => p.id === providerId)?.name}: Connected!`)
+        toast.success(
+          `${providers.find((p) => p.id === providerId)?.name}: ${tr('Connected!', '已连接！')}`
+        )
       } else {
-        toast.error(result.error ?? 'Authentication failed')
+        toast.error(result.error ?? tr('Authentication failed', '认证失败'))
       }
     } catch (err) {
       setTestResult((prev) => ({ ...prev, [providerId]: false }))
-      toast.error(`Test failed: ${err instanceof Error ? err.message : String(err)}`)
+      toast.error(
+        `${tr('Test failed:', '测试失败：')} ${err instanceof Error ? err.message : String(err)}`
+      )
     } finally {
       setTesting(null)
     }
@@ -126,9 +132,12 @@ export function SettingsIntegrations() {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-sm font-medium mb-1">Integrations</h3>
+        <h3 className="text-sm font-medium mb-1">{tr('Integrations', '集成')}</h3>
         <p className="text-xs text-muted-foreground">
-          Configure connections to external platforms for ticket import.
+          {tr(
+            'Configure connections to external platforms for ticket import.',
+            '配置外部平台连接，用于导入工单。'
+          )}
         </p>
       </div>
 
@@ -155,14 +164,17 @@ export function SettingsIntegrations() {
                   {testing === provider.id ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
                   ) : null}
-                  Test connection
+                  {tr('Test connection', '测试连接')}
                 </Button>
               </div>
             </div>
 
             {fields.length === 0 ? (
               <p className="text-xs text-muted-foreground">
-                No configuration needed. Uses GitHub CLI authentication by default.
+                {tr(
+                  'No configuration needed. Uses GitHub CLI authentication by default.',
+                  '无需额外配置。默认使用 GitHub CLI 认证。'
+                )}
               </p>
             ) : (
               fields.map((field) => (
@@ -170,7 +182,9 @@ export function SettingsIntegrations() {
                   <label className="text-xs font-medium text-muted-foreground">
                     {field.label}
                     {!field.required && (
-                      <span className="text-muted-foreground/50 ml-1">(optional)</span>
+                      <span className="text-muted-foreground/50 ml-1">
+                        ({tr('optional', '可选')})
+                      </span>
                     )}
                   </label>
                   <Input

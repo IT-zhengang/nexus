@@ -28,6 +28,7 @@ import { useGitStore, type GitFileStatus } from '@/stores/useGitStore'
 import { usePRNotificationStore } from '@/stores/usePRNotificationStore'
 import { useSettingsStore } from '@/stores/useSettingsStore'
 import { useWorktreeStore } from '@/stores/useWorktreeStore'
+import { useI18n } from '@/i18n'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -48,6 +49,7 @@ export function CreatePRModal({
   worktreeId,
   worktreePath
 }: CreatePRModalProps): React.JSX.Element {
+  const { tr } = useI18n()
   const open = useGitStore((s) => s.createPRModalOpen)
   const setOpen = useGitStore((s) => s.setCreatePRModalOpen)
   const branchInfo = useGitStore((s) =>
@@ -200,12 +202,12 @@ export function CreatePRModal({
       if (success) {
         await loadFileStatuses(worktreePath)
       } else {
-        toast.error('Failed to stage files')
+        toast.error(tr('Failed to stage files', '暂存文件失败'))
       }
     } finally {
       setIsStaging(false)
     }
-  }, [worktreePath, stageAll, loadFileStatuses])
+  }, [worktreePath, stageAll, loadFileStatuses, tr])
 
   const handleToggleFile = useCallback(
     async (file: GitFileStatus) => {
@@ -230,9 +232,9 @@ export function CreatePRModal({
     const result = await gitCommit(worktreePath, message)
 
     if (result.success) {
-      toast.success('Changes committed', {
+      toast.success(tr('Changes committed', '更改已提交'), {
         description: result.commitHash
-          ? `Commit: ${result.commitHash.slice(0, 7)}`
+          ? tr(`Commit: ${result.commitHash.slice(0, 7)}`, `提交：${result.commitHash.slice(0, 7)}`)
           : undefined
       })
       // Refresh commit count and branch info after committing
@@ -245,9 +247,9 @@ export function CreatePRModal({
       useGitStore.getState().loadBranchInfo(worktreePath)
       setPhase('form')
     } else {
-      setCommitError(result.error ?? 'Commit failed')
+      setCommitError(result.error ?? tr('Commit failed', '提交失败'))
     }
-  }, [worktreePath, commitSummary, commitDescription, gitCommit, baseBranch])
+  }, [worktreePath, commitSummary, commitDescription, gitCommit, baseBranch, tr])
 
   const handleSkipCommit = useCallback(() => {
     setPhase('form')
@@ -261,7 +263,7 @@ export function CreatePRModal({
     const targetBase = baseBranch
     const prTitle = title.trim()
     const prBody = body.trim()
-    const branchName = branchInfo?.name ?? 'Pull Request'
+    const branchName = branchInfo?.name ?? tr('Pull Request', '拉取请求')
     const provider = resolvePRContentProvider(defaultAgentSdk, availableAgentSdks)
 
     // Close modal — PR creation continues in background via notification
@@ -271,7 +273,7 @@ export function CreatePRModal({
     const { show, update } = usePRNotificationStore.getState()
     const notifId = show({
       status: 'loading',
-      message: 'Creating pull request...'
+      message: tr('Creating pull request...', '正在创建拉取请求...')
     })
 
     let finalTitle = prTitle
@@ -287,10 +289,10 @@ export function CreatePRModal({
       }
 
       if (willPush) {
-        update(notifId, { message: 'Pushing branch...' })
+        update(notifId, { message: tr('Pushing branch...', '正在推送分支...') })
         const pushResult = await window.gitOps.push(worktreePath)
         if (!pushResult.success) {
-          throw new Error(pushResult.error ?? 'Push failed')
+          throw new Error(pushResult.error ?? tr('Push failed', '推送失败'))
         }
       }
 
@@ -299,11 +301,14 @@ export function CreatePRModal({
       let usedFallbackContent = false
       let generationFailureReason: string | null = null
       if (needsGenerate) {
-        update(notifId, { message: 'Generating PR content...' })
+        update(notifId, { message: tr('Generating PR content...', '正在生成 PR 内容...') })
         if (!provider) {
           usedFallbackContent = true
           generationFailureReason =
-            'No AI provider available for PR content generation. Using default title and description.'
+            tr(
+              'No AI provider available for PR content generation. Using default title and description.',
+              '没有可用于生成 PR 内容的 AI 提供方，将使用默认标题和描述。'
+            )
         } else {
           try {
             const genResult = await window.gitOps.generatePRContent(
@@ -317,7 +322,11 @@ export function CreatePRModal({
             } else {
               console.warn('PR content generation failed, using fallback:', genResult.error)
               generationFailureReason =
-                genResult.error ?? 'AI content generation failed — you may want to edit the title and description'
+                genResult.error ??
+                tr(
+                  'AI content generation failed — you may want to edit the title and description',
+                  'AI 内容生成失败——你可能需要手动编辑标题和描述'
+                )
               usedFallbackContent = true
             }
           } catch (err) {
@@ -332,7 +341,7 @@ export function CreatePRModal({
       }
 
       // Step 3: Create PR
-      update(notifId, { message: 'Creating pull request...' })
+      update(notifId, { message: tr('Creating pull request...', '正在创建拉取请求...') })
       const createResult = await window.gitOps.createPR(
         worktreePath,
         targetBase,
@@ -342,7 +351,7 @@ export function CreatePRModal({
 
       if (!createResult.success) {
         // Check for "already exists" pattern
-        const errMsg = createResult.error ?? 'PR creation failed'
+        const errMsg = createResult.error ?? tr('PR creation failed', 'PR 创建失败')
         const alreadyExistsMatch = errMsg.match(
           /already exists.*?(\d+)|pull request.*?#(\d+).*?already/i
         )
@@ -358,8 +367,8 @@ export function CreatePRModal({
 
             update(notifId, {
               status: 'info',
-              message: `PR #${existingNumber} already exists`,
-              description: 'Attached to workspace',
+              message: tr(`PR #${existingNumber} already exists`, `PR #${existingNumber} 已存在`),
+              description: tr('Attached to workspace', '已附加到工作区'),
               prUrl: existingUrl,
               prNumber: existingNumber
             })
@@ -378,11 +387,14 @@ export function CreatePRModal({
       update(notifId, {
         status: usedFallbackContent ? 'warning' : 'success',
         message: usedFallbackContent
-          ? `PR #${prNumber} created with default content`
-          : `Pull request #${prNumber} created`,
+          ? tr(`PR #${prNumber} created with default content`, `PR #${prNumber} 已使用默认内容创建`)
+          : tr(`Pull request #${prNumber} created`, `拉取请求 #${prNumber} 已创建`),
         description: usedFallbackContent
           ? generationFailureReason ??
-            'AI content generation failed — you may want to edit the title and description'
+            tr(
+              'AI content generation failed — you may want to edit the title and description',
+              'AI 内容生成失败——你可能需要手动编辑标题和描述'
+            )
           : undefined,
         prUrl,
         prNumber
@@ -391,7 +403,7 @@ export function CreatePRModal({
       const msg = err instanceof Error ? err.message : String(err)
       update(notifId, {
         status: 'error',
-        message: 'Failed to create pull request',
+        message: tr('Failed to create pull request', '创建拉取请求失败'),
         description: msg
       })
     } finally {
@@ -406,6 +418,7 @@ export function CreatePRModal({
     defaultAgentSdk,
     availableAgentSdks,
     branchInfo,
+    tr,
     attachPR,
     setOpen,
     setCreatingPR
@@ -421,15 +434,17 @@ export function CreatePRModal({
     <>
       {/* Info text */}
       <p className="text-sm text-muted-foreground">
-        You have uncommitted changes. Commit them before creating a pull request,
-        or skip to create a PR with what&apos;s already committed.
+        {tr(
+          "You have uncommitted changes. Commit them before creating a pull request, or skip to create a PR with what's already committed.",
+          '你有未提交的更改。请先提交后再创建拉取请求，或跳过并基于当前已提交内容创建 PR。'
+        )}
       </p>
 
       {/* File list */}
       <div className="border rounded-md overflow-hidden">
         <div className="flex items-center justify-between px-3 py-1.5 bg-muted/30 border-b">
           <span className="text-xs font-medium text-muted-foreground">
-            Changed files ({uncommittedFiles.length})
+            {tr(`Changed files (${uncommittedFiles.length})`, `已修改文件（${uncommittedFiles.length}）`)}
           </span>
           <Button
             variant="ghost"
@@ -443,7 +458,7 @@ export function CreatePRModal({
             ) : (
               <Plus className="h-3 w-3 mr-1" />
             )}
-            Stage All
+            {tr('Stage All', '全部暂存')}
           </Button>
         </div>
         <div className="max-h-[160px] overflow-y-auto">
@@ -480,7 +495,7 @@ export function CreatePRModal({
           <Input
             value={commitSummary}
             onChange={(e) => setCommitSummary(e.target.value)}
-            placeholder="Commit summary"
+            placeholder={tr('Commit summary', '提交摘要')}
             className={cn(
               'pr-12',
               commitSummary.length > 72 &&
@@ -507,7 +522,7 @@ export function CreatePRModal({
         <Textarea
           value={commitDescription}
           onChange={(e) => setCommitDescription(e.target.value)}
-          placeholder="Extended description (optional)"
+          placeholder={tr('Extended description (optional)', '扩展描述（可选）')}
           rows={2}
           disabled={isCommitting}
         />
@@ -524,7 +539,10 @@ export function CreatePRModal({
       {/* Staged count */}
       {stagedCount > 0 && (
         <p className="text-xs text-muted-foreground">
-          {stagedCount} file{stagedCount !== 1 ? 's' : ''} staged for commit
+          {tr(
+            `${stagedCount} file${stagedCount !== 1 ? 's' : ''} staged for commit`,
+            `已有 ${stagedCount} 个文件暂存用于提交`
+          )}
         </p>
       )}
     </>
@@ -535,13 +553,16 @@ export function CreatePRModal({
     <>
       {/* Source branch (read-only) */}
       <div className="space-y-1.5">
-        <label className="text-sm font-medium text-foreground">Source branch</label>
+        <label className="text-sm font-medium text-foreground">{tr('Source branch', '源分支')}</label>
         <div className="flex items-center gap-2 px-3 py-2 text-sm border rounded-md bg-muted/50 min-w-0">
           <GitBranch className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-          <span className="truncate">{branchInfo?.name ?? 'Unknown'}</span>
+          <span className="truncate">{branchInfo?.name ?? tr('Unknown', '未知')}</span>
           {commitCount !== null && (
             <span className="ml-auto text-xs text-muted-foreground shrink-0">
-              {commitCount} commit{commitCount !== 1 ? 's' : ''} ahead
+              {tr(
+                `${commitCount} commit${commitCount !== 1 ? 's' : ''} ahead`,
+                `领先 ${commitCount} 个提交`
+              )}
             </span>
           )}
         </div>
@@ -549,7 +570,7 @@ export function CreatePRModal({
 
       {/* Base branch dropdown */}
       <div className="space-y-1.5">
-        <label htmlFor="pr-base-branch" className="text-sm font-medium text-foreground">Base branch</label>
+        <label htmlFor="pr-base-branch" className="text-sm font-medium text-foreground">{tr('Base branch', '目标分支')}</label>
         <Popover open={branchDropdownOpen} onOpenChange={setBranchDropdownOpen}>
           <PopoverTrigger asChild>
             <button
@@ -562,7 +583,7 @@ export function CreatePRModal({
             >
               <span className="flex items-center gap-2 min-w-0">
                 <GitBranch className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                <span className="truncate">{baseBranch || 'Select base branch...'}</span>
+                <span className="truncate">{baseBranch || tr('Select base branch...', '选择目标分支...')}</span>
               </span>
               <ChevronDown
                 className={cn(
@@ -579,7 +600,7 @@ export function CreatePRModal({
               </div>
             ) : branchOptions.length === 0 ? (
               <div className="px-3 py-4 text-sm text-muted-foreground text-center">
-                No branches found
+                {tr('No branches found', '未找到分支')}
               </div>
             ) : (
               <div className="max-h-[200px] overflow-y-auto">
@@ -612,23 +633,23 @@ export function CreatePRModal({
 
       {/* Title */}
       <div className="space-y-1.5">
-        <label htmlFor="pr-title" className="text-sm font-medium text-foreground">Title</label>
+        <label htmlFor="pr-title" className="text-sm font-medium text-foreground">{tr('Title', '标题')}</label>
         <Input
           id="pr-title"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder="Leave empty to auto-generate"
+          placeholder={tr('Leave empty to auto-generate', '留空则自动生成')}
         />
       </div>
 
       {/* Description */}
       <div className="space-y-1.5">
-        <label htmlFor="pr-description" className="text-sm font-medium text-foreground">Description</label>
+        <label htmlFor="pr-description" className="text-sm font-medium text-foreground">{tr('Description', '描述')}</label>
         <Textarea
           id="pr-description"
           value={body}
           onChange={(e) => setBody(e.target.value)}
-          placeholder="Leave empty to auto-generate"
+          placeholder={tr('Leave empty to auto-generate', '留空则自动生成')}
           rows={4}
         />
       </div>
@@ -642,7 +663,7 @@ export function CreatePRModal({
         return (
           <DialogFooter>
             <Button variant="ghost" onClick={handleSkipCommit}>
-              Skip
+              {tr('Skip', '跳过')}
             </Button>
             <Button
               onClick={handleCommitAndContinue}
@@ -651,12 +672,12 @@ export function CreatePRModal({
               {isCommitting ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
-                  Committing...
+                  {tr('Committing...', '正在提交...')}
                 </>
               ) : (
                 <>
                   <Check className="h-4 w-4 mr-1.5" />
-                  Commit & Continue
+                  {tr('Commit & Continue', '提交并继续')}
                 </>
               )}
             </Button>
@@ -666,11 +687,11 @@ export function CreatePRModal({
         return (
           <DialogFooter>
             <Button variant="ghost" onClick={handleCancel}>
-              Cancel
+              {tr('Cancel', '取消')}
             </Button>
             <Button onClick={handleCreate} disabled={!baseBranch}>
               <GitPullRequest className="h-4 w-4 mr-1.5" />
-              Create Pull Request
+              {tr('Create Pull Request', '创建拉取请求')}
             </Button>
           </DialogFooter>
         )
@@ -684,17 +705,17 @@ export function CreatePRModal({
           <DialogTitle>
             <span className="flex items-center gap-2">
               <GitPullRequest className="h-5 w-5" />
-              Create Pull Request
+              {tr('Create Pull Request', '创建拉取请求')}
             </span>
           </DialogTitle>
           {phase === 'commit' && (
             <DialogDescription>
-              Commit your changes before creating a pull request.
+              {tr('Commit your changes before creating a pull request.', '在创建拉取请求之前先提交你的更改。')}
             </DialogDescription>
           )}
           {phase === 'form' && (
             <DialogDescription>
-              Create a new pull request for this workspace.
+              {tr('Create a new pull request for this workspace.', '为该工作区创建新的拉取请求。')}
             </DialogDescription>
           )}
         </DialogHeader>

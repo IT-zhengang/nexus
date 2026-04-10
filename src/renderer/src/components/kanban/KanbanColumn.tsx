@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, Fragment } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { motion } from 'motion/react'
 import { ChevronRight, ChevronDown, Plus, Zap, Archive } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -26,6 +26,7 @@ import {
 } from '@/components/ui/context-menu'
 import { useKanbanStore, getKanbanDragData, setKanbanDragData, suppressLayoutAnimation, isLayoutAnimationSuppressed } from '@/stores/useKanbanStore'
 import { useWorktreeStatusStore } from '@/stores/useWorktreeStatusStore'
+import { useI18n } from '@/i18n/useI18n'
 import type { KanbanTicket, KanbanTicketColumn as ColumnType } from '../../../../main/db/types'
 
 // ── Layout animation spring ─────────────────────────────────────────
@@ -34,14 +35,6 @@ const CARD_LAYOUT_SPRING = {
   stiffness: 350,
   damping: 30,
   mass: 0.8,
-}
-
-// ── Column display names ────────────────────────────────────────────
-const COLUMN_TITLES: Record<ColumnType, string> = {
-  todo: 'To Do',
-  in_progress: 'In Progress',
-  review: 'Review',
-  done: 'Done'
 }
 
 interface KanbanColumnProps {
@@ -54,6 +47,13 @@ interface KanbanColumnProps {
 }
 
 export function KanbanColumn({ column, tickets, archivedTickets, projectId, connectionId, isPinnedMode }: KanbanColumnProps) {
+  const { tr } = useI18n()
+  const columnTitles: Record<ColumnType, string> = {
+    todo: tr('To Do', '待办'),
+    in_progress: tr('In Progress', '进行中'),
+    review: tr('Review', '评审'),
+    done: tr('Done', '已完成')
+  }
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [isDragOver, setIsDragOver] = useState(false)
@@ -150,7 +150,7 @@ export function KanbanColumn({ column, tickets, archivedTickets, projectId, conn
         for (const pid of projectIds) {
           total += await useKanbanStore.getState().archiveAllDone(pid)
         }
-        toast.success(`Archived ${total} ticket${total !== 1 ? 's' : ''}`)
+        toast.success(tr(`Archived ${total} ticket${total !== 1 ? 's' : ''}`, `已归档 ${total} 个工单`))
       } else if (connectionId) {
         // In connection mode, archive done tickets across all member projects.
         const projectIds = useKanbanStore.getState().getConnectionProjectIds(connectionId)
@@ -158,16 +158,16 @@ export function KanbanColumn({ column, tickets, archivedTickets, projectId, conn
         for (const pid of projectIds) {
           total += await useKanbanStore.getState().archiveAllDone(pid)
         }
-        toast.success(`Archived ${total} ticket${total !== 1 ? 's' : ''}`)
+        toast.success(tr(`Archived ${total} ticket${total !== 1 ? 's' : ''}`, `已归档 ${total} 个工单`))
       } else {
         const count = await useKanbanStore.getState().archiveAllDone(projectId)
-        toast.success(`Archived ${count} ticket${count !== 1 ? 's' : ''}`)
+        toast.success(tr(`Archived ${count} ticket${count !== 1 ? 's' : ''}`, `已归档 ${count} 个工单`))
       }
     } catch {
-      toast.error('Failed to archive tickets')
+      toast.error(tr('Failed to archive tickets', '归档工单失败'))
     }
     setShowArchiveAllConfirm(false)
-  }, [projectId, connectionId, isPinnedMode])
+  }, [projectId, connectionId, isPinnedMode, tr])
 
   const handleToggleCollapse = useCallback(() => {
     setIsCollapsed((prev) => !prev)
@@ -367,13 +367,13 @@ export function KanbanColumn({ column, tickets, archivedTickets, projectId, conn
       )
       await store.moveTicket(ticketId, ticketProjectId, 'todo', sortOrder)
 
-      toast.success('Session stopped and ticket moved to To Do')
+      toast.success(tr('Session stopped and ticket moved to To Do', '会话已停止，工单已移至待办'))
     } catch {
-      toast.error('Failed to move ticket')
+      toast.error(tr('Failed to move ticket', '移动工单失败'))
     }
 
     setPendingBackwardDrag(null)
-  }, [pendingBackwardDrag, projectId, findTicketProjectId, findTicket])
+  }, [pendingBackwardDrag, findTicketProjectId, findTicket, tr])
 
   // ── Drop indicator element ────────────────────────────────────────
   const dropIndicator = (
@@ -426,7 +426,7 @@ export function KanbanColumn({ column, tickets, archivedTickets, projectId, conn
               )}
 
               <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                {COLUMN_TITLES[column]}
+                {columnTitles[column]}
               </h3>
 
               <span className="inline-flex h-5 min-w-[20px] items-center justify-center gap-0.5 rounded-full bg-muted/40 px-1.5 text-[11px] font-medium text-muted-foreground">
@@ -453,7 +453,7 @@ export function KanbanColumn({ column, tickets, archivedTickets, projectId, conn
                   </div>
                 </TooltipTrigger>
                 <TooltipContent side="top" sideOffset={8}>
-                  Send to agent when dragged to this column
+                  {tr('Send to agent when dragged to this column', '拖到此列时发送给代理')}
                 </TooltipContent>
               </Tooltip>
             )}
@@ -482,7 +482,7 @@ export function KanbanColumn({ column, tickets, archivedTickets, projectId, conn
               className="gap-2"
             >
               <Archive className="h-3.5 w-3.5" />
-              Archive all
+              {tr('Archive all', '全部归档')}
             </ContextMenuItem>
           </ContextMenuContent>
         )}
@@ -507,11 +507,11 @@ export function KanbanColumn({ column, tickets, archivedTickets, projectId, conn
                   className="flex items-center justify-center gap-1.5 rounded-md border border-dashed border-border/60 p-2 text-sm text-muted-foreground/60 hover:border-primary/40 hover:text-muted-foreground hover:bg-muted/20 transition-colors cursor-pointer"
                 >
                   <Plus className="h-4 w-4" />
-                  <span>New ticket</span>
+                  <span>{tr('New ticket', '新建工单')}</span>
                 </button>
               ) : (
                 <p className="px-2 py-4 text-center text-xs text-muted-foreground/60">
-                  No tickets
+                  {tr('No tickets', '暂无工单')}
                 </p>
               )
             )
@@ -538,7 +538,9 @@ export function KanbanColumn({ column, tickets, archivedTickets, projectId, conn
                 <>
                   <div className="flex items-center gap-2 px-2 py-1">
                     <div className="flex-1 border-t border-border/40" />
-                    <span className="text-[10px] font-medium text-muted-foreground/50 uppercase tracking-wider">Archived</span>
+                    <span className="text-[10px] font-medium text-muted-foreground/50 uppercase tracking-wider">
+                      {tr('Archived', '已归档')}
+                    </span>
                     <div className="flex-1 border-t border-border/40" />
                   </div>
                   {archivedTickets.map((ticket) => (
@@ -557,7 +559,7 @@ export function KanbanColumn({ column, tickets, archivedTickets, projectId, conn
                   className="flex items-center justify-center gap-1.5 rounded-md border border-dashed border-border/60 p-2 text-sm text-muted-foreground/60 hover:border-primary/40 hover:text-muted-foreground hover:bg-muted/20 transition-colors cursor-pointer"
                 >
                   <Plus className="h-4 w-4" />
-                  <span>New ticket</span>
+                  <span>{tr('New ticket', '新建工单')}</span>
                 </button>
               )}
             </>
@@ -599,18 +601,18 @@ export function KanbanColumn({ column, tickets, archivedTickets, projectId, conn
         >
           <AlertDialogContent data-testid="backward-drag-confirm-dialog">
             <AlertDialogHeader>
-              <AlertDialogTitle>Stop active session?</AlertDialogTitle>
+              <AlertDialogTitle>{tr('Stop active session?', '停止活动会话？')}</AlertDialogTitle>
               <AlertDialogDescription>
-                This ticket has an active session. Stop the session and move to To Do?
+                {tr('This ticket has an active session. Stop the session and move to To Do?', '此工单有一个活动会话。是否停止会话并移至待办？')}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel data-testid="backward-drag-cancel-btn">Cancel</AlertDialogCancel>
+              <AlertDialogCancel data-testid="backward-drag-cancel-btn">{tr('Cancel', '取消')}</AlertDialogCancel>
               <AlertDialogAction
                 data-testid="backward-drag-confirm-btn"
                 onClick={handleConfirmBackwardDrag}
               >
-                Stop &amp; Move
+                {tr('Stop & Move', '停止并移动')}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
@@ -625,18 +627,18 @@ export function KanbanColumn({ column, tickets, archivedTickets, projectId, conn
         >
           <AlertDialogContent data-testid="archive-all-confirm-dialog">
             <AlertDialogHeader>
-              <AlertDialogTitle>Archive all done tickets?</AlertDialogTitle>
+              <AlertDialogTitle>{tr('Archive all done tickets?', '归档所有已完成工单？')}</AlertDialogTitle>
               <AlertDialogDescription>
-                Archive all {tickets.length} ticket{tickets.length !== 1 ? 's' : ''} in Done?
+                {tr(`Archive all ${tickets.length} ticket${tickets.length !== 1 ? 's' : ''} in Done?`, `归档已完成列中的 ${tickets.length} 个工单？`)}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel data-testid="archive-all-cancel-btn">Cancel</AlertDialogCancel>
+              <AlertDialogCancel data-testid="archive-all-cancel-btn">{tr('Cancel', '取消')}</AlertDialogCancel>
               <AlertDialogAction
                 data-testid="archive-all-confirm-btn"
                 onClick={handleArchiveAll}
               >
-                Archive all
+                {tr('Archive all', '全部归档')}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

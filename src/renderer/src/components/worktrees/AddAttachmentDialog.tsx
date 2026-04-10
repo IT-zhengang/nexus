@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { parseAttachmentUrl } from '@/lib/attachment-utils'
 import type { AttachmentInfo } from '@/lib/attachment-utils'
 import { toast } from '@/lib/toast'
+import { useI18n } from '@/i18n'
 
 interface AddAttachmentDialogProps {
   open: boolean
@@ -20,6 +21,7 @@ export function AddAttachmentDialog({
   worktreeId,
   onAttachmentAdded
 }: AddAttachmentDialogProps): React.JSX.Element {
+  const { tr } = useI18n()
   const [url, setUrl] = useState('')
   const [detected, setDetected] = useState<AttachmentInfo | null>(null)
   const [isAdding, setIsAdding] = useState(false)
@@ -44,19 +46,22 @@ export function AddAttachmentDialog({
       })
       if (result.success) {
         toast.success(
-          `Attached ${detected.type === 'jira' ? 'Jira ticket' : 'Figma file'}: ${detected.label}`
+          tr(
+            `Attached ${detected.type === 'jira' ? 'Jira ticket' : 'Figma file'}: ${detected.label}`,
+            `已附加${detected.type === 'jira' ? ' Jira 工单' : ' Figma 文件'}：${detected.label}`
+          )
         )
         onAttachmentAdded()
         onOpenChange(false)
         setUrl('')
         setDetected(null)
       } else {
-        toast.error(result.error || 'Failed to add attachment')
+        toast.error(result.error || tr('Failed to add attachment', '添加附件失败'))
       }
     } finally {
       setIsAdding(false)
     }
-  }, [detected, url, worktreeId, onAttachmentAdded, onOpenChange])
+  }, [detected, url, worktreeId, onAttachmentAdded, onOpenChange, tr])
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent): void => {
@@ -71,11 +76,11 @@ export function AddAttachmentDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Add Attachment</DialogTitle>
+          <DialogTitle>{tr('Add Attachment', '添加附件')}</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
           <Input
-            placeholder="Paste a Jira or Figma URL"
+            placeholder={tr('Paste a Jira or Figma URL', '粘贴 Jira 或 Figma 链接')}
             value={url}
             onChange={(e) => handleUrlChange(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -92,14 +97,17 @@ export function AddAttachmentDialog({
                     <Figma className="h-4 w-4 text-purple-500" />
                   )}
                   <span className="text-muted-foreground">
-                    {detected.type === 'jira' ? 'Jira ticket' : 'Figma file'}:{' '}
+                    {detected.type === 'jira'
+                      ? tr('Jira ticket', 'Jira 工单')
+                      : tr('Figma file', 'Figma 文件')}
+                    :{' '}
                     <span className="text-foreground font-medium">{detected.label}</span>
                   </span>
                 </>
               ) : (
                 <>
                   <AlertCircle className="h-4 w-4 text-destructive" />
-                  <span className="text-destructive">Unsupported URL</span>
+                  <span className="text-destructive">{tr('Unsupported URL', '不支持的链接')}</span>
                 </>
               )}
             </div>
@@ -107,7 +115,7 @@ export function AddAttachmentDialog({
           <div className="flex justify-end">
             <Button size="sm" disabled={!detected || isAdding} onClick={handleAdd}>
               <Plus className="h-4 w-4 mr-1" />
-              Add
+              {tr('Add', '添加')}
             </Button>
           </div>
         </div>

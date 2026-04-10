@@ -34,6 +34,7 @@ import { FileIcon } from './FileIcon'
 import { GitStatusIndicator } from './GitStatusIndicator'
 import { GitCommitForm } from '@/components/git/GitCommitForm'
 import { GitPushPull } from '@/components/git/GitPushPull'
+import { useI18n } from '@/i18n/useI18n'
 
 interface ConnectionMemberInfo {
   worktree_path: string
@@ -76,6 +77,7 @@ export function ChangesView({
   connectionMembers,
   onFileClick
 }: ChangesViewProps): React.JSX.Element {
+  const { tr } = useI18n()
   const {
     loadFileStatuses,
     loadBranchInfo,
@@ -164,21 +166,21 @@ export function ChangesView({
     if (!worktreePath) return
     const success = await stageAll(worktreePath)
     if (success) {
-      toast.success('All changes staged')
+      toast.success(tr('All changes staged', '所有变更已暂存'))
     } else {
-      toast.error('Failed to stage changes')
+      toast.error(tr('Failed to stage changes', '暂存变更失败'))
     }
-  }, [worktreePath, stageAll])
+  }, [worktreePath, stageAll, tr])
 
   const handleUnstageAll = useCallback(async () => {
     if (!worktreePath) return
     const success = await unstageAll(worktreePath)
     if (success) {
-      toast.success('All changes unstaged')
+      toast.success(tr('All changes unstaged', '所有变更已取消暂存'))
     } else {
-      toast.error('Failed to unstage changes')
+      toast.error(tr('Failed to unstage changes', '取消暂存失败'))
     }
-  }, [worktreePath, unstageAll])
+  }, [worktreePath, unstageAll, tr])
 
   const handleDiscardAll = useCallback(async () => {
     if (!worktreePath) return
@@ -192,23 +194,28 @@ export function ChangesView({
     }
 
     if (successCount === filesToDiscard.length) {
-      toast.success(`Discarded ${successCount} change(s)`)
+      toast.success(tr(`Discarded ${successCount} change(s)`, `已丢弃 ${successCount} 项变更`))
     } else if (successCount > 0) {
-      toast.warning(`Discarded ${successCount}/${filesToDiscard.length} changes`)
+      toast.warning(
+        tr(
+          `Discarded ${successCount}/${filesToDiscard.length} changes`,
+          `已丢弃 ${filesToDiscard.length} 项变更中的 ${successCount} 项`
+        )
+      )
     } else {
-      toast.error('Failed to discard changes')
+      toast.error(tr('Failed to discard changes', '丢弃变更失败'))
     }
-  }, [worktreePath, modifiedFiles, discardChanges])
+  }, [worktreePath, modifiedFiles, discardChanges, tr])
 
   const handleStageFile = useCallback(
     async (file: GitFileStatus) => {
       if (!worktreePath) return
       const success = await stageFile(worktreePath, file.relativePath)
       if (!success) {
-        toast.error(`Failed to stage ${file.relativePath}`)
+        toast.error(tr(`Failed to stage ${file.relativePath}`, `暂存 ${file.relativePath} 失败`))
       }
     },
-    [worktreePath, stageFile]
+    [worktreePath, stageFile, tr]
   )
 
   const handleUnstageFile = useCallback(
@@ -216,10 +223,10 @@ export function ChangesView({
       if (!worktreePath) return
       const success = await unstageFile(worktreePath, file.relativePath)
       if (!success) {
-        toast.error(`Failed to unstage ${file.relativePath}`)
+        toast.error(tr(`Failed to unstage ${file.relativePath}`, `取消暂存 ${file.relativePath} 失败`))
       }
     },
-    [worktreePath, unstageFile]
+    [worktreePath, unstageFile, tr]
   )
 
   const handleDiscardFile = useCallback(
@@ -227,12 +234,12 @@ export function ChangesView({
       if (!worktreePath) return
       const success = await discardChanges(worktreePath, file.relativePath)
       if (success) {
-        toast.success(`Discarded changes to ${file.relativePath}`)
+        toast.success(tr(`Discarded changes to ${file.relativePath}`, `已丢弃 ${file.relativePath} 的变更`))
       } else {
-        toast.error(`Failed to discard ${file.relativePath}`)
+        toast.error(tr(`Failed to discard ${file.relativePath}`, `丢弃 ${file.relativePath} 失败`))
       }
     },
-    [worktreePath, discardChanges]
+    [worktreePath, discardChanges, tr]
   )
 
   const handleViewDiff = useCallback(
@@ -274,7 +281,7 @@ export function ChangesView({
         type: 'header',
         key: 'h-conflicts',
         groupId: 'conflicts',
-        title: 'Merge Conflicts',
+        title: tr('Merge Conflicts', '合并冲突'),
         count: conflictedFiles.length,
         icon: <AlertTriangle className="h-3 w-3 text-red-500" />,
         headerClassName: 'text-red-500',
@@ -297,7 +304,7 @@ export function ChangesView({
         type: 'header',
         key: 'h-staged',
         groupId: 'staged',
-        title: 'Staged Changes',
+        title: tr('Staged Changes', '已暂存变更'),
         count: stagedFiles.length,
         action: (
           <Button
@@ -305,11 +312,11 @@ export function ChangesView({
             size="sm"
             className="h-5 px-1.5 text-[10px]"
             onClick={handleUnstageAll}
-            title="Unstage all files"
+            title={tr('Unstage all files', '取消暂存所有文件')}
             data-testid="changes-unstage-all"
           >
             <Minus className="h-3 w-3 mr-0.5" />
-            Unstage All
+            {tr('Unstage All', '全部取消暂存')}
           </Button>
         ),
         testId: 'changes-staged-section'
@@ -331,7 +338,7 @@ export function ChangesView({
         type: 'header',
         key: 'h-unstaged',
         groupId: 'unstaged',
-        title: 'Changes',
+        title: tr('Changes', '变更'),
         count: modifiedFiles.length,
         action: (
           <Button
@@ -339,11 +346,11 @@ export function ChangesView({
             size="sm"
             className="h-5 px-1.5 text-[10px]"
             onClick={handleStageAll}
-            title="Stage all files"
+            title={tr('Stage all files', '暂存所有文件')}
             data-testid="changes-stage-all"
           >
             <Plus className="h-3 w-3 mr-0.5" />
-            Stage All
+            {tr('Stage All', '全部暂存')}
           </Button>
         ),
         testId: 'changes-modified-section'
@@ -365,7 +372,7 @@ export function ChangesView({
         type: 'header',
         key: 'h-untracked',
         groupId: 'untracked',
-        title: 'Untracked',
+        title: tr('Untracked', '未跟踪'),
         count: untrackedFiles.length,
         testId: 'changes-untracked-section'
       })
@@ -389,7 +396,8 @@ export function ChangesView({
     untrackedFiles,
     collapsed,
     handleUnstageAll,
-    handleStageAll
+    handleStageAll,
+    tr
   ])
 
   const virtualizer = useVirtualizer({
@@ -489,7 +497,11 @@ export function ChangesView({
   )
 
   if (!worktreePath) {
-    return <div className="p-4 text-sm text-muted-foreground text-center">No worktree selected</div>
+    return (
+      <div className="p-4 text-sm text-muted-foreground text-center">
+        {tr('No worktree selected', '未选择工作树')}
+      </div>
+    )
   }
 
   if (isConnectionMode) {
@@ -501,8 +513,11 @@ export function ChangesView({
             <Link className="h-3.5 w-3.5 text-muted-foreground" />
             <span className="font-medium">
               {connectionSummary.totalFiles === 0
-                ? 'No changes'
-                : `${connectionSummary.totalFiles} file${connectionSummary.totalFiles === 1 ? '' : 's'} across ${connectionSummary.reposWithChanges} repo${connectionSummary.reposWithChanges === 1 ? '' : 's'}`}
+                ? tr('No changes', '没有变更')
+                : tr(
+                    `${connectionSummary.totalFiles} file${connectionSummary.totalFiles === 1 ? '' : 's'} across ${connectionSummary.reposWithChanges} repo${connectionSummary.reposWithChanges === 1 ? '' : 's'}`,
+                    `${connectionSummary.reposWithChanges} 个仓库中共有 ${connectionSummary.totalFiles} 个文件变更`
+                  )}
             </span>
           </div>
           <Button
@@ -511,7 +526,7 @@ export function ChangesView({
             className={cn('h-5 w-5', isRefreshing && 'animate-spin')}
             onClick={handleConnectionRefresh}
             disabled={isRefreshing}
-            title="Refresh all"
+            title={tr('Refresh all', '刷新全部')}
           >
             <RefreshCw className="h-3 w-3" />
           </Button>
@@ -557,7 +572,9 @@ export function ChangesView({
                   </span>
                   <span className="flex items-center gap-1 shrink-0">
                     {hasNoChanges ? (
-                      <span className="text-muted-foreground text-[10px]">clean</span>
+                      <span className="text-muted-foreground text-[10px]">
+                        {tr('clean', '干净')}
+                      </span>
                     ) : (
                       <span className="text-[10px] px-1 py-0.5 rounded bg-muted">
                         {member.totalChanges}
@@ -593,14 +610,14 @@ export function ChangesView({
         <div className="flex items-center gap-1.5 text-xs">
           <GitBranch className="h-3.5 w-3.5 text-muted-foreground" />
           <span className="font-medium" data-testid="changes-branch-name">
-            {branchInfo?.name || 'Loading...'}
+            {branchInfo?.name || tr('Loading...', '加载中...')}
           </span>
           {branchInfo?.tracking && (
             <span className="flex items-center gap-1 text-muted-foreground">
               {branchInfo.ahead > 0 && (
                 <span
                   className="flex items-center gap-0.5"
-                  title={`${branchInfo.ahead} commit(s) ahead`}
+                  title={tr(`${branchInfo.ahead} commit(s) ahead`, `领先 ${branchInfo.ahead} 次提交`)}
                 >
                   <ArrowUp className="h-3 w-3" />
                   {branchInfo.ahead}
@@ -609,7 +626,7 @@ export function ChangesView({
               {branchInfo.behind > 0 && (
                 <span
                   className="flex items-center gap-0.5"
-                  title={`${branchInfo.behind} commit(s) behind`}
+                  title={tr(`${branchInfo.behind} commit(s) behind`, `落后 ${branchInfo.behind} 次提交`)}
                 >
                   <ArrowDown className="h-3 w-3" />
                   {branchInfo.behind}
@@ -625,7 +642,7 @@ export function ChangesView({
             className={cn('h-5 w-5', (isLoading || isRefreshing) && 'animate-spin')}
             onClick={handleRefresh}
             disabled={isLoading || isRefreshing}
-            title="Refresh git status"
+            title={tr('Refresh git status', '刷新 Git 状态')}
             data-testid="changes-refresh-button"
           >
             <RefreshCw className="h-3 w-3" />
@@ -639,7 +656,7 @@ export function ChangesView({
           className="flex-1 flex items-center justify-center text-xs text-muted-foreground"
           data-testid="changes-empty"
         >
-          No changes
+          {tr('No changes', '没有变更')}
         </div>
       ) : (
         <div ref={scrollRef} className="flex-1 overflow-y-auto">
@@ -701,11 +718,11 @@ export function ChangesView({
                         <ContextMenuContent>
                           <ContextMenuItem onClick={() => handleStageFile(item.file)}>
                             <Plus className="h-3.5 w-3.5 mr-2" />
-                            Mark as Resolved
+                            {tr('Mark as Resolved', '标记为已解决')}
                           </ContextMenuItem>
                           <ContextMenuItem onClick={() => handleViewDiff(item.file)}>
                             <FileDiff className="h-3.5 w-3.5 mr-2" />
-                            Open Diff
+                            {tr('Open Diff', '打开差异')}
                           </ContextMenuItem>
                         </ContextMenuContent>
                       }
@@ -719,11 +736,11 @@ export function ChangesView({
                         <ContextMenuContent>
                           <ContextMenuItem onClick={() => handleUnstageFile(item.file)}>
                             <Minus className="h-3.5 w-3.5 mr-2" />
-                            Unstage
+                            {tr('Unstage', '取消暂存')}
                           </ContextMenuItem>
                           <ContextMenuItem onClick={() => handleViewDiff(item.file)}>
                             <FileDiff className="h-3.5 w-3.5 mr-2" />
-                            Open Diff
+                            {tr('Open Diff', '打开差异')}
                           </ContextMenuItem>
                         </ContextMenuContent>
                       }
@@ -737,11 +754,11 @@ export function ChangesView({
                         <ContextMenuContent>
                           <ContextMenuItem onClick={() => handleStageFile(item.file)}>
                             <Plus className="h-3.5 w-3.5 mr-2" />
-                            Stage
+                            {tr('Stage', '暂存')}
                           </ContextMenuItem>
                           <ContextMenuItem onClick={() => handleViewDiff(item.file)}>
                             <FileDiff className="h-3.5 w-3.5 mr-2" />
-                            Open Diff
+                            {tr('Open Diff', '打开差异')}
                           </ContextMenuItem>
                           <ContextMenuSeparator />
                           <ContextMenuItem
@@ -749,7 +766,7 @@ export function ChangesView({
                             className="text-destructive focus:text-destructive"
                           >
                             <Undo2 className="h-3.5 w-3.5 mr-2" />
-                            Discard Changes
+                            {tr('Discard Changes', '丢弃变更')}
                           </ContextMenuItem>
                         </ContextMenuContent>
                       }
@@ -763,7 +780,7 @@ export function ChangesView({
                         <ContextMenuContent>
                           <ContextMenuItem onClick={() => handleStageFile(item.file)}>
                             <Plus className="h-3.5 w-3.5 mr-2" />
-                            Stage
+                            {tr('Stage', '暂存')}
                           </ContextMenuItem>
                           <ContextMenuSeparator />
                           <ContextMenuItem
@@ -771,7 +788,7 @@ export function ChangesView({
                             className="text-destructive focus:text-destructive"
                           >
                             <Trash2 className="h-3.5 w-3.5 mr-2" />
-                            Delete
+                            {tr('Delete', '删除')}
                           </ContextMenuItem>
                           <ContextMenuItem
                             onClick={async () => {
@@ -780,16 +797,14 @@ export function ChangesView({
                                 .getState()
                                 .addToGitignore(worktreePath, item.file.relativePath)
                               if (success) {
-                                toast.success(
-                                  `Added ${item.file.relativePath} to .gitignore`
-                                )
+                                toast.success(tr(`Added ${item.file.relativePath} to .gitignore`, `已将 ${item.file.relativePath} 添加到 .gitignore`))
                               } else {
-                                toast.error('Failed to add to .gitignore')
+                                toast.error(tr('Failed to add to .gitignore', '添加到 .gitignore 失败'))
                               }
                             }}
                           >
                             <EyeOff className="h-3.5 w-3.5 mr-2" />
-                            Add to .gitignore
+                            {tr('Add to .gitignore', '添加到 .gitignore')}
                           </ContextMenuItem>
                         </ContextMenuContent>
                       }
@@ -809,27 +824,27 @@ export function ChangesView({
             <button
               onClick={handleStageAll}
               className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
-              title="Stage All"
+              title={tr('Stage All', '全部暂存')}
             >
-              <Plus className="h-3 w-3" /> Stage All
+              <Plus className="h-3 w-3" /> {tr('Stage All', '全部暂存')}
             </button>
           )}
           {hasStaged && (
             <button
               onClick={handleUnstageAll}
               className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
-              title="Unstage All"
+              title={tr('Unstage All', '全部取消暂存')}
             >
-              <Minus className="h-3 w-3" /> Unstage All
+              <Minus className="h-3 w-3" /> {tr('Unstage All', '全部取消暂存')}
             </button>
           )}
           {modifiedFiles.length > 0 && (
             <button
               onClick={handleDiscardAll}
               className="text-xs text-destructive/70 hover:text-destructive flex items-center gap-1"
-              title="Discard All Changes"
+              title={tr('Discard All Changes', '丢弃全部变更')}
             >
-              <Undo2 className="h-3 w-3" /> Discard
+              <Undo2 className="h-3 w-3" /> {tr('Discard', '丢弃')}
             </button>
           )}
         </div>
@@ -859,6 +874,7 @@ const FileRow = memo(function FileRow({
   contextMenu,
   onStageToggle
 }: FileRowProps): React.JSX.Element {
+  const { tr } = useI18n()
   const fileName = file.relativePath.split('/').pop() || file.relativePath
   const ext = fileName.includes('.') ? '.' + fileName.split('.').pop() : null
 
@@ -884,7 +900,7 @@ const FileRow = memo(function FileRow({
                   e.stopPropagation()
                   onStageToggle(file)
                 }}
-                title={file.staged ? 'Unstage' : 'Stage'}
+                title={file.staged ? tr('Unstage', '取消暂存') : tr('Stage', '暂存')}
               >
                 {file.staged ? <Minus className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
               </button>
@@ -936,6 +952,7 @@ const MemberChanges = memo(function MemberChanges({
   onDiscardChanges,
   onViewDiff
 }: MemberChangesProps): React.JSX.Element {
+  const { tr } = useI18n()
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
   const scrollRef = useRef<HTMLDivElement>(null)
 
@@ -980,7 +997,7 @@ const MemberChanges = memo(function MemberChanges({
         type: 'header',
         key: 'h-conflicts',
         groupId: 'conflicts',
-        title: 'Merge Conflicts',
+        title: tr('Merge Conflicts', '合并冲突'),
         count: member.conflicted.length,
         icon: <AlertTriangle className="h-3 w-3 text-red-500" />,
         headerClassName: 'text-red-500'
@@ -1002,7 +1019,7 @@ const MemberChanges = memo(function MemberChanges({
         type: 'header',
         key: 'h-staged',
         groupId: 'staged',
-        title: 'Staged Changes',
+        title: tr('Staged Changes', '已暂存变更'),
         count: member.staged.length,
         action: (
           <Button
@@ -1010,10 +1027,10 @@ const MemberChanges = memo(function MemberChanges({
             size="sm"
             className="h-5 px-1.5 text-[10px]"
             onClick={() => onUnstageAll(wp)}
-            title="Unstage all"
+            title={tr('Unstage all', '取消暂存全部')}
           >
             <Minus className="h-3 w-3 mr-0.5" />
-            Unstage
+            {tr('Unstage', '取消暂存')}
           </Button>
         )
       })
@@ -1034,7 +1051,7 @@ const MemberChanges = memo(function MemberChanges({
         type: 'header',
         key: 'h-modified',
         groupId: 'modified',
-        title: 'Changes',
+        title: tr('Changes', '变更'),
         count: member.modified.length,
         action: (
           <Button
@@ -1042,10 +1059,10 @@ const MemberChanges = memo(function MemberChanges({
             size="sm"
             className="h-5 px-1.5 text-[10px]"
             onClick={() => onStageAll(wp)}
-            title="Stage all"
+            title={tr('Stage all', '暂存全部')}
           >
             <Plus className="h-3 w-3 mr-0.5" />
-            Stage
+            {tr('Stage', '暂存')}
           </Button>
         )
       })
@@ -1066,7 +1083,7 @@ const MemberChanges = memo(function MemberChanges({
         type: 'header',
         key: 'h-untracked',
         groupId: 'untracked',
-        title: 'Untracked',
+        title: tr('Untracked', '未跟踪'),
         count: member.untracked.length
       })
       if (!collapsed.has('untracked')) {
@@ -1082,7 +1099,7 @@ const MemberChanges = memo(function MemberChanges({
     }
 
     return items
-  }, [member.conflicted, member.staged, member.modified, member.untracked, collapsed, onUnstageAll, onStageAll, wp])
+  }, [member.conflicted, member.staged, member.modified, member.untracked, collapsed, onUnstageAll, onStageAll, wp, tr])
 
   const virtualizer = useVirtualizer({
     count: flatItems.length,
@@ -1160,13 +1177,13 @@ const MemberChanges = memo(function MemberChanges({
                             onClick={() => onStageFile(wp, item.file.relativePath)}
                           >
                             <Plus className="h-3.5 w-3.5 mr-2" />
-                            Mark as Resolved
+                            {tr('Mark as Resolved', '标记为已解决')}
                           </ContextMenuItem>
                           <ContextMenuItem
                             onClick={() => onViewDiff(item.file, wp)}
                           >
                             <FileDiff className="h-3.5 w-3.5 mr-2" />
-                            Open Diff
+                            {tr('Open Diff', '打开差异')}
                           </ContextMenuItem>
                         </ContextMenuContent>
                       }
@@ -1182,7 +1199,7 @@ const MemberChanges = memo(function MemberChanges({
                             onClick={() => onUnstageFile(wp, item.file.relativePath)}
                           >
                             <Minus className="h-3.5 w-3.5 mr-2" />
-                            Unstage
+                            {tr('Unstage', '取消暂存')}
                           </ContextMenuItem>
                         </ContextMenuContent>
                       }
@@ -1198,7 +1215,7 @@ const MemberChanges = memo(function MemberChanges({
                             onClick={() => onStageFile(wp, item.file.relativePath)}
                           >
                             <Plus className="h-3.5 w-3.5 mr-2" />
-                            Stage
+                            {tr('Stage', '暂存')}
                           </ContextMenuItem>
                           <ContextMenuSeparator />
                           <ContextMenuItem
@@ -1206,7 +1223,7 @@ const MemberChanges = memo(function MemberChanges({
                             className="text-destructive focus:text-destructive"
                           >
                             <Undo2 className="h-3.5 w-3.5 mr-2" />
-                            Discard Changes
+                            {tr('Discard Changes', '丢弃变更')}
                           </ContextMenuItem>
                         </ContextMenuContent>
                       }
@@ -1222,7 +1239,7 @@ const MemberChanges = memo(function MemberChanges({
                             onClick={() => onStageFile(wp, item.file.relativePath)}
                           >
                             <Plus className="h-3.5 w-3.5 mr-2" />
-                            Stage
+                            {tr('Stage', '暂存')}
                           </ContextMenuItem>
                         </ContextMenuContent>
                       }

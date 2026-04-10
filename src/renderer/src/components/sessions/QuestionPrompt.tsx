@@ -3,6 +3,7 @@ import { MessageCircleQuestion, Check, X, ChevronRight, Pencil } from 'lucide-re
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import type { QuestionRequest, QuestionAnswer } from '@/stores/useQuestionStore'
+import { useI18n } from '@/i18n/useI18n'
 
 interface QuestionPromptProps {
   request: QuestionRequest
@@ -11,6 +12,7 @@ interface QuestionPromptProps {
 }
 
 export function QuestionPrompt({ request, onReply, onReject }: QuestionPromptProps) {
+  const { tr } = useI18n()
   const [currentTab, setCurrentTab] = useState(0)
   const [answers, setAnswers] = useState<QuestionAnswer[]>(request.questions.map(() => []))
   const [customInputs, setCustomInputs] = useState<string[]>(request.questions.map(() => ''))
@@ -178,7 +180,7 @@ export function QuestionPrompt({ request, onReply, onReject }: QuestionPromptPro
           onClick={handleDismiss}
           disabled={sending}
           className="ml-auto text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50 shrink-0"
-          aria-label="Dismiss"
+          aria-label={tr('Dismiss', '忽略')}
         >
           <X className="h-3.5 w-3.5" />
         </button>
@@ -257,7 +259,7 @@ export function QuestionPrompt({ request, onReply, onReject }: QuestionPromptPro
             >
               <div className="flex items-center gap-2 text-muted-foreground">
                 <Pencil className="h-3.5 w-3.5 shrink-0" />
-                <span className="text-sm">Type your own answer</span>
+                <span className="text-sm">{tr('Type your own answer', '输入你自己的回答')}</span>
               </div>
             </button>
           )}
@@ -281,7 +283,7 @@ export function QuestionPrompt({ request, onReply, onReject }: QuestionPromptPro
                   }
                 }}
                 className="flex-1 bg-background border border-border rounded px-2 py-1.5 text-sm focus:outline-none focus:border-blue-500/50 transition-colors resize-none min-h-[36px] max-h-[200px]"
-                placeholder="Type your answer..."
+                placeholder={tr('Type your answer...', '输入你的回答...')}
                 rows={1}
                 disabled={sending}
               />
@@ -290,7 +292,7 @@ export function QuestionPrompt({ request, onReply, onReject }: QuestionPromptPro
                 type="submit"
                 disabled={!customInputs[currentTab]?.trim() || sending}
               >
-                Submit
+                {tr('Submit', '提交')}
               </Button>
               <Button
                 size="sm"
@@ -299,7 +301,7 @@ export function QuestionPrompt({ request, onReply, onReject }: QuestionPromptPro
                 onClick={() => setEditingCustom(false)}
                 disabled={sending}
               >
-                Cancel
+                {tr('Cancel', '取消')}
               </Button>
             </form>
           )}

@@ -9,6 +9,7 @@ import {
   ContextMenuTrigger
 } from '@/components/ui/context-menu'
 import type { PRReviewComment } from '@shared/types/git'
+import { useI18n } from '@/i18n'
 
 /** Strip HTML tags and collapse whitespace to get a plain-text snippet. */
 function snippetFromHtml(html: string, plain: string): string {
@@ -53,15 +54,16 @@ export function PrCommentCard({
   onToggleSelect,
   onNavigate
 }: PrCommentCardProps): React.JSX.Element {
+  const { tr } = useI18n()
   const isOutdated = comment.line === null && comment.originalLine !== null
   const snippet = snippetFromHtml(comment.bodyHTML, comment.body)
   const line = comment.line ?? comment.originalLine ?? '?'
 
   const handleCopyRaw = useCallback(() => {
     navigator.clipboard.writeText(comment.bodyHTML || comment.body).then(() => {
-      toast.success('Raw comment HTML copied')
+      toast.success(tr('Raw comment HTML copied', '原始评论 HTML 已复制'))
     })
-  }, [comment.bodyHTML, comment.body])
+  }, [comment.bodyHTML, comment.body, tr])
 
   return (
     <ContextMenu>
@@ -91,7 +93,7 @@ export function PrCommentCard({
           </span>
           {isOutdated && (
             <span className="px-1 py-px rounded text-[9px] font-medium bg-yellow-500/10 text-yellow-500 shrink-0">
-              old
+              {tr('old', '旧')}
             </span>
           )}
           <span className="text-[11px] text-muted-foreground truncate min-w-0 flex-1">
@@ -108,7 +110,7 @@ export function PrCommentCard({
       <ContextMenuContent>
         <ContextMenuItem onClick={handleCopyRaw}>
           <Copy className="h-3.5 w-3.5 mr-2" />
-          Copy raw HTML
+          {tr('Copy raw HTML', '复制原始 HTML')}
         </ContextMenuItem>
       </ContextMenuContent>
     </ContextMenu>

@@ -13,6 +13,7 @@ import { SetupTab } from './SetupTab'
 import { RunTab } from './RunTab'
 import { toast } from '@/lib/toast'
 import { useGhosttyPromotion } from '@/hooks/useGhosttyPromotion'
+import { useI18n } from '@/i18n/useI18n'
 
 const tabs: { id: BottomPanelTab; label: string; keybind: string }[] = [
   { id: 'setup', label: 'Setup', keybind: 'S' },
@@ -37,6 +38,7 @@ export function BottomPanel({
   isCollapsed,
   onToggleCollapse
 }: BottomPanelProps): React.JSX.Element {
+  const { tr } = useI18n()
   const activeTab = useLayoutStore((s) => s.bottomPanelTab)
   const effectiveTab = isConnectionMode ? 'terminal' : activeTab
   useGhosttyPromotion(effectiveTab === 'terminal')
@@ -66,7 +68,8 @@ export function BottomPanel({
       if (selectedWorktreeId) {
         setDetectedUrls((prev) => {
           if (!(selectedWorktreeId in prev)) return prev
-          const { [selectedWorktreeId]: _, ...rest } = prev
+          const { [selectedWorktreeId]: _removed, ...rest } = prev
+          void _removed
           return rest
         })
       }
@@ -137,9 +140,11 @@ export function BottomPanel({
             </button>
             {chromeConfigOpen && (
               <div className="absolute right-0 top-full mt-1 z-50 bg-popover border rounded-md shadow-md p-3 w-80">
-                <label className="text-xs font-medium block mb-1">Custom Chrome Command</label>
+                <label className="text-xs font-medium block mb-1">
+                  {tr('Custom Chrome Command', '自定义 Chrome 命令')}
+                </label>
                 <p className="text-[10px] text-muted-foreground mb-2">
-                  Use {'{url}'} as placeholder. Leave empty for default browser.
+                  {tr("Use {url} as placeholder. Leave empty for default browser.", '使用 {url} 作为占位符。留空则使用默认浏览器。')}
                 </p>
                 <input
                   value={chromeCommandInput}
@@ -161,7 +166,7 @@ export function BottomPanel({
                         .getState()
                         .updateSetting('customChromeCommand', chromeCommandInput)
                       setChromeConfigOpen(false)
-                      toast.success('Chrome command saved')
+                      toast.success(tr('Chrome command saved', 'Chrome 命令已保存'))
                     }}
                     className="text-xs px-2 py-1 rounded bg-primary text-primary-foreground hover:bg-primary/90"
                   >

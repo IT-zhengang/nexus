@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { splitBashCommand, getSubPatterns, patternMatches } from '@/lib/permissionUtils'
 import { useSettingsStore } from '@/stores/useSettingsStore'
+import { useI18n } from '@/i18n/useI18n'
 
 interface PermissionPromptProps {
   request: PermissionRequest
@@ -109,10 +110,27 @@ function BashPatternView({
 }
 
 export function PermissionPrompt({ request, onReply }: PermissionPromptProps) {
+  const { tr } = useI18n()
   const [sending, setSending] = useState(false)
   const { commandFilter, updateSetting } = useSettingsStore()
 
   const { icon: Icon, label, color } = getPermissionDisplay(request.permission)
+  const translatedLabel =
+    label === 'Run Command'
+      ? tr('Run Command', '运行命令')
+      : label === 'Edit File'
+        ? tr('Edit File', '编辑文件')
+        : label === 'Read File'
+          ? tr('Read File', '读取文件')
+          : label === 'Search Files'
+            ? tr('Search Files', '搜索文件')
+            : label === 'Web Access'
+              ? tr('Web Access', '网页访问')
+              : label === 'External Directory'
+                ? tr('External Directory', '外部目录')
+                : label === 'Run Sub-task'
+                  ? tr('Run Sub-task', '运行子任务')
+                  : label
 
   const handleAllow = useCallback(
     (type: 'once' | 'always') => {
@@ -152,10 +170,12 @@ export function PermissionPrompt({ request, onReply }: PermissionPromptProps) {
       {/* Header */}
       <div className="flex items-center gap-2 px-3 py-2 border-b border-border bg-muted/30">
         <Shield className={cn('h-4 w-4 shrink-0', color)} />
-        <span className="text-xs font-medium text-foreground">Permission Required</span>
+        <span className="text-xs font-medium text-foreground">
+          {tr('Permission Required', '需要权限')}
+        </span>
         <span className="text-xs text-muted-foreground">—</span>
         <Icon className={cn('h-3.5 w-3.5 shrink-0', color)} />
-        <span className="text-xs text-muted-foreground">{label}</span>
+        <span className="text-xs text-muted-foreground">{translatedLabel}</span>
       </div>
 
       <div className="px-3 py-2.5">
@@ -214,7 +234,7 @@ export function PermissionPrompt({ request, onReply }: PermissionPromptProps) {
             disabled={sending}
             data-testid="permission-allow-once"
           >
-            {sending ? 'Sending...' : 'Allow once'}
+            {sending ? tr('Sending...', '发送中...') : tr('Allow once', '允许一次')}
           </Button>
           <Button
             size="sm"
@@ -223,12 +243,12 @@ export function PermissionPrompt({ request, onReply }: PermissionPromptProps) {
             disabled={sending}
             title={
               request.always.length > 0
-                ? `Always allow: ${request.always.join(', ')}`
-                : 'Always allow this type of action'
+                ? `${tr('Always allow', '始终允许')}: ${request.always.join(', ')}`
+                : tr('Always allow this type of action', '始终允许此类操作')
             }
             data-testid="permission-allow-always"
           >
-            Allow always
+            {tr('Allow always', '始终允许')}
           </Button>
           <Button
             size="sm"
@@ -238,7 +258,7 @@ export function PermissionPrompt({ request, onReply }: PermissionPromptProps) {
             className="text-destructive hover:text-destructive"
             data-testid="permission-deny"
           >
-            Deny
+            {tr('Deny', '拒绝')}
           </Button>
         </div>
       </div>

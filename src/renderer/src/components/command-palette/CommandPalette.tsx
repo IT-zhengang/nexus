@@ -8,8 +8,10 @@ import { useCommands, useGhosttySuppression } from '@/hooks'
 import { categoryLabels } from '@/lib/command-registry'
 import { CommandItem } from './CommandItem'
 import { ArrowLeft, Search } from 'lucide-react'
+import { useI18n } from '@/i18n/useI18n'
 
 export function CommandPalette() {
+  const { tr } = useI18n()
   const {
     isOpen,
     searchQuery,
@@ -166,13 +168,13 @@ export function CommandPalette() {
         className="fixed left-1/2 top-[20%] -translate-x-1/2 w-full max-w-xl z-50"
         data-testid="command-palette"
         role="dialog"
-        aria-label="Command palette"
+        aria-label={tr('Command palette', '命令面板')}
         aria-modal="true"
       >
         <Command
           className="rounded-lg border border-border bg-popover shadow-xl overflow-hidden"
           shouldFilter={false}
-          label="Command palette"
+          label={tr('Command palette', '命令面板')}
         >
           {/* Search input */}
           <div className="flex items-center border-b border-border px-3">
@@ -180,7 +182,7 @@ export function CommandPalette() {
               <button
                 onClick={popCommandLevel}
                 className="mr-2 p-1 rounded hover:bg-muted"
-                aria-label="Go back"
+                aria-label={tr('Go back', '返回')}
               >
                 <ArrowLeft className="w-4 h-4 text-muted-foreground" />
               </button>
@@ -192,8 +194,8 @@ export function CommandPalette() {
               onValueChange={setSearchQuery}
               placeholder={
                 currentParent
-                  ? `Search in ${currentParent.label}...`
-                  : 'Type a command or search...'
+                  ? tr(`Search in ${currentParent.label}...`, `在 ${currentParent.label} 中搜索...`)
+                  : tr('Type a command or search...', '输入命令或搜索...')
               }
               className="flex-1 h-12 bg-transparent border-0 outline-none text-sm placeholder:text-muted-foreground"
               autoFocus
@@ -205,7 +207,7 @@ export function CommandPalette() {
           <Command.List className="max-h-[300px] overflow-y-auto p-2">
             {totalCommands === 0 && (
               <Command.Empty className="py-6 text-center text-sm text-muted-foreground">
-                No commands found.
+                {tr('No commands found.', '未找到命令。')}
               </Command.Empty>
             )}
 
@@ -214,8 +216,8 @@ export function CommandPalette() {
               const label =
                 category === 'results'
                   ? commandStack.length > 0
-                    ? currentParent?.label || 'Results'
-                    : 'Results'
+                    ? currentParent?.label || tr('Results', '结果')
+                    : tr('Results', '结果')
                   : categoryLabels[category as keyof typeof categoryLabels] || category
 
               return (

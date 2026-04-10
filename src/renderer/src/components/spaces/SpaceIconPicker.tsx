@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { useState, useMemo } from 'react'
 import {
   Briefcase,
@@ -58,6 +59,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Input } from '@/components/ui/input'
+import { useI18n } from '@/i18n'
 
 interface SpaceIconPickerProps {
   selectedValue?: string
@@ -130,6 +132,7 @@ export function SpaceIconPicker({
   selectedValue,
   onSelect
 }: SpaceIconPickerProps): React.JSX.Element {
+  const { tr } = useI18n()
   const [searchQuery, setSearchQuery] = useState('')
 
   const filteredIcons = useMemo(() => {
@@ -141,7 +144,7 @@ export function SpaceIconPicker({
   return (
     <div className="space-y-2" data-testid="space-icon-picker">
       <Input
-        placeholder="Search icons..."
+        placeholder={tr('Search icons...', '搜索图标...')}
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
         className="h-7 text-xs"
@@ -170,7 +173,7 @@ export function SpaceIconPicker({
         })}
       </div>
       {filteredIcons.length === 0 && (
-        <p className="text-xs text-muted-foreground text-center py-2">No icons match</p>
+        <p className="text-xs text-muted-foreground text-center py-2">{tr('No icons match', '没有匹配的图标')}</p>
       )}
     </div>
   )

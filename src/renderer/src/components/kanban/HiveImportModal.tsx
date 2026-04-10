@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useKanbanStore } from '@/stores/useKanbanStore'
 import { toast } from 'sonner'
+import { useI18n } from '@/i18n/useI18n'
 
 interface ExportedTicket {
   id: string
@@ -33,6 +34,7 @@ export function HiveImportModal({
   projectId,
   tickets
 }: HiveImportModalProps) {
+  const { tr } = useI18n()
   const loadTickets = useKanbanStore((s) => s.loadTickets)
   const existingTickets = useKanbanStore((s) => s.tickets)
 
@@ -84,13 +86,13 @@ export function HiveImportModal({
       await loadTickets(projectId)
 
       const parts: string[] = []
-      if (result.created > 0) parts.push(`${result.created} created`)
-      if (result.updated > 0) parts.push(`${result.updated} updated`)
-      toast.success(`Import complete: ${parts.join(', ')}`)
+      if (result.created > 0) parts.push(`${result.created} ${tr('created', '已创建')}`)
+      if (result.updated > 0) parts.push(`${result.updated} ${tr('updated', '已更新')}`)
+      toast.success(`${tr('Import complete', '导入完成')}: ${parts.join(', ')}`)
 
       onOpenChange(false)
     } catch {
-      toast.error('Failed to import tickets')
+      toast.error(tr('Failed to import tickets', '导入工单失败'))
     } finally {
       setImporting(false)
     }
@@ -99,15 +101,15 @@ export function HiveImportModal({
   const columnLabel = (col?: string) => {
     switch (col) {
       case 'todo':
-        return 'To Do'
+        return tr('To Do', '待办')
       case 'in_progress':
-        return 'In Progress'
+        return tr('In Progress', '进行中')
       case 'review':
-        return 'Review'
+        return tr('Review', '评审中')
       case 'done':
-        return 'Done'
+        return tr('Done', '已完成')
       default:
-        return 'To Do'
+        return tr('To Do', '待办')
     }
   }
 
@@ -117,19 +119,21 @@ export function HiveImportModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Download className="h-5 w-5" />
-            Import from Hive JSON
+            {tr('Import from Hive JSON', '从 Hive JSON 导入')}
           </DialogTitle>
         </DialogHeader>
 
         {/* Summary */}
         <div className="text-sm text-muted-foreground px-1">
-          {selectedIds.size} of {tickets.length} tickets selected
+          {selectedIds.size} / {tickets.length} {tr('tickets selected', '个工单已选择')}
           {(newCount > 0 || updateCount > 0) && (
             <span className="ml-1">
-              ({newCount > 0 && <span className="text-green-500">{newCount} new</span>}
+              ({newCount > 0 && <span className="text-green-500">{newCount} {tr('new', '新增')}</span>}
               {newCount > 0 && updateCount > 0 && ', '}
               {updateCount > 0 && (
-                <span className="text-yellow-500">{updateCount} update{updateCount !== 1 ? 's' : ''}</span>
+                <span className="text-yellow-500">
+                  {updateCount} {tr(updateCount !== 1 ? 'updates' : 'update', '更新')}
+                </span>
               )})
             </span>
           )}
@@ -141,7 +145,7 @@ export function HiveImportModal({
             checked={selectedIds.size === tickets.length}
             onCheckedChange={toggleAll}
           />
-          <span className="text-xs text-muted-foreground font-medium">Select all</span>
+          <span className="text-xs text-muted-foreground font-medium">{tr('Select all', '全选')}</span>
         </div>
 
         {/* Ticket list */}
@@ -160,12 +164,12 @@ export function HiveImportModal({
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium truncate">{ticket.title}</span>
                   {ticket.isUpdate ? (
-                    <span className="shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-yellow-500/15 text-yellow-500">
-                      Update
+                      <span className="shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-yellow-500/15 text-yellow-500">
+                      {tr('Update', '更新')}
                     </span>
                   ) : (
                     <span className="shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-green-500/15 text-green-500">
-                      New
+                      {tr('New', '新增')}
                     </span>
                   )}
                 </div>
@@ -187,16 +191,19 @@ export function HiveImportModal({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={importing}>
-            Cancel
+            {tr('Cancel', '取消')}
           </Button>
           <Button onClick={handleImport} disabled={importing || selectedIds.size === 0}>
             {importing ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Importing…
+                {tr('Importing…', '导入中…')}
               </>
             ) : (
-              `Import ${selectedIds.size} ticket${selectedIds.size !== 1 ? 's' : ''}`
+              tr(
+                `Import ${selectedIds.size} ${selectedIds.size !== 1 ? 'tickets' : 'ticket'}`,
+                `导入 ${selectedIds.size} 个工单`
+              )
             )}
           </Button>
         </DialogFooter>

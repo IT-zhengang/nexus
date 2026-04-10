@@ -21,8 +21,7 @@ import {
   Upload,
   Download,
   RefreshCw,
-  ChevronRight,
-  type LucideIcon
+  ChevronRight
 } from 'lucide-react'
 import { KanbanIcon } from '@/components/kanban/KanbanIcon'
 import { cn } from '@/lib/utils'

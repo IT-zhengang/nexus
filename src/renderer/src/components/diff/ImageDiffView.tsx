@@ -3,6 +3,7 @@ import { X, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ImagePreview } from '@/components/file-viewer/ImagePreview'
 import { isSvgFile, getImageMimeType } from '@shared/types/file-utils'
+import { useI18n } from '@/i18n/useI18n'
 
 interface ImageDiffViewProps {
   worktreePath: string
@@ -25,6 +26,7 @@ export function ImageDiffView({
   compareBranch,
   onClose
 }: ImageDiffViewProps): React.JSX.Element {
+  const { tr } = useI18n()
   const [originalUri, setOriginalUri] = useState<string | null>(null)
   const [modifiedUri, setModifiedUri] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -206,7 +208,7 @@ export function ImageDiffView({
           size="icon"
           className="h-6 w-6"
           onClick={onClose}
-          title="Close (Esc)"
+          title={tr('Close (Esc)', '关闭（Esc）')}
         >
           <X className="h-3.5 w-3.5" />
         </Button>

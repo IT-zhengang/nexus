@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { isImageMime } from '@/lib/file-attachment-utils'
 import type { Attachment } from './AttachmentPreview'
+import { useI18n } from '@/i18n/useI18n'
 
 interface AttachmentButtonProps {
   onAttach: (file: Omit<Attachment, 'id'>) => void
@@ -25,6 +26,7 @@ export function AttachmentButton({
   projectId,
   onPickTicket
 }: AttachmentButtonProps) {
+  const { tr } = useI18n()
   const inputRef = useRef<HTMLInputElement>(null)
 
   const handleFileSelect = () => {
@@ -83,8 +85,8 @@ export function AttachmentButton({
             size="sm"
             className="h-7 w-7 p-0"
             disabled={disabled}
-            title="Attach file or ticket"
-            aria-label="Attach file or ticket"
+            title={tr('Attach file or ticket', '附加文件或工单')}
+            aria-label={tr('Attach file or ticket', '附加文件或工单')}
             data-testid="attachment-button"
           >
             <Paperclip className="h-3.5 w-3.5" />
@@ -96,7 +98,7 @@ export function AttachmentButton({
             data-testid="attach-file"
           >
             <FileUp className="h-4 w-4 mr-2" />
-            File
+            {tr('File', '文件')}
           </DropdownMenuItem>
           {projectId && (
             <DropdownMenuItem
@@ -104,7 +106,7 @@ export function AttachmentButton({
               data-testid="attach-board-ticket"
             >
               <KanbanSquare className="h-4 w-4 mr-2" />
-              Board ticket
+              {tr('Board ticket', '看板工单')}
             </DropdownMenuItem>
           )}
         </DropdownMenuContent>

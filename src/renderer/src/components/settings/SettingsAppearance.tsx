@@ -2,6 +2,7 @@ import { THEME_PRESETS, ThemePreset } from '@/lib/themes'
 import { useThemeStore } from '@/stores/useThemeStore'
 import { cn } from '@/lib/utils'
 import { Check } from 'lucide-react'
+import { useI18n } from '@/i18n'
 
 interface ThemeCardProps {
   preset: ThemePreset
@@ -18,6 +19,7 @@ function ThemeCard({
   onMouseEnter,
   onMouseLeave
 }: ThemeCardProps): React.JSX.Element {
+  const { tr } = useI18n()
   const { background, sidebar, primary, 'muted-foreground': mutedFg } = preset.previewColors
 
   return (
@@ -31,54 +33,24 @@ function ThemeCard({
           ? 'border-primary ring-2 ring-primary/30 bg-primary/5'
           : 'border-border hover:border-muted-foreground/40'
       )}
-      aria-label={`Select ${preset.name} theme`}
+      aria-label={tr(`Select ${preset.name} theme`, `选择 ${preset.name} 主题`)}
       aria-pressed={isActive}
       data-testid={`theme-card-${preset.id}`}
     >
-      {/* Preview swatch */}
-      <div
-        className="relative h-16 w-full overflow-hidden rounded-md"
-        style={{ backgroundColor: background }}
-      >
-        {/* Sidebar stripe — left edge */}
-        <div
-          className="absolute inset-y-0 left-0 w-[22%]"
-          style={{ backgroundColor: sidebar }}
-        />
-
-        {/* Simulated text lines in main area */}
+      <div className="relative h-16 w-full overflow-hidden rounded-md" style={{ backgroundColor: background }}>
+        <div className="absolute inset-y-0 left-0 w-[22%]" style={{ backgroundColor: sidebar }} />
         <div className="absolute inset-y-0 left-[26%] right-0 flex flex-col justify-center gap-[4px] pr-2">
-          <div
-            className="h-[5px] w-3/4 rounded-full opacity-40"
-            style={{ backgroundColor: mutedFg }}
-          />
-          <div
-            className="h-[5px] w-1/2 rounded-full opacity-25"
-            style={{ backgroundColor: mutedFg }}
-          />
+          <div className="h-[5px] w-3/4 rounded-full opacity-40" style={{ backgroundColor: mutedFg }} />
+          <div className="h-[5px] w-1/2 rounded-full opacity-25" style={{ backgroundColor: mutedFg }} />
         </div>
-
-        {/* Primary accent dot — bottom-right of main area */}
-        <div
-          className="absolute bottom-2 right-2 h-[10px] w-[10px] rounded-full"
-          style={{ backgroundColor: primary }}
-        />
-
-        {/* Active check badge */}
+        <div className="absolute bottom-2 right-2 h-[10px] w-[10px] rounded-full" style={{ backgroundColor: primary }} />
         {isActive && (
           <div className="absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm">
             <Check className="h-3 w-3" />
           </div>
         )}
       </div>
-
-      {/* Preset name */}
-      <span
-        className={cn(
-          'truncate text-center text-xs font-medium leading-none',
-          isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'
-        )}
-      >
+      <span className={cn('truncate text-center text-xs font-medium leading-none', isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground')}>
         {preset.name}
       </span>
     </button>
@@ -86,6 +58,7 @@ function ThemeCard({
 }
 
 export function SettingsAppearance(): React.JSX.Element {
+  const { tr } = useI18n()
   const themeId = useThemeStore((s) => s.themeId)
   const setTheme = useThemeStore((s) => s.setTheme)
   const previewTheme = useThemeStore((s) => s.previewTheme)
@@ -97,46 +70,30 @@ export function SettingsAppearance(): React.JSX.Element {
   return (
     <div className="space-y-6" data-testid="settings-appearance">
       <div>
-        <h3 className="text-base font-medium mb-1">Appearance</h3>
+        <h3 className="text-base font-medium mb-1">{tr('Appearance', '外观')}</h3>
         <p className="text-sm text-muted-foreground">
-          Choose a theme preset. Hover to preview before selecting.
+          {tr('Choose a theme preset. Hover to preview before selecting.', '选择主题预设。可悬停预览后再选择。')}
         </p>
       </div>
 
-      {/* Dark themes */}
       <section className="space-y-2">
         <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          Dark Themes
+          {tr('Dark Themes', '深色主题')}
         </h3>
         <div className="grid grid-cols-3 gap-3" data-testid="dark-themes-grid">
           {darkPresets.map((preset) => (
-            <ThemeCard
-              key={preset.id}
-              preset={preset}
-              isActive={themeId === preset.id}
-              onSelect={setTheme}
-              onMouseEnter={previewTheme}
-              onMouseLeave={cancelPreview}
-            />
+            <ThemeCard key={preset.id} preset={preset} isActive={themeId === preset.id} onSelect={setTheme} onMouseEnter={previewTheme} onMouseLeave={cancelPreview} />
           ))}
         </div>
       </section>
 
-      {/* Light themes */}
       <section className="space-y-2">
         <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          Light Themes
+          {tr('Light Themes', '浅色主题')}
         </h3>
         <div className="grid grid-cols-3 gap-3" data-testid="light-themes-grid">
           {lightPresets.map((preset) => (
-            <ThemeCard
-              key={preset.id}
-              preset={preset}
-              isActive={themeId === preset.id}
-              onSelect={setTheme}
-              onMouseEnter={previewTheme}
-              onMouseLeave={cancelPreview}
-            />
+            <ThemeCard key={preset.id} preset={preset} isActive={themeId === preset.id} onSelect={setTheme} onMouseEnter={previewTheme} onMouseLeave={cancelPreview} />
           ))}
         </div>
       </section>

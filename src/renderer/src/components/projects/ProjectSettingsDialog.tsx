@@ -14,6 +14,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { useProjectStore } from '@/stores'
 import { LanguageIcon } from './LanguageIcon'
+import { useI18n } from '@/i18n'
 
 interface Project {
   id: string
@@ -39,6 +40,7 @@ export function ProjectSettingsDialog({
   open,
   onOpenChange
 }: ProjectSettingsDialogProps): React.JSX.Element {
+  const { tr } = useI18n()
   const { updateProject } = useProjectStore()
 
   const [setupScript, setSetupScript] = useState('')
@@ -76,7 +78,7 @@ export function ProjectSettingsDialog({
       }
       // If cancelled, do nothing
     } catch {
-      toast.error('Failed to pick icon')
+      toast.error(tr('Failed to pick icon', '选择图标失败'))
     } finally {
       setPickingIcon(false)
     }
@@ -87,7 +89,7 @@ export function ProjectSettingsDialog({
       await window.projectOps.removeProjectIcon(project.id)
       setCustomIcon(null)
     } catch {
-      toast.error('Failed to remove icon')
+      toast.error(tr('Failed to remove icon', '移除图标失败'))
     }
   }
 
@@ -102,10 +104,10 @@ export function ProjectSettingsDialog({
         auto_assign_port: autoAssignPort
       })
       if (success) {
-        toast.success('Project settings saved')
+        toast.success(tr('Project settings saved', '项目设置已保存'))
         onOpenChange(false)
       } else {
-        toast.error('Failed to save project settings')
+        toast.error(tr('Failed to save project settings', '保存项目设置失败'))
       }
     } finally {
       setSaving(false)
@@ -116,16 +118,19 @@ export function ProjectSettingsDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Project Settings</DialogTitle>
+          <DialogTitle>{tr('Project Settings', '项目设置')}</DialogTitle>
           <DialogDescription className="text-xs truncate">{project.path}</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-5">
           {/* Project Icon */}
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Project Icon</label>
+            <label className="text-sm font-medium">{tr('Project Icon', '项目图标')}</label>
             <p className="text-xs text-muted-foreground">
-              Custom icon displayed in the sidebar. Supports SVG, PNG, JPG, and WebP.
+              {tr(
+                'Custom icon displayed in the sidebar. Supports SVG, PNG, JPG, and WebP.',
+                '显示在侧边栏中的自定义图标，支持 SVG、PNG、JPG 和 WebP。'
+              )}
             </p>
             <div className="flex items-center gap-3">
               <div className="h-8 w-8 flex items-center justify-center rounded-md border border-border bg-muted/30">
@@ -145,7 +150,7 @@ export function ProjectSettingsDialog({
                   disabled={pickingIcon}
                 >
                   <ImageIcon className="h-3 w-3 mr-1.5" />
-                  {pickingIcon ? 'Picking...' : 'Change'}
+                  {pickingIcon ? tr('Picking...', '选择中...') : tr('Change', '更改')}
                 </Button>
                 {customIcon && (
                   <Button
@@ -155,7 +160,7 @@ export function ProjectSettingsDialog({
                     onClick={handleClearIcon}
                   >
                     <X className="h-3 w-3 mr-1.5" />
-                    Clear
+                    {tr('Clear', '清除')}
                   </Button>
                 )}
               </div>
@@ -166,10 +171,12 @@ export function ProjectSettingsDialog({
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <div>
-                <label className="text-sm font-medium">Auto-assign Port</label>
+                <label className="text-sm font-medium">{tr('Auto-assign Port', '自动分配端口')}</label>
                 <p className="text-xs text-muted-foreground">
-                  Assign a unique port to each worktree and inject PORT into run/setup scripts.
-                  Ports start at 3011.
+                  {tr(
+                    'Assign a unique port to each worktree and inject PORT into run/setup scripts. Ports start at 3011.',
+                    '为每个工作树分配唯一端口，并将 PORT 注入到运行/初始化脚本中。端口从 3011 开始。'
+                  )}
                 </p>
               </div>
               <Switch checked={autoAssignPort} onCheckedChange={setAutoAssignPort} />
@@ -178,9 +185,12 @@ export function ProjectSettingsDialog({
 
           {/* Setup Script */}
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Setup Script</label>
+            <label className="text-sm font-medium">{tr('Setup Script', '初始化脚本')}</label>
             <p className="text-xs text-muted-foreground">
-              Commands to run when a new worktree is initialized. Each line is a separate command.
+              {tr(
+                'Commands to run when a new worktree is initialized. Each line is a separate command.',
+                '新工作树初始化时执行的命令。每一行代表一条独立命令。'
+              )}
             </p>
             <Textarea
               value={setupScript}
@@ -193,9 +203,12 @@ export function ProjectSettingsDialog({
 
           {/* Run Script */}
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Run Script</label>
+            <label className="text-sm font-medium">{tr('Run Script', '运行脚本')}</label>
             <p className="text-xs text-muted-foreground">
-              Commands triggered by {'\u2318'}R. Press {'\u2318'}R again while running to stop.
+              {tr(
+                "Commands triggered by \u2318R. Press \u2318R again while running to stop.",
+                '\u2318R 触发的命令。运行过程中再次按 \u2318R 可停止。'
+              )}
             </p>
             <Textarea
               value={runScript}
@@ -208,9 +221,12 @@ export function ProjectSettingsDialog({
 
           {/* Archive Script */}
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Archive Script</label>
+            <label className="text-sm font-medium">{tr('Archive Script', '归档脚本')}</label>
             <p className="text-xs text-muted-foreground">
-              Commands to run before worktree archival. Failures won't block archival.
+              {tr(
+                "Commands to run before worktree archival. Failures won't block archival.",
+                '工作树归档前执行的命令。执行失败不会阻止归档。'
+              )}
             </p>
             <Textarea
               value={archiveScript}
@@ -224,10 +240,10 @@ export function ProjectSettingsDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
+            {tr('Cancel', '取消')}
           </Button>
           <Button onClick={handleSave} disabled={saving}>
-            {saving ? 'Saving...' : 'Save'}
+            {saving ? tr('Saving...', '保存中...') : tr('Save', '保存')}
           </Button>
         </DialogFooter>
       </DialogContent>

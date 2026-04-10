@@ -9,6 +9,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import { Check, Loader2, Info } from 'lucide-react'
+import { useI18n } from '@/i18n'
 
 interface DetectedTerminal {
   id: string
@@ -67,6 +68,7 @@ const BACKEND_OPTIONS: {
 ]
 
 export function SettingsTerminal(): React.JSX.Element {
+  const { tr } = useI18n()
   const isWebMode = useIsWebMode()
   const {
     defaultTerminal,
@@ -142,9 +144,9 @@ export function SettingsTerminal(): React.JSX.Element {
       {/* Embedded Terminal Backend */}
       {!isWebMode && (
       <div>
-        <h3 className="text-base font-medium mb-1">Embedded Terminal</h3>
+        <h3 className="text-base font-medium mb-1">{tr('Embedded Terminal', '内嵌终端')}</h3>
         <p className="text-sm text-muted-foreground mb-3">
-          Choose the rendering engine for the built-in terminal panel
+          {tr('Choose the rendering engine for the built-in terminal panel', '选择内置终端面板使用的渲染引擎')}
         </p>
 
         <div className="space-y-1">
@@ -174,13 +176,17 @@ export function SettingsTerminal(): React.JSX.Element {
                   <div className="flex items-center gap-2">
                     <span>{opt.label}</span>
                     {opt.macOnly && !isMac && (
-                      <span className="text-xs text-muted-foreground">(macOS only)</span>
+                      <span className="text-xs text-muted-foreground">{tr('(macOS only)', '（仅 macOS）')}</span>
                     )}
                     {opt.id === 'ghostty' && isMac && ghosttyAvailable === false && (
-                      <span className="text-xs text-muted-foreground">(not available)</span>
+                      <span className="text-xs text-muted-foreground">{tr('(not available)', '（不可用）')}</span>
                     )}
                   </div>
-                  <p className="text-xs text-muted-foreground mt-0.5">{opt.description}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {opt.id === 'xterm'
+                      ? tr(opt.description, '跨平台终端模拟器，始终可用。')
+                      : tr(opt.description, '在 macOS 上使用原生 Metal 渲染，需要已安装 Ghostty。')}
+                  </p>
                 </div>
                 {isSelected && <Check className="h-4 w-4 text-primary mt-0.5 shrink-0" />}
               </button>
@@ -193,13 +199,15 @@ export function SettingsTerminal(): React.JSX.Element {
             <div className="flex items-start gap-2 mt-3 p-2.5 rounded-md bg-blue-500/10 border border-blue-500/20 text-xs">
               <Info className="h-3.5 w-3.5 text-blue-500 shrink-0 mt-0.5" />
               <p className="text-muted-foreground">
-                Ghostty renders via Metal for native performance. The terminal will restart when
-                switching backends. Colors and cursor style are read from your Ghostty config.
+                {tr(
+                  'Ghostty renders via Metal for native performance. The terminal will restart when switching backends. Colors and cursor style are read from your Ghostty config.',
+                  'Ghostty 通过 Metal 进行原生渲染以获得更高性能。切换后端时终端会重新启动，颜色和光标样式会读取你的 Ghostty 配置。'
+                )}
               </p>
             </div>
 
             <div className="mt-4 space-y-2">
-              <label className="text-sm font-medium">Font Size</label>
+              <label className="text-sm font-medium">{tr('Font Size', '字体大小')}</label>
               <div className="flex items-center gap-3">
                 <Input
                   type="number"
@@ -215,11 +223,13 @@ export function SettingsTerminal(): React.JSX.Element {
                   className="w-20 font-mono text-sm"
                   data-testid="ghostty-font-size"
                 />
-                <span className="text-xs text-muted-foreground">pt (8-32)</span>
+                <span className="text-xs text-muted-foreground">{tr('pt (8-32)', '磅值（8-32）')}</span>
               </div>
               <p className="text-xs text-muted-foreground">
-                Font size for the embedded Ghostty terminal. Restart the terminal for changes to
-                take effect.
+                {tr(
+                  'Font size for the embedded Ghostty terminal. Restart the terminal for changes to take effect.',
+                  '内嵌 Ghostty 终端的字体大小。修改后需重新启动终端才会生效。'
+                )}
               </p>
             </div>
           </>
@@ -229,15 +239,15 @@ export function SettingsTerminal(): React.JSX.Element {
 
       {/* External Terminal (Open in Terminal) */}
       <div>
-        <h3 className="text-base font-medium mb-1">External Terminal</h3>
+        <h3 className="text-base font-medium mb-1">{tr('External Terminal', '外部终端')}</h3>
         <p className="text-sm text-muted-foreground mb-3">
-          Choose which terminal to use for &quot;Open in Terminal&quot; actions
+          {tr('Choose which terminal to use for "Open in Terminal" actions', '选择“在终端中打开”操作使用的终端')}
         </p>
 
         {isDetecting ? (
           <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
             <Loader2 className="h-4 w-4 animate-spin" />
-            Detecting installed terminals...
+            {tr('Detecting installed terminals...', '正在检测已安装的终端...')}
           </div>
         ) : (
           <div className="space-y-1">
@@ -260,7 +270,7 @@ export function SettingsTerminal(): React.JSX.Element {
                   <div className="flex items-center gap-2">
                     <span>{opt.label}</span>
                     {!available && opt.id !== 'custom' && (
-                      <span className="text-xs text-muted-foreground">(not found)</span>
+                      <span className="text-xs text-muted-foreground">{tr('(not found)', '（未找到）')}</span>
                     )}
                   </div>
                   {defaultTerminal === opt.id && <Check className="h-4 w-4 text-primary" />}
@@ -273,7 +283,7 @@ export function SettingsTerminal(): React.JSX.Element {
         {/* Custom command input */}
         {defaultTerminal === 'custom' && (
           <div className="space-y-2 mt-3">
-            <label className="text-sm font-medium">Custom Terminal Command</label>
+            <label className="text-sm font-medium">{tr('Custom Terminal Command', '自定义终端命令')}</label>
             <Input
               value={customTerminalCommand}
               onChange={(e) => updateSetting('customTerminalCommand', e.target.value)}
@@ -282,7 +292,7 @@ export function SettingsTerminal(): React.JSX.Element {
               data-testid="custom-terminal-command"
             />
             <p className="text-xs text-muted-foreground">
-              The command will be called with the worktree path as an argument.
+              {tr('The command will be called with the worktree path as an argument.', '调用该命令时会将工作树路径作为参数传入。')}
             </p>
           </div>
         )}

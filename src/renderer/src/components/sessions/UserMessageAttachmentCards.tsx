@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { KanbanSquare, FileText, X } from 'lucide-react'
 import { ProviderIcon } from '@/components/ui/provider-icon'
 import type { ParsedTicket, ParsedPrComment, ParsedFile, ParsedDataAttachment } from '@/lib/parse-user-message-attachments'
+import { useI18n } from '@/i18n/useI18n'
 
 interface UserMessageAttachmentCardsProps {
   tickets: ParsedTicket[]
@@ -16,6 +17,7 @@ export function UserMessageAttachmentCards({
   files,
   dataAttachments
 }: UserMessageAttachmentCardsProps): React.JSX.Element | null {
+  const { tr } = useI18n()
   const [expandedImage, setExpandedImage] = useState<{ dataUrl: string; name: string } | null>(null)
 
   // Handle Escape key to close lightbox
@@ -140,7 +142,7 @@ export function UserMessageAttachmentCards({
               e.stopPropagation()
               setExpandedImage(null)
             }}
-            aria-label="Close"
+            aria-label={tr('Close', '关闭')}
           >
             <X className="h-4 w-4" />
           </button>

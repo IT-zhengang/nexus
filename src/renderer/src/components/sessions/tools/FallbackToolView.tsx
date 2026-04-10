@@ -1,9 +1,11 @@
 import { HelpCircle } from 'lucide-react'
 import type { ToolViewProps } from './types'
+import { useI18n } from '@/i18n/useI18n'
 
 const MAX_OUTPUT_LENGTH = 500
 
 export function FallbackToolView({ name, input, output, error }: ToolViewProps) {
+  const { tr } = useI18n()
   const inputJson = JSON.stringify(input, null, 2)
   const truncatedOutput =
     output && output.length > MAX_OUTPUT_LENGTH
@@ -27,7 +29,9 @@ export function FallbackToolView({ name, input, output, error }: ToolViewProps) 
       {/* Error */}
       {error && (
         <div className="mb-2">
-          <div className="text-[10px] text-red-400 font-medium mb-1">Error:</div>
+          <div className="text-[10px] text-red-400 font-medium mb-1">
+            {tr('Error:', '错误：')}
+          </div>
           <div className="text-red-400 font-mono text-xs whitespace-pre-wrap break-all">
             {error}
           </div>
@@ -36,7 +40,9 @@ export function FallbackToolView({ name, input, output, error }: ToolViewProps) 
 
       {/* Input */}
       <div className="mb-2">
-        <div className="text-[10px] text-muted-foreground font-medium mb-1">Input:</div>
+        <div className="text-[10px] text-muted-foreground font-medium mb-1">
+          {tr('Input:', '输入：')}
+        </div>
         <pre className="text-xs font-mono text-muted-foreground bg-muted/50 rounded p-2 whitespace-pre-wrap break-all max-h-40 overflow-y-auto">
           {inputJson}
         </pre>
@@ -45,7 +51,9 @@ export function FallbackToolView({ name, input, output, error }: ToolViewProps) 
       {/* Output */}
       {truncatedOutput && (
         <div className="mb-2">
-          <div className="text-[10px] text-muted-foreground font-medium mb-1">Output:</div>
+          <div className="text-[10px] text-muted-foreground font-medium mb-1">
+            {tr('Output:', '输出：')}
+          </div>
           <pre className="text-xs font-mono text-muted-foreground bg-muted/50 rounded p-2 whitespace-pre-wrap break-all max-h-40 overflow-y-auto">
             {truncatedOutput}
           </pre>
@@ -54,7 +62,7 @@ export function FallbackToolView({ name, input, output, error }: ToolViewProps) 
 
       {/* Note */}
       <div className="flex items-center gap-1 text-[10px] text-muted-foreground/60 mt-1">
-        <span>No custom renderer — showing raw data</span>
+        <span>{tr('No custom renderer — showing raw data', '无自定义渲染器，显示原始数据')}</span>
       </div>
     </div>
   )

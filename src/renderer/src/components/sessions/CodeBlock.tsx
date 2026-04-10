@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { toast } from '@/lib/toast'
 import Ansi from 'ansi-to-react'
 import { containsAnsi, stripAnsi } from '@/lib/ansi-utils'
+import { useI18n } from '@/i18n'
 
 interface CodeBlockProps {
   code: string
@@ -11,16 +12,17 @@ interface CodeBlockProps {
 }
 
 export const CodeBlock = memo(function CodeBlock({ code, language = 'typescript' }: CodeBlockProps): React.JSX.Element {
+  const { tr } = useI18n()
   const [copied, setCopied] = useState(false)
 
   const handleCopy = async (): Promise<void> => {
     try {
       await navigator.clipboard.writeText(stripAnsi(code))
       setCopied(true)
-      toast.success('Code copied to clipboard')
+      toast.success(tr('Code copied to clipboard', '代码已复制到剪贴板'))
       setTimeout(() => setCopied(false), 2000)
     } catch {
-      toast.error('Failed to copy code')
+      toast.error(tr('Failed to copy code', '复制代码失败'))
     }
   }
 

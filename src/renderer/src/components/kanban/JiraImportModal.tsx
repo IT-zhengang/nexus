@@ -13,6 +13,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { useKanbanStore } from '@/stores/useKanbanStore'
 import { getProviderSettings } from '@/lib/provider-settings'
 import { toast } from 'sonner'
+import { useI18n } from '@/i18n'
 
 interface RemoteIssue {
   externalId: string
@@ -33,6 +34,7 @@ interface JiraImportModalProps {
 const PER_PAGE = 30
 
 export function JiraImportModal({ open, onOpenChange, projectId }: JiraImportModalProps) {
+  const { tr } = useI18n()
   const loadTickets = useKanbanStore((s) => s.loadTickets)
 
   const [domain, setDomain] = useState<string | null>(null)
@@ -184,15 +186,30 @@ export function JiraImportModal({ open, onOpenChange, projectId }: JiraImportMod
 
       const msgs: string[] = []
       if (result.imported.length > 0)
-        msgs.push(`Imported ${result.imported.length} issue${result.imported.length > 1 ? 's' : ''}`)
+        msgs.push(
+          tr(
+            `Imported ${result.imported.length} issue${result.imported.length > 1 ? 's' : ''}`,
+            `已导入 ${result.imported.length} 个问题`
+          )
+        )
       if (result.skipped.length > 0)
-        msgs.push(`Skipped ${result.skipped.length} duplicate${result.skipped.length > 1 ? 's' : ''}`)
+        msgs.push(
+          tr(
+            `Skipped ${result.skipped.length} duplicate${result.skipped.length > 1 ? 's' : ''}`,
+            `已跳过 ${result.skipped.length} 个重复项`
+          )
+        )
       toast.success(msgs.join('. '))
 
       await loadTickets(projectId)
       onOpenChange(false)
     } catch (err) {
-      toast.error(`Import failed: ${err instanceof Error ? err.message : String(err)}`)
+      toast.error(
+        tr(
+          `Import failed: ${err instanceof Error ? err.message : String(err)}`,
+          `导入失败：${err instanceof Error ? err.message : String(err)}`
+        )
+      )
     } finally {
       setImporting(false)
       setImportProgress(null)
@@ -206,8 +223,9 @@ export function JiraImportModal({ open, onOpenChange, projectId }: JiraImportMod
   }
 
   const stateLabel = (state: RemoteIssue['state']) => {
-    if (state === 'in_progress') return 'in progress'
-    return state
+    if (state === 'in_progress') return tr('in progress', '进行中')
+    if (state === 'open') return tr('open', '打开')
+    return tr('closed', '已关闭')
   }
 
   return (
@@ -216,7 +234,7 @@ export function JiraImportModal({ open, onOpenChange, projectId }: JiraImportMod
         <DialogHeader className="px-4 pt-4 pb-3 border-b shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <ProviderIcon provider="jira" />
-            Import from Jira
+            {tr('Import from Jira', '从 Jira 导入')}
             {domain && (
               <span className="text-xs font-normal text-muted-foreground ml-1">
                 {domain}
@@ -231,10 +249,12 @@ export function JiraImportModal({ open, onOpenChange, projectId }: JiraImportMod
             <div className="flex flex-col items-center justify-center gap-3 p-8 text-sm text-center text-muted-foreground">
               <AlertCircle className="h-6 w-6 text-amber-500 shrink-0" />
               <p>
-                Jira is not configured.{' '}
+                {tr('Jira is not configured.', 'Jira 尚未配置。')}{' '}
                 <span className="text-foreground">
-                  Go to <strong>Settings &gt; Integrations</strong> to add your Jira domain, email,
-                  and API token.
+                  {tr(
+                    'Go to Settings > Integrations to add your Jira domain, email, and API token.',
+                    '请前往“设置 > 集成”添加 Jira 域名、邮箱和 API Token。'
+                  )}
                 </span>
               </p>
             </div>
@@ -249,13 +269,13 @@ export function JiraImportModal({ open, onOpenChange, projectId }: JiraImportMod
                   value={jqlInput}
                   onChange={(e) => setJqlInput(e.target.value)}
                   onKeyDown={handleTextareaKeyDown}
-                  placeholder={`e.g., project = PROJ AND sprint in openSprints()`}
+                  placeholder={tr('e.g., project = PROJ AND sprint in openSprints()', '例如：project = PROJ AND sprint in openSprints()')}
                   rows={2}
                   className="w-full resize-none rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 />
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] text-muted-foreground">
-                    Press{' '}
+                    {tr('Press', '按下')}{' '}
                     <kbd className="px-1 py-0.5 rounded border border-border text-[10px] font-mono">
                       ⌘↵
                     </kbd>{' '}
@@ -263,7 +283,7 @@ export function JiraImportModal({ open, onOpenChange, projectId }: JiraImportMod
                     <kbd className="px-1 py-0.5 rounded border border-border text-[10px] font-mono">
                       Ctrl↵
                     </kbd>{' '}
-                    to search
+                    {tr('to search', '进行搜索')}
                   </span>
                   <Button
                     size="sm"
@@ -273,7 +293,7 @@ export function JiraImportModal({ open, onOpenChange, projectId }: JiraImportMod
                     className="h-7 text-xs"
                   >
                     <Search className="h-3 w-3 mr-1.5" />
-                    Search
+                    {tr('Search', '搜索')}
                   </Button>
                 </div>
 
@@ -291,15 +311,15 @@ export function JiraImportModal({ open, onOpenChange, projectId }: JiraImportMod
                 {loading ? (
                   <div className="flex items-center justify-center gap-2 p-8 text-sm text-muted-foreground">
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    Loading issues...
+                    {tr('Loading issues...', '正在加载问题...')}
                   </div>
                 ) : committedJql === null ? (
                   <div className="flex items-center justify-center p-8 text-sm text-muted-foreground">
-                    Enter a JQL query above and click Search.
+                    {tr('Enter a JQL query above and click Search.', '在上方输入 JQL 查询并点击搜索。')}
                   </div>
                 ) : issues.length === 0 && !jqlError ? (
                   <div className="flex items-center justify-center p-8 text-sm text-muted-foreground">
-                    No issues found.
+                    {tr('No issues found.', '未找到问题。')}
                   </div>
                 ) : issues.length > 0 ? (
                   <div className="divide-y">
@@ -310,7 +330,9 @@ export function JiraImportModal({ open, onOpenChange, projectId }: JiraImportMod
                         onCheckedChange={toggleSelectAll}
                       />
                       <span className="text-xs text-muted-foreground">
-                        {selected.size > 0 ? `${selected.size} selected` : 'Select all'}
+                        {selected.size > 0
+                          ? tr(`${selected.size} selected`, `已选择 ${selected.size} 项`)
+                          : tr('Select all', '全选')}
                       </span>
                     </div>
 
@@ -363,16 +385,18 @@ export function JiraImportModal({ open, onOpenChange, projectId }: JiraImportMod
                     onClick={() => setPage((p) => p - 1)}
                   >
                     <ChevronLeft className="h-3.5 w-3.5 mr-1" />
-                    Previous
+                    {tr('Previous', '上一页')}
                   </Button>
-                  <span className="text-xs text-muted-foreground">Page {page}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {tr(`Page ${page}`, `第 ${page} 页`)}
+                  </span>
                   <Button
                     variant="ghost"
                     size="sm"
                     disabled={!hasNextPage || loading}
                     onClick={() => setPage((p) => p + 1)}
                   >
-                    Next
+                    {tr('Next', '下一页')}
                     <ChevronRight className="h-3.5 w-3.5 ml-1" />
                   </Button>
                 </div>
@@ -386,7 +410,10 @@ export function JiraImportModal({ open, onOpenChange, projectId }: JiraImportMod
           {importProgress && (
             <div className="flex-1 flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              Importing {importProgress.current}/{importProgress.total}...
+              {tr(
+                `Importing ${importProgress.current}/${importProgress.total}...`,
+                `正在导入 ${importProgress.current}/${importProgress.total}...`
+              )}
             </div>
           )}
           <Button
@@ -395,7 +422,7 @@ export function JiraImportModal({ open, onOpenChange, projectId }: JiraImportMod
             size="sm"
           >
             <Download className="h-3.5 w-3.5 mr-1.5" />
-            Import {selected.size > 0 ? `(${selected.size})` : ''}
+            {tr('Import', '导入')} {selected.size > 0 ? `(${selected.size})` : ''}
           </Button>
         </DialogFooter>
       </DialogContent>

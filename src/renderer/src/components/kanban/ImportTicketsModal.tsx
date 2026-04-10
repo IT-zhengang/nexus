@@ -15,6 +15,7 @@ import { useKanbanStore } from '@/stores/useKanbanStore'
 import { useConnectionStore } from '@/stores'
 import { getProviderSettings } from '@/lib/provider-settings'
 import { toast } from 'sonner'
+import { useI18n } from '@/i18n/useI18n'
 
 interface RemoteIssue {
   externalId: string
@@ -43,6 +44,7 @@ export function ImportTicketsModal({
   projectPath,
   connectionId
 }: ImportTicketsModalProps) {
+  const { tr } = useI18n()
   const loadTickets = useKanbanStore((s) => s.loadTickets)
 
   const isConnectionMode = !!connectionId
@@ -137,11 +139,16 @@ export function ImportTicketsModal({
       })
       .catch((err) => {
         console.error('Failed to fetch issues:', err)
-        toast.error('Failed to fetch issues. Check your GitHub authentication.')
+        toast.error(
+          tr(
+            'Failed to fetch issues. Check your GitHub authentication.',
+            '获取问题失败，请检查你的 GitHub 身份验证。'
+          )
+        )
         setIssues([])
       })
       .finally(() => setLoading(false))
-  }, [open, effectiveRepo, page, search, showClosed])
+  }, [open, effectiveRepo, page, search, showClosed, tr])
 
   // Search debounce
   useEffect(() => {
@@ -193,14 +200,18 @@ export function ImportTicketsModal({
       setImportProgress({ current: toImport.length, total: toImport.length })
 
       const msgs: string[] = []
-      if (result.imported.length > 0) msgs.push(`Imported ${result.imported.length} issue${result.imported.length > 1 ? 's' : ''}`)
-      if (result.skipped.length > 0) msgs.push(`Skipped ${result.skipped.length} duplicate${result.skipped.length > 1 ? 's' : ''}`)
+      if (result.imported.length > 0) {
+        msgs.push(`${tr('Imported', '已导入')} ${result.imported.length} ${tr(result.imported.length > 1 ? 'issues' : 'issue', '个问题')}`)
+      }
+      if (result.skipped.length > 0) {
+        msgs.push(`${tr('Skipped', '已跳过')} ${result.skipped.length} ${tr(result.skipped.length > 1 ? 'duplicates' : 'duplicate', '个重复项')}`)
+      }
       toast.success(msgs.join('. '))
 
       await loadTickets(effectiveProjectId)
       onOpenChange(false)
     } catch (err) {
-      toast.error(`Import failed: ${err instanceof Error ? err.message : String(err)}`)
+      toast.error(`${tr('Import failed', '导入失败')}: ${err instanceof Error ? err.message : String(err)}`)
     } finally {
       setImporting(false)
       setImportProgress(null)
@@ -213,7 +224,7 @@ export function ImportTicketsModal({
         <DialogHeader className="px-4 pt-4 pb-3 border-b shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <ProviderIcon provider="github" />
-            Import from GitHub
+            {tr('Import from GitHub', '从 GitHub 导入')}
             {effectiveRepo && (
               <span className="text-xs font-normal text-muted-foreground ml-1">
                 {effectiveRepo}
@@ -226,8 +237,8 @@ export function ImportTicketsModal({
           {/* Project picker (connection mode only) */}
           {isConnectionMode && connectionProjects.length > 0 && (
             <div className="px-4 pt-3 pb-2 border-b shrink-0">
-              <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                Project
+                <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                {tr('Project', '项目')}
               </label>
               <select
                 value={selectedProjectId}
@@ -245,7 +256,7 @@ export function ImportTicketsModal({
           {detectingRepo && (
             <div className="flex items-center justify-center gap-2 p-8 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
-              Detecting GitHub repository...
+              {tr('Detecting GitHub repository...', '正在检测 GitHub 仓库...')}
             </div>
           )}
 
@@ -253,10 +264,10 @@ export function ImportTicketsModal({
             <div className="px-4 pt-3">
               <div className="flex items-center gap-2 text-sm text-amber-500 mb-2">
                 <AlertCircle className="h-4 w-4 shrink-0" />
-                No GitHub remote detected.
+                {tr('No GitHub remote detected.', '未检测到 GitHub 远程仓库。')}
               </div>
               <Input
-                placeholder="Enter repository (owner/repo)"
+                placeholder={tr('Enter repository (owner/repo)', '输入仓库（owner/repo）')}
                 value={manualRepo}
                 onChange={(e) => setManualRepo(e.target.value)}
                 className="text-sm"
@@ -271,7 +282,7 @@ export function ImportTicketsModal({
                 <div className="relative flex-1">
                   <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                   <Input
-                    placeholder="Search issues..."
+                    placeholder={tr('Search issues...', '搜索问题...')}
                     value={searchInput}
                     onChange={(e) => setSearchInput(e.target.value)}
                     className="pl-8 h-8 text-sm"
@@ -285,7 +296,7 @@ export function ImportTicketsModal({
                       setPage(1)
                     }}
                   />
-                  Show closed
+                  {tr('Show closed', '显示已关闭')}
                 </label>
               </div>
 
@@ -294,11 +305,11 @@ export function ImportTicketsModal({
                 {loading ? (
                   <div className="flex items-center justify-center gap-2 p-8 text-sm text-muted-foreground">
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    Loading issues...
+                    {tr('Loading issues...', '正在加载问题...')}
                   </div>
                 ) : issues.length === 0 ? (
                   <div className="flex items-center justify-center p-8 text-sm text-muted-foreground">
-                    No issues found.
+                    {tr('No issues found.', '未找到问题。')}
                   </div>
                 ) : (
                   <div className="divide-y">
@@ -309,7 +320,9 @@ export function ImportTicketsModal({
                         onCheckedChange={toggleSelectAll}
                       />
                       <span className="text-xs text-muted-foreground">
-                        {selected.size > 0 ? `${selected.size} selected` : 'Select all'}
+                        {selected.size > 0
+                          ? `${selected.size} ${tr('selected', '已选择')}`
+                          : tr('Select all', '全选')}
                       </span>
                     </div>
 
@@ -367,16 +380,18 @@ export function ImportTicketsModal({
                     onClick={() => setPage((p) => p - 1)}
                   >
                     <ChevronLeft className="h-3.5 w-3.5 mr-1" />
-                    Previous
+                    {tr('Previous', '上一页')}
                   </Button>
-                  <span className="text-xs text-muted-foreground">Page {page}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {tr(`Page ${page}`, `第 ${page} 页`)}
+                  </span>
                   <Button
                     variant="ghost"
                     size="sm"
                     disabled={!hasNextPage || loading}
                     onClick={() => setPage((p) => p + 1)}
                   >
-                    Next
+                    {tr('Next', '下一页')}
                     <ChevronRight className="h-3.5 w-3.5 ml-1" />
                   </Button>
                 </div>
@@ -390,7 +405,7 @@ export function ImportTicketsModal({
           {importProgress && (
             <div className="flex-1 flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              Importing {importProgress.current}/{importProgress.total}...
+              {tr('Importing', '正在导入')} {importProgress.current}/{importProgress.total}...
             </div>
           )}
           <Button
@@ -399,7 +414,7 @@ export function ImportTicketsModal({
             size="sm"
           >
             <Download className="h-3.5 w-3.5 mr-1.5" />
-            Import {selected.size > 0 ? `(${selected.size})` : ''}
+            {tr('Import', '导入')} {selected.size > 0 ? `(${selected.size})` : ''}
           </Button>
         </DialogFooter>
       </DialogContent>

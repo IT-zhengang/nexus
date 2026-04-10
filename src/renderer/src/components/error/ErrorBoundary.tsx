@@ -1,6 +1,11 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react'
 import { AlertTriangle, RefreshCw, Bug, Copy, Check } from 'lucide-react'
 import { Button } from '../ui/button'
+import { useSettingsStore } from '@/stores/useSettingsStore'
+
+function tr(english: string, chinese: string): string {
+  return useSettingsStore.getState().language === 'zh-CN' ? chinese : english
+}
 
 interface Props {
   children: ReactNode
@@ -54,14 +59,14 @@ export class ErrorBoundary extends Component<Props, State> {
   private handleCopyError = async (): Promise<void> => {
     const { error, errorInfo } = this.state
     const errorText = `
-Error: ${error?.name || 'Unknown Error'}
-Message: ${error?.message || 'No message'}
+Error: ${error?.name || tr('Unknown Error', '未知错误')}
+Message: ${error?.message || tr('No message', '无消息')}
 
-Stack Trace:
-${error?.stack || 'No stack trace'}
+${tr('Stack Trace:', '堆栈跟踪：')}
+${error?.stack || tr('No stack trace', '无堆栈信息')}
 
-Component Stack:
-${errorInfo?.componentStack || 'No component stack'}
+${tr('Component Stack:', '组件堆栈：')}
+${errorInfo?.componentStack || tr('No component stack', '无组件堆栈')}
     `.trim()
 
     try {
@@ -95,39 +100,39 @@ ${errorInfo?.componentStack || 'No component stack'}
         <div className="flex flex-col items-center justify-center min-h-[200px] p-6 bg-destructive/10 border border-destructive/20 rounded-lg m-4">
           <div className="flex items-center gap-2 text-destructive mb-4">
             <AlertTriangle className="h-6 w-6" />
-            <h2 className="text-lg font-semibold">Something went wrong</h2>
+            <h2 className="text-lg font-semibold">{tr('Something went wrong', '出现了一些问题')}</h2>
           </div>
 
           {componentName && (
             <p className="text-sm text-muted-foreground mb-2">
-              Error in: <code className="bg-muted px-1 rounded">{componentName}</code>
+              {tr('Error in:', '错误位置：')} <code className="bg-muted px-1 rounded">{componentName}</code>
             </p>
           )}
 
           <p className="text-sm text-muted-foreground mb-4 text-center max-w-md">
-            {error?.message || 'An unexpected error occurred'}
+            {error?.message || tr('An unexpected error occurred', '发生了一个意外错误')}
           </p>
 
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={this.handleReset}>
               <RefreshCw className="h-4 w-4 mr-2" />
-              Try Again
+              {tr('Try Again', '重试')}
             </Button>
 
             <Button variant="outline" size="sm" onClick={this.handleReload}>
-              Reload App
+              {tr('Reload App', '重新加载应用')}
             </Button>
 
             <Button variant="ghost" size="sm" onClick={this.handleCopyError}>
               {copied ? (
                 <>
                   <Check className="h-4 w-4 mr-2" />
-                  Copied
+                  {tr('Copied', '已复制')}
                 </>
               ) : (
                 <>
                   <Copy className="h-4 w-4 mr-2" />
-                  Copy Error
+                  {tr('Copy Error', '复制错误信息')}
                 </>
               )}
             </Button>
@@ -138,12 +143,12 @@ ${errorInfo?.componentStack || 'No component stack'}
             <details className="mt-4 w-full max-w-2xl">
               <summary className="cursor-pointer text-sm text-muted-foreground flex items-center gap-1">
                 <Bug className="h-4 w-4" />
-                Developer Details
+                {tr('Developer Details', '开发者详情')}
               </summary>
               <pre className="mt-2 p-4 bg-muted rounded text-xs overflow-auto max-h-64">
                 <code>
                   {error?.stack}
-                  {'\n\nComponent Stack:'}
+                  {`\n\n${tr('Component Stack:', '组件堆栈：')}`}
                   {errorInfo.componentStack}
                 </code>
               </pre>

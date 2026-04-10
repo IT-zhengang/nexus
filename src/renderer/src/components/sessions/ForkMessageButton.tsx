@@ -1,6 +1,7 @@
 import { memo } from 'react'
 import { GitFork, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { useI18n } from '@/i18n/useI18n'
 
 interface ForkMessageButtonProps {
   onFork: () => void | Promise<void>
@@ -13,6 +14,7 @@ export const ForkMessageButton = memo(function ForkMessageButton({
   disabled = false,
   isForking = false
 }: ForkMessageButtonProps) {
+  const { tr } = useI18n()
   return (
     <Button
       variant="ghost"
@@ -22,7 +24,7 @@ export const ForkMessageButton = memo(function ForkMessageButton({
       }}
       disabled={disabled || isForking}
       className="absolute top-2 right-10 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity z-10 bg-background/80 backdrop-blur-sm"
-      aria-label="Fork message"
+      aria-label={tr('Fork message', '分叉消息')}
       data-testid="fork-message-button"
     >
       {isForking ? (

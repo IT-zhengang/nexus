@@ -9,6 +9,7 @@ import { useFileViewerStore } from '@/stores/useFileViewerStore'
 import { PrReviewFileGroup } from './PrReviewFileGroup'
 import { cn } from '@/lib/utils'
 import type { PRReviewComment } from '@shared/types/git'
+import { useI18n } from '@/i18n'
 
 const EMPTY_COMMENTS: PRReviewComment[] = []
 
@@ -17,6 +18,7 @@ interface PrReviewViewerProps {
 }
 
 export function PrReviewViewer({ worktreeId }: PrReviewViewerProps): React.JSX.Element {
+  const { tr } = useI18n()
   const worktreesByProject = useWorktreeStore((s) => s.worktreesByProject)
   const projects = useProjectStore((s) => s.projects)
   const attachedPR = useGitStore((s) => s.attachedPR.get(worktreeId))
@@ -98,7 +100,7 @@ export function PrReviewViewer({ worktreeId }: PrReviewViewerProps): React.JSX.E
         reviewers: [] as Array<{ login: string; count: number }>
       }
     }
-  }, [worktreeId, rawComments, hiddenReviewers])
+  }, [worktreeId])
 
   const hasRawComments = rawComments.length > 0
 
@@ -107,7 +109,7 @@ export function PrReviewViewer({ worktreeId }: PrReviewViewerProps): React.JSX.E
     return (
       <div className="flex-1 flex flex-col items-center justify-center gap-2 text-muted-foreground">
         <Loader2 className="h-8 w-8 animate-spin" />
-        <span className="text-sm">Loading review comments...</span>
+        <span className="text-sm">{tr('Loading review comments...', '正在加载审查评论...')}</span>
       </div>
     )
   }
@@ -120,7 +122,7 @@ export function PrReviewViewer({ worktreeId }: PrReviewViewerProps): React.JSX.E
         <span className="text-sm text-destructive">{error}</span>
         <Button size="sm" variant="outline" onClick={handleRefresh}>
           <RefreshCw className="h-3.5 w-3.5 mr-1" />
-          Retry
+          {tr('Retry', '重试')}
         </Button>
       </div>
     )
@@ -131,7 +133,7 @@ export function PrReviewViewer({ worktreeId }: PrReviewViewerProps): React.JSX.E
     return (
       <div className="flex-1 flex flex-col items-center justify-center gap-2 text-muted-foreground">
         <MessageSquareCode className="h-8 w-8" />
-        <span className="text-sm">No review comments on this PR</span>
+        <span className="text-sm">{tr('No review comments on this PR', '这个 PR 暂无审查评论')}</span>
       </div>
     )
   }
@@ -154,7 +156,11 @@ export function PrReviewViewer({ worktreeId }: PrReviewViewerProps): React.JSX.E
                   ? 'bg-muted/50 text-muted-foreground line-through opacity-50'
                   : 'bg-muted text-foreground'
               )}
-              title={hiddenReviewers.has(login) ? `Show ${login}'s comments` : `Hide ${login}'s comments`}
+              title={
+                hiddenReviewers.has(login)
+                  ? tr(`Show ${login}'s comments`, `显示 ${login} 的评论`)
+                  : tr(`Hide ${login}'s comments`, `隐藏 ${login} 的评论`)
+              }
             >
               @{login}
               <span className="text-[10px] text-muted-foreground">{count}</span>
@@ -167,7 +173,7 @@ export function PrReviewViewer({ worktreeId }: PrReviewViewerProps): React.JSX.E
           className="h-6 w-6 p-0 shrink-0"
           onClick={handleRefresh}
           disabled={loading}
-          title="Refresh comments"
+          title={tr('Refresh comments', '刷新评论')}
         >
           <RefreshCw className={cn('h-3 w-3', loading && 'animate-spin')} />
         </Button>
@@ -178,7 +184,7 @@ export function PrReviewViewer({ worktreeId }: PrReviewViewerProps): React.JSX.E
         {grouped.size === 0 ? (
           <div className="flex flex-col items-center justify-center gap-2 py-12 text-muted-foreground">
             <MessageSquareCode className="h-6 w-6" />
-            <span className="text-xs">All comments hidden by filters</span>
+            <span className="text-xs">{tr('All comments hidden by filters', '所有评论都已被筛选条件隐藏')}</span>
           </div>
         ) : (
           Array.from(grouped.entries()).map(([filePath, fileComments]) => (
@@ -200,20 +206,20 @@ export function PrReviewViewer({ worktreeId }: PrReviewViewerProps): React.JSX.E
         <div className="flex flex-col gap-2 px-3 py-2.5 border-t border-border bg-muted/30">
           <div className="flex items-center gap-2">
             <span className="text-xs text-muted-foreground">
-              {selectedIds.size} selected
+              {tr(`${selectedIds.size} selected`, `已选择 ${selectedIds.size} 条`)}
             </span>
             <span className="text-muted-foreground/40">·</span>
             <button
               onClick={() => selectAll(worktreeId)}
               className="text-xs text-violet-400 hover:text-violet-300 transition-colors"
             >
-              Select all
+              {tr('Select all', '全选')}
             </button>
             <button
               onClick={deselectAll}
               className="text-xs text-muted-foreground hover:text-foreground transition-colors"
             >
-              Deselect
+              {tr('Deselect', '取消选择')}
             </button>
           </div>
           <Button
@@ -226,7 +232,7 @@ export function PrReviewViewer({ worktreeId }: PrReviewViewerProps): React.JSX.E
               useFileViewerStore.getState().clearActiveDiff()
             }}
           >
-            Add to chat
+            {tr('Add to chat', '添加到聊天')}
           </Button>
         </div>
       )}

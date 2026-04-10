@@ -8,6 +8,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle
 } from '@/components/ui/alert-dialog'
+import { useI18n } from '@/i18n'
 
 interface UnsavedChangesDialogProps {
   open: boolean
@@ -24,21 +25,22 @@ export function UnsavedChangesDialog({
   onDontSave,
   onCancel
 }: UnsavedChangesDialogProps): React.JSX.Element {
+  const { tr } = useI18n()
   return (
     <AlertDialog open={open} onOpenChange={(isOpen) => !isOpen && onCancel()}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Unsaved Changes</AlertDialogTitle>
+          <AlertDialogTitle>{tr('Unsaved Changes', '未保存的更改')}</AlertDialogTitle>
           <AlertDialogDescription>
-            Do you want to save changes to {fileName}?
+            {tr('Do you want to save changes to', '是否要保存对以下文件的更改：')} {fileName}?
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogAction variant="destructive" onClick={onDontSave}>
-            Don&apos;t Save
+            {tr("Don't Save", '不保存')}
           </AlertDialogAction>
-          <AlertDialogCancel onClick={onCancel}>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={onSave}>Save</AlertDialogAction>
+          <AlertDialogCancel onClick={onCancel}>{tr('Cancel', '取消')}</AlertDialogCancel>
+          <AlertDialogAction onClick={onSave}>{tr('Save', '保存')}</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

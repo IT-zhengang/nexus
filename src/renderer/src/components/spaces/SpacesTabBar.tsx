@@ -21,8 +21,10 @@ import {
   DialogFooter,
   DialogDescription
 } from '@/components/ui/dialog'
+import { useI18n } from '@/i18n'
 
 export function SpacesTabBar(): React.JSX.Element {
+  const { tr } = useI18n()
   const spaces = useSpaceStore((s) => s.spaces)
   const activeSpaceId = useSpaceStore((s) => s.activeSpaceId)
   const setActiveSpace = useSpaceStore((s) => s.setActiveSpace)
@@ -138,7 +140,7 @@ export function SpacesTabBar(): React.JSX.Element {
               : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
           )}
           onClick={() => setActiveSpace(null)}
-          title="All projects"
+          title={tr('All projects', '所有项目')}
           data-testid="space-tab-all"
         >
           <LayoutGrid className="h-3 w-3" />
@@ -176,11 +178,11 @@ export function SpacesTabBar(): React.JSX.Element {
               <ContextMenuContent className="w-40">
                 <ContextMenuItem onClick={() => handleOpenEdit(space)}>
                   <Pencil className="h-4 w-4 mr-2" />
-                  Rename
+                  {tr('Rename', '重命名')}
                 </ContextMenuItem>
                 <ContextMenuItem onClick={() => handleOpenEdit(space)}>
                   <Palette className="h-4 w-4 mr-2" />
-                  Change Icon
+                  {tr('Change Icon', '更改图标')}
                 </ContextMenuItem>
                 <ContextMenuSeparator />
                 <ContextMenuItem
@@ -188,7 +190,7 @@ export function SpacesTabBar(): React.JSX.Element {
                   className="text-destructive focus:text-destructive focus:bg-destructive/10"
                 >
                   <Trash2 className="h-4 w-4 mr-2" />
-                  Delete
+                  {tr('Delete', '删除')}
                 </ContextMenuItem>
               </ContextMenuContent>
             </ContextMenu>
@@ -200,7 +202,7 @@ export function SpacesTabBar(): React.JSX.Element {
           type="button"
           className="flex items-center justify-center h-6 w-6 rounded-md text-muted-foreground hover:bg-accent/50 hover:text-foreground transition-colors cursor-pointer shrink-0"
           onClick={() => setCreateOpen(true)}
-          title="Create space"
+          title={tr('Create space', '创建空间')}
           data-testid="space-add-button"
         >
           <Plus className="h-3 w-3" />
@@ -211,16 +213,16 @@ export function SpacesTabBar(): React.JSX.Element {
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>Create Space</DialogTitle>
-            <DialogDescription>Organize your projects into spaces.</DialogDescription>
+            <DialogTitle>{tr('Create Space', '创建空间')}</DialogTitle>
+            <DialogDescription>{tr('Organize your projects into spaces.', '将你的项目组织到不同空间中。')}</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <div>
-              <label className="text-xs font-medium text-muted-foreground">Name</label>
+              <label className="text-xs font-medium text-muted-foreground">{tr('Name', '名称')}</label>
               <Input
                 value={createName}
                 onChange={(e) => setCreateName(e.target.value)}
-                placeholder="e.g. Work, Side Projects"
+                placeholder={tr('e.g. Work, Side Projects', '例如：工作、副项目')}
                 className="mt-1"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') handleCreate()
@@ -229,7 +231,7 @@ export function SpacesTabBar(): React.JSX.Element {
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-muted-foreground">Icon</label>
+              <label className="text-xs font-medium text-muted-foreground">{tr('Icon', '图标')}</label>
               <div className="mt-1">
                 <SpaceIconPicker
                   selectedValue={createIconValue}
@@ -243,10 +245,10 @@ export function SpacesTabBar(): React.JSX.Element {
           </div>
           <DialogFooter>
             <Button variant="outline" size="sm" onClick={() => setCreateOpen(false)}>
-              Cancel
+              {tr('Cancel', '取消')}
             </Button>
             <Button size="sm" onClick={handleCreate} disabled={!createName.trim()}>
-              Create
+              {tr('Create', '创建')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -256,12 +258,12 @@ export function SpacesTabBar(): React.JSX.Element {
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>Edit Space</DialogTitle>
-            <DialogDescription>Update the space name or icon.</DialogDescription>
+            <DialogTitle>{tr('Edit Space', '编辑空间')}</DialogTitle>
+            <DialogDescription>{tr('Update the space name or icon.', '更新空间名称或图标。')}</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <div>
-              <label className="text-xs font-medium text-muted-foreground">Name</label>
+              <label className="text-xs font-medium text-muted-foreground">{tr('Name', '名称')}</label>
               <Input
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
@@ -273,7 +275,7 @@ export function SpacesTabBar(): React.JSX.Element {
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-muted-foreground">Icon</label>
+              <label className="text-xs font-medium text-muted-foreground">{tr('Icon', '图标')}</label>
               <div className="mt-1">
                 <SpaceIconPicker
                   selectedValue={editIconValue}
@@ -287,10 +289,10 @@ export function SpacesTabBar(): React.JSX.Element {
           </div>
           <DialogFooter>
             <Button variant="outline" size="sm" onClick={() => setEditOpen(false)}>
-              Cancel
+              {tr('Cancel', '取消')}
             </Button>
             <Button size="sm" onClick={handleSaveEdit} disabled={!editName.trim()}>
-              Save
+              {tr('Save', '保存')}
             </Button>
           </DialogFooter>
         </DialogContent>

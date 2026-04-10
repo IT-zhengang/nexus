@@ -4,8 +4,10 @@ import { Trash2, Plus, Info, Search, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { toast } from '@/lib/toast'
+import { useI18n } from '@/i18n'
 
 export function SettingsSecurity(): React.JSX.Element {
+  const { tr } = useI18n()
   const { commandFilter: rawCommandFilter, updateSetting } = useSettingsStore()
   const [newPattern, setNewPattern] = useState('')
   const [activeTab, setActiveTab] = useState<'allowlist' | 'blocklist'>('allowlist')
@@ -55,14 +57,14 @@ export function SettingsSecurity(): React.JSX.Element {
   const handleAddPattern = () => {
     const pattern = newPattern.trim()
     if (!pattern) {
-      toast.error('Pattern cannot be empty')
+      toast.error(tr('Pattern cannot be empty', '规则不能为空'))
       return
     }
 
     const list = activeTab === 'allowlist' ? commandFilter.allowlist : commandFilter.blocklist
 
     if (list.includes(pattern)) {
-      toast.error('Pattern already exists in this list')
+      toast.error(tr('Pattern already exists in this list', '该规则已存在于当前列表中'))
       return
     }
 
@@ -73,7 +75,11 @@ export function SettingsSecurity(): React.JSX.Element {
 
     updateSetting('commandFilter', updated)
     setNewPattern('')
-    toast.success(`Pattern added to ${activeTab}`)
+    toast.success(
+      activeTab === 'allowlist'
+        ? tr('Pattern added to allowlist', '规则已添加到允许列表')
+        : tr('Pattern added to blocklist', '规则已添加到阻止列表')
+    )
   }
 
   const handleRemovePattern = (pattern: string, listType: 'allowlist' | 'blocklist') => {
@@ -89,24 +95,36 @@ export function SettingsSecurity(): React.JSX.Element {
           }
 
     updateSetting('commandFilter', updated)
-    toast.success(`Pattern removed from ${listType}`)
+    toast.success(
+      listType === 'allowlist'
+        ? tr('Pattern removed from allowlist', '规则已从允许列表移除')
+        : tr('Pattern removed from blocklist', '规则已从阻止列表移除')
+    )
   }
 
   return (
     <div className="space-y-6" style={{ overflow: 'hidden' }}>
       <div>
-        <h3 className="text-base font-medium mb-1">Security</h3>
+        <h3 className="text-base font-medium mb-1">{tr('Security', '安全')}</h3>
         <p className="text-sm text-muted-foreground">
-          Control command filtering for approval-based agent sessions
+          {tr(
+            'Control command filtering for approval-based agent sessions',
+            '控制基于审批的代理会话中的命令过滤行为'
+          )}
         </p>
       </div>
 
       {/* Enable/Disable */}
       <div className="flex items-center justify-between">
         <div>
-          <label className="text-sm font-medium">Enable command filtering</label>
+          <label className="text-sm font-medium">
+            {tr('Enable command filtering', '启用命令过滤')}
+          </label>
           <p className="text-xs text-muted-foreground">
-            Control which tools and commands approval-based agents can use during sessions
+            {tr(
+              'Control which tools and commands approval-based agents can use during sessions',
+              '控制需要审批的代理在会话期间可使用哪些工具和命令'
+            )}
           </p>
         </div>
         <button
@@ -147,9 +165,14 @@ export function SettingsSecurity(): React.JSX.Element {
       {/* Enter to Approve */}
       <div className={cn('flex items-center justify-between', !isEnabled && 'opacity-50 pointer-events-none')}>
         <div>
-          <label className="text-sm font-medium">Press Enter to approve commands</label>
+          <label className="text-sm font-medium">
+            {tr('Press Enter to approve commands', '按 Enter 批准命令')}
+          </label>
           <p className="text-xs text-muted-foreground">
-            When enabled, pressing Enter approves commands and disables chat input during approval
+            {tr(
+              'When enabled, pressing Enter approves commands and disables chat input during approval',
+              '启用后，按 Enter 会批准命令，并在审批期间禁用聊天输入'
+            )}
           </p>
         </div>
         <button
@@ -195,8 +218,12 @@ export function SettingsSecurity(): React.JSX.Element {
 
       {/* Default Behavior */}
       <div className={cn('space-y-2', !isEnabled && 'opacity-50 pointer-events-none')}>
-        <label className="text-sm font-medium">Default behavior for unlisted commands</label>
-        <p className="text-xs text-muted-foreground">How to handle commands not on either list</p>
+        <label className="text-sm font-medium">
+          {tr('Default behavior for unlisted commands', '未列出命令的默认行为')}
+        </label>
+        <p className="text-xs text-muted-foreground">
+          {tr('How to handle commands not on either list', '如何处理未出现在任一列表中的命令')}
+        </p>
         <div className="flex gap-2">
           <button
             onClick={() => handleSetDefaultBehavior('ask')}
@@ -209,7 +236,7 @@ export function SettingsSecurity(): React.JSX.Element {
             )}
             data-testid="default-behavior-ask"
           >
-            Ask for approval
+            {tr('Ask for approval', '请求审批')}
           </button>
           <button
             onClick={() => handleSetDefaultBehavior('allow')}
@@ -222,7 +249,7 @@ export function SettingsSecurity(): React.JSX.Element {
             )}
             data-testid="default-behavior-allow"
           >
-            Allow silently
+            {tr('Allow silently', '静默允许')}
           </button>
           <button
             onClick={() => handleSetDefaultBehavior('block')}
@@ -235,7 +262,7 @@ export function SettingsSecurity(): React.JSX.Element {
             )}
             data-testid="default-behavior-block"
           >
-            Block silently
+            {tr('Block silently', '静默阻止')}
           </button>
         </div>
       </div>
@@ -250,23 +277,27 @@ export function SettingsSecurity(): React.JSX.Element {
         <div className="flex gap-2">
           <Info className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
           <div className="text-xs text-muted-foreground space-y-1">
-            <p className="font-medium text-foreground">Pattern matching with wildcards:</p>
+            <p className="font-medium text-foreground">
+              {tr('Pattern matching with wildcards:', '使用通配符进行规则匹配：')}
+            </p>
             <ul className="list-disc list-inside space-y-0.5">
               <li>
-                <code className="text-xs bg-muted px-1 py-0.5 rounded">*</code> matches any sequence
-                except /
+                <code className="text-xs bg-muted px-1 py-0.5 rounded">*</code>{' '}
+                {tr('matches any sequence except /', '匹配除 / 之外的任意字符序列')}
               </li>
               <li>
-                <code className="text-xs bg-muted px-1 py-0.5 rounded">**</code> matches any
-                sequence including /
+                <code className="text-xs bg-muted px-1 py-0.5 rounded">**</code>{' '}
+                {tr('matches any sequence including /', '匹配包含 / 在内的任意字符序列')}
               </li>
               <li>
-                Example: <code className="text-xs bg-muted px-1 py-0.5 rounded">bash: npm *</code>{' '}
-                matches all npm commands
+                {tr('Example:', '示例：')}{' '}
+                <code className="text-xs bg-muted px-1 py-0.5 rounded">bash: npm *</code>{' '}
+                {tr('matches all npm commands', '匹配所有 npm 命令')}
               </li>
               <li>
-                Example: <code className="text-xs bg-muted px-1 py-0.5 rounded">read: src/**</code>{' '}
-                matches any file in src/
+                {tr('Example:', '示例：')}{' '}
+                <code className="text-xs bg-muted px-1 py-0.5 rounded">read: src/**</code>{' '}
+                {tr('matches any file in src/', '匹配 src/ 下的任意文件')}
               </li>
             </ul>
           </div>
@@ -281,8 +312,11 @@ export function SettingsSecurity(): React.JSX.Element {
         )}
       >
         <p className="text-xs text-muted-foreground">
-          <span className="font-medium text-foreground">Priority:</span> Blocklist takes precedence
-          over allowlist. If a command matches both, it will be blocked.
+          <span className="font-medium text-foreground">{tr('Priority:', '优先级：')}</span>{' '}
+          {tr(
+            'Blocklist takes precedence over allowlist. If a command matches both, it will be blocked.',
+            '阻止列表优先于允许列表。如果某条命令同时匹配两者，它将被阻止。'
+          )}
         </p>
       </div>
 
@@ -299,7 +333,7 @@ export function SettingsSecurity(): React.JSX.Element {
                 : 'border-transparent text-muted-foreground hover:text-foreground'
             )}
           >
-            Allowlist ({commandFilter.allowlist.length})
+            {tr('Allowlist', '允许列表')} ({commandFilter.allowlist.length})
           </button>
           <button
             onClick={() => setActiveTab('blocklist')}
@@ -311,7 +345,7 @@ export function SettingsSecurity(): React.JSX.Element {
                 : 'border-transparent text-muted-foreground hover:text-foreground'
             )}
           >
-            Blocklist ({commandFilter.blocklist.length})
+            {tr('Blocklist', '阻止列表')} ({commandFilter.blocklist.length})
           </button>
         </div>
 
@@ -329,8 +363,8 @@ export function SettingsSecurity(): React.JSX.Element {
             disabled={!isEnabled}
             placeholder={
               activeTab === 'allowlist'
-                ? 'e.g., bash: git status or read: src/**'
-                : 'e.g., bash: rm -rf * or edit: .env'
+                ? tr('e.g., bash: git status or read: src/**', '例如：bash: git status 或 read: src/**')
+                : tr('e.g., bash: rm -rf * or edit: .env', '例如：bash: rm -rf * 或 edit: .env')
             }
             style={{ flex: '1 1 0', minWidth: 0 }}
             className="px-3 py-1.5 text-sm rounded-md border border-border bg-background"
@@ -344,7 +378,7 @@ export function SettingsSecurity(): React.JSX.Element {
             data-testid="add-pattern-button"
           >
             <Plus className="h-3.5 w-3.5 mr-1" />
-            Add
+            {tr('Add', '添加')}
           </Button>
         </div>
 
@@ -357,7 +391,7 @@ export function SettingsSecurity(): React.JSX.Element {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search patterns..."
+                placeholder={tr('Search patterns...', '搜索规则...')}
                 disabled={!isEnabled}
                 className="w-full pl-8 pr-8 py-1.5 text-sm rounded-md border border-border bg-background disabled:opacity-50"
                 data-testid="pattern-search-input"
@@ -379,8 +413,11 @@ export function SettingsSecurity(): React.JSX.Element {
         {/* Show filtered count when searching */}
         {searchQuery && (
           <div className="text-xs text-muted-foreground">
-            Showing {activeTab === 'allowlist' ? filteredAllowlist.length : filteredBlocklist.length} of{' '}
-            {activeTab === 'allowlist' ? commandFilter.allowlist.length : commandFilter.blocklist.length} patterns
+            {tr('Showing', '显示')}{' '}
+            {activeTab === 'allowlist' ? filteredAllowlist.length : filteredBlocklist.length}{' '}
+            {tr('of', '共')}{' '}
+            {activeTab === 'allowlist' ? commandFilter.allowlist.length : commandFilter.blocklist.length}{' '}
+            {tr('patterns', '条规则')}
           </div>
         )}
 
@@ -388,22 +425,28 @@ export function SettingsSecurity(): React.JSX.Element {
         <div className="space-y-2 max-h-48 overflow-y-auto" style={{ overflowX: 'hidden' }}>
           {activeTab === 'allowlist' && filteredAllowlist.length === 0 && !searchQuery && (
             <div className="text-xs text-muted-foreground text-center py-4">
-              No patterns in allowlist. Commands will follow the default behavior.
+              {tr(
+                'No patterns in allowlist. Commands will follow the default behavior.',
+                '允许列表中暂无规则。命令将按照默认行为处理。'
+              )}
             </div>
           )}
           {activeTab === 'allowlist' && filteredAllowlist.length === 0 && searchQuery && (
             <div className="text-xs text-muted-foreground text-center py-4">
-              No patterns matching "{searchQuery}"
+              {tr(`No patterns matching "${searchQuery}"`, `没有匹配“${searchQuery}”的规则`)}
             </div>
           )}
           {activeTab === 'blocklist' && filteredBlocklist.length === 0 && !searchQuery && (
             <div className="text-xs text-muted-foreground text-center py-4">
-              No patterns in blocklist. Default dangerous patterns are included on first launch.
+              {tr(
+                'No patterns in blocklist. Default dangerous patterns are included on first launch.',
+                '阻止列表中暂无规则。首次启动时会自动带入默认危险规则。'
+              )}
             </div>
           )}
           {activeTab === 'blocklist' && filteredBlocklist.length === 0 && searchQuery && (
             <div className="text-xs text-muted-foreground text-center py-4">
-              No patterns matching "{searchQuery}"
+              {tr(`No patterns matching "${searchQuery}"`, `没有匹配“${searchQuery}”的规则`)}
             </div>
           )}
           {activeTab === 'allowlist' &&
@@ -429,7 +472,7 @@ export function SettingsSecurity(): React.JSX.Element {
                   onClick={() => handleRemovePattern(pattern, 'allowlist')}
                   disabled={!isEnabled}
                   className="shrink-0 text-destructive hover:text-destructive/80 transition-colors"
-                  title="Remove pattern"
+                  title={tr('Remove pattern', '移除规则')}
                   data-testid="remove-allowlist-pattern"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
@@ -459,7 +502,7 @@ export function SettingsSecurity(): React.JSX.Element {
                   onClick={() => handleRemovePattern(pattern, 'blocklist')}
                   disabled={!isEnabled}
                   className="shrink-0 text-destructive hover:text-destructive/80 transition-colors"
-                  title="Remove pattern"
+                  title={tr('Remove pattern', '移除规则')}
                   data-testid="remove-blocklist-pattern"
                 >
                   <Trash2 className="h-3.5 w-3.5" />

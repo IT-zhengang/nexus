@@ -14,12 +14,14 @@ import { useGitStore } from '@/stores/useGitStore'
 import { ModelIcon } from '@/components/worktrees/ModelIcon'
 import { PulseAnimation } from '@/components/worktrees/PulseAnimation'
 import { LanguageIcon } from '@/components/projects/LanguageIcon'
+import { useI18n } from '@/i18n/useI18n'
 
 type RecentItem =
   | { kind: 'worktree'; id: string; timestamp: number }
   | { kind: 'connection'; id: string; timestamp: number }
 
 export function RecentList(): React.JSX.Element | null {
+  const { tr } = useI18n()
   const recentVisible = useRecentStore((s) => s.recentVisible)
   const recentWorktreeIds = useRecentStore((s) => s.recentWorktreeIds)
   const recentConnectionIds = useRecentStore((s) => s.recentConnectionIds)
@@ -78,7 +80,7 @@ export function RecentList(): React.JSX.Element | null {
     <div className="mb-1" data-testid="recent-list">
       <div className="flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-muted-foreground">
         <Zap className="h-3 w-3" />
-        <span>Recent</span>
+        <span>{tr('Recent', '最近')}</span>
       </div>
       {items.map((item) =>
         item.kind === 'worktree' ? (
@@ -184,6 +186,7 @@ function RecentConnectionItem({
 }: {
   connectionId: string
 }): React.JSX.Element | null {
+  const { tr } = useI18n()
   const selectedConnectionId = useConnectionStore((s) => s.selectedConnectionId)
   const selectConnection = useConnectionStore((s) => s.selectConnection)
 
@@ -200,7 +203,7 @@ function RecentConnectionItem({
     ...new Set(connection.members?.map((m: { project_name: string }) => m.project_name) || [])
   ].join(' + ')
 
-  const displayName = connection.custom_name || projectNames || connection.name || 'Connection'
+  const displayName = connection.custom_name || projectNames || connection.name || tr('Connection', '连接')
 
   const handleClick = (): void => {
     selectConnection(connectionId)
@@ -258,20 +261,21 @@ function RecentConnectionItem({
 type StatusType = string | null
 
 function StatusText({ status }: { status: StatusType }): React.JSX.Element {
+  const { tr } = useI18n()
   const { text, className } =
     status === 'answering'
-      ? { text: 'Answer questions', className: 'font-semibold text-amber-500' }
+      ? { text: tr('Answer questions', '回答问题'), className: 'font-semibold text-amber-500' }
       : status === 'permission'
-        ? { text: 'Permission', className: 'font-semibold text-amber-500' }
+        ? { text: tr('Permission', '权限处理'), className: 'font-semibold text-amber-500' }
         : status === 'planning'
-          ? { text: 'Planning', className: 'font-semibold text-blue-400' }
+          ? { text: tr('Planning', '规划中'), className: 'font-semibold text-blue-400' }
           : status === 'working'
-            ? { text: 'Working', className: 'font-semibold text-primary' }
+            ? { text: tr('Working', '执行中'), className: 'font-semibold text-primary' }
             : status === 'plan_ready'
-              ? { text: 'Plan ready', className: 'font-semibold text-blue-400' }
+              ? { text: tr('Plan ready', '计划已就绪'), className: 'font-semibold text-blue-400' }
               : status === 'completed'
-                ? { text: 'Ready', className: 'font-semibold text-green-400' }
-                : { text: 'Ready', className: 'text-muted-foreground' }
+                ? { text: tr('Ready', '就绪'), className: 'font-semibold text-green-400' }
+                : { text: tr('Ready', '就绪'), className: 'text-muted-foreground' }
 
   return (
     <span className={cn('text-[11px]', className)} data-testid="recent-status-text">

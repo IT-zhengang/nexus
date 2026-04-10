@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { APP_SETTINGS_DB_KEY } from '@shared/types/settings'
 import type { UsageProvider } from '@shared/types/usage'
+import type { AppLanguage } from '@/i18n'
 
 // ==========================================
 // Types
@@ -45,6 +46,7 @@ export interface CommandFilterSettings {
 
 export interface AppSettings {
   // General
+  language: AppLanguage
   autoStartSession: boolean
   autoPullBeforeWorktree: boolean
   breedType: 'dogs' | 'cats'
@@ -119,6 +121,7 @@ export interface AppSettings {
 }
 
 const DEFAULT_SETTINGS: AppSettings = {
+  language: 'en',
   autoStartSession: true,
   autoPullBeforeWorktree: true,
   breedType: 'dogs',
@@ -207,6 +210,12 @@ interface SettingsState extends AppSettings {
   detectAvailableAgentSdks: () => Promise<void>
 }
 
+function applyDocumentLanguage(language: AppLanguage): void {
+  if (typeof document !== 'undefined') {
+    document.documentElement.lang = language
+  }
+}
+
 async function saveToDatabase(settings: AppSettings): Promise<void> {
   try {
     if (typeof window !== 'undefined' && window.db?.setting) {
@@ -257,6 +266,7 @@ async function loadSettingsFromDatabase(): Promise<AppSettings | null> {
 
 function extractSettings(state: SettingsState): AppSettings {
   return {
+    language: state.language,
     autoStartSession: state.autoStartSession,
     autoPullBeforeWorktree: state.autoPullBeforeWorktree,
     breedType: state.breedType,
@@ -339,6 +349,9 @@ export const useSettingsStore = create<SettingsState>()(
 
       updateSetting: <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => {
         set({ [key]: value } as Partial<SettingsState>)
+        if (key === 'language') {
+          applyDocumentLanguage(value as AppLanguage)
+        }
         // Persist to database
         const settings = extractSettings({ ...get(), [key]: value } as SettingsState)
         saveToDatabase(settings)
@@ -476,12 +489,14 @@ export const useSettingsStore = create<SettingsState>()(
 
       resetToDefaults: () => {
         set({ ...DEFAULT_SETTINGS })
+        applyDocumentLanguage(DEFAULT_SETTINGS.language)
         saveToDatabase(DEFAULT_SETTINGS)
       },
 
       loadFromDatabase: async () => {
         const dbSettings = await loadSettingsFromDatabase()
         if (dbSettings) {
+          applyDocumentLanguage(dbSettings.language)
           set({
             ...dbSettings,
             // Existing users upgrading: if field missing, they've already set up
@@ -489,6 +504,7 @@ export const useSettingsStore = create<SettingsState>()(
             isLoading: false
           })
         } else {
+          applyDocumentLanguage(get().language)
           set({ isLoading: false })
           await saveToDatabase(extractSettings(get()))
         }
@@ -509,6 +525,7 @@ export const useSettingsStore = create<SettingsState>()(
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         autoStartSession: state.autoStartSession,
+        language: state.language,
         autoPullBeforeWorktree: state.autoPullBeforeWorktree,
         breedType: state.breedType,
         vimModeEnabled: state.vimModeEnabled,

@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useProjectStore, useWorktreeStore, useConnectionStore } from '@/stores'
+import { useI18n } from '@/i18n'
 
 interface ConnectDialogProps {
   sourceWorktreeId: string
@@ -39,6 +40,7 @@ export function ConnectDialog({
   open,
   onOpenChange
 }: ConnectDialogProps): React.JSX.Element {
+  const { tr } = useI18n()
   const projects = useProjectStore((s) => s.projects)
   const worktreesByProject = useWorktreeStore((s) => s.worktreesByProject)
   const connections = useConnectionStore((s) => s.connections)
@@ -184,10 +186,13 @@ export function ConnectDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Link className="h-4 w-4" />
-            Connect Worktrees
+            {tr('Connect Worktrees', '连接工作树')}
           </DialogTitle>
           <DialogDescription>
-            Select worktrees from other projects to connect into a shared workspace.
+            {tr(
+              'Select worktrees from other projects to connect into a shared workspace.',
+              '选择其他项目中的工作树，将它们连接到同一个共享工作区。'
+            )}
           </DialogDescription>
         </DialogHeader>
 
@@ -195,7 +200,7 @@ export function ConnectDialog({
         {existingConnections.length > 0 && (
           <div className="space-y-2" data-testid="existing-connections">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-              Existing Connections
+              {tr('Existing Connections', '现有连接')}
             </p>
             <div className="space-y-1">
               {existingConnections.map((conn) => (
@@ -218,7 +223,7 @@ export function ConnectDialog({
         {addableConnections.length > 0 && selectedIds.size > 0 && (
           <div className="space-y-2" data-testid="addable-connections">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-              Add to Existing Connection
+              {tr('Add to Existing Connection', '添加到现有连接')}
             </p>
             <div className="space-y-1">
               {addableConnections.map((conn) => (
@@ -248,7 +253,7 @@ export function ConnectDialog({
         <div className="relative">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Filter worktrees..."
+            placeholder={tr('Filter worktrees...', '筛选工作树...')}
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
             className="pl-9"

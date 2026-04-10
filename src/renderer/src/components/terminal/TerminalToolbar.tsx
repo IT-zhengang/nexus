@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { Search, X, ChevronUp, ChevronDown, RotateCcw, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { TerminalBackendType } from './backends/types'
+import { useI18n } from '@/i18n'
 
 interface TerminalToolbarProps {
   status: 'creating' | 'running' | 'exited'
@@ -32,6 +33,7 @@ export function TerminalToolbar({
   onClear,
   backendType = 'xterm'
 }: TerminalToolbarProps): React.JSX.Element {
+  const { tr } = useI18n()
   const searchInputRef = useRef<HTMLInputElement>(null)
 
   // Focus search input when search becomes visible
@@ -73,9 +75,9 @@ export function TerminalToolbar({
           })}
         />
         <span className="text-muted-foreground select-none">
-          {status === 'creating' && 'Starting...'}
-          {status === 'running' && (backendType === 'ghostty' ? 'Ghostty' : 'Terminal')}
-          {status === 'exited' && `Exited (${exitCode ?? '?'})`}
+          {status === 'creating' && tr('Starting...', '启动中...')}
+          {status === 'running' && (backendType === 'ghostty' ? 'Ghostty' : tr('Terminal', '终端'))}
+          {status === 'exited' && `${tr('Exited', '已退出')} (${exitCode ?? '?'})`}
         </span>
       </div>
 
@@ -91,28 +93,28 @@ export function TerminalToolbar({
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             onKeyDown={handleSearchKeyDown}
-            placeholder="Search..."
+            placeholder={tr('Search...', '搜索...')}
             className="h-5 w-44 px-1.5 text-xs bg-background border border-border rounded focus:outline-none focus:ring-1 focus:ring-ring"
             data-testid="terminal-search-input"
           />
           <button
             onClick={onSearchPrev}
             className="p-0.5 text-muted-foreground hover:text-foreground transition-colors"
-            title="Previous match (Shift+Enter)"
+            title={tr('Previous match (Shift+Enter)', '上一个匹配项（Shift+Enter）')}
           >
             <ChevronUp className="h-3.5 w-3.5" />
           </button>
           <button
             onClick={onSearchNext}
             className="p-0.5 text-muted-foreground hover:text-foreground transition-colors"
-            title="Next match (Enter)"
+            title={tr('Next match (Enter)', '下一个匹配项（Enter）')}
           >
             <ChevronDown className="h-3.5 w-3.5" />
           </button>
           <button
             onClick={onSearchClose}
             className="p-0.5 text-muted-foreground hover:text-foreground transition-colors"
-            title="Close search (Escape)"
+            title={tr('Close search (Escape)', '关闭搜索（Escape）')}
           >
             <X className="h-3.5 w-3.5" />
           </button>
@@ -129,7 +131,7 @@ export function TerminalToolbar({
               ? 'text-foreground bg-accent'
               : 'text-muted-foreground hover:text-foreground'
           )}
-          title="Search (Cmd+F)"
+          title={tr('Search (Cmd+F)', '搜索（Cmd+F）')}
           data-testid="terminal-search-toggle"
         >
           <Search className="h-3.5 w-3.5" />
@@ -138,7 +140,7 @@ export function TerminalToolbar({
       <button
         onClick={onClear}
         className="p-1 text-muted-foreground hover:text-foreground rounded transition-colors"
-        title="Clear terminal (Cmd+K)"
+        title={tr('Clear terminal (Cmd+K)', '清空终端（Cmd+K）')}
         data-testid="terminal-clear"
       >
         <Trash2 className="h-3.5 w-3.5" />
@@ -147,7 +149,7 @@ export function TerminalToolbar({
         <button
           onClick={onRestart}
           className="p-1 text-muted-foreground hover:text-foreground rounded transition-colors"
-          title="Restart terminal"
+          title={tr('Restart terminal', '重启终端')}
           data-testid="terminal-restart"
         >
           <RotateCcw className="h-3.5 w-3.5" />

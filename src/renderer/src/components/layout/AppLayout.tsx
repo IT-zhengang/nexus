@@ -31,6 +31,7 @@ import { toast } from '@/lib/toast'
 import { useDropAttachmentStore } from '@/stores'
 import { MAX_ATTACHMENTS, isImageMime } from '@/lib/file-attachment-utils'
 import type { Attachment } from '@/components/sessions/AttachmentPreview'
+import { useI18n } from '@/i18n'
 
 function GlobalProjectSettings(): React.JSX.Element | null {
   const settingsProjectId = useProjectStore((s) => s.settingsProjectId)
@@ -55,6 +56,7 @@ interface AppLayoutProps {
 }
 
 export function AppLayout({ children }: AppLayoutProps): React.JSX.Element {
+  const { tr } = useI18n()
   // Register all keyboard shortcuts centrally
   useKeyboardShortcuts()
   // Vim-style modal navigation (hjkl, panel shortcuts, file tab cycling)
@@ -78,7 +80,7 @@ export function AppLayout({ children }: AppLayoutProps): React.JSX.Element {
   const handleFileDrop = useCallback((files: FileList) => {
     const sessionId = useSessionStore.getState().activeSessionId
     if (!sessionId) {
-      toast.warning('Open a session to attach files')
+      toast.warning(tr('Open a session to attach files', '请先打开一个会话再附加文件'))
       return
     }
 
@@ -93,7 +95,7 @@ export function AppLayout({ children }: AppLayoutProps): React.JSX.Element {
     })
 
     if (validFiles.length < allFiles.length) {
-      toast.warning('Folders cannot be attached. Drop individual files instead.')
+      toast.warning(tr('Folders cannot be attached. Drop individual files instead.', '无法附加文件夹，请拖入单个文件。'))
     }
 
     if (validFiles.length === 0) return
@@ -101,7 +103,7 @@ export function AppLayout({ children }: AppLayoutProps): React.JSX.Element {
     // Truncate to max
     const filesToProcess =
       validFiles.length > MAX_ATTACHMENTS
-        ? (toast.warning(`Maximum ${MAX_ATTACHMENTS} files per drop`),
+        ? (toast.warning(tr(`Maximum ${MAX_ATTACHMENTS} files per drop`, `每次最多拖入 ${MAX_ATTACHMENTS} 个文件`)),
           validFiles.slice(0, MAX_ATTACHMENTS))
         : validFiles
 
@@ -138,9 +140,9 @@ export function AppLayout({ children }: AppLayoutProps): React.JSX.Element {
       })
       .catch((err) => {
         console.error('Failed to process dropped files:', err)
-        toast.error('Failed to read one or more dropped files')
+        toast.error(tr('Failed to read one or more dropped files', '读取一个或多个拖入文件失败'))
       })
-  }, [])
+  }, [tr])
 
   const { isDragging } = useDropZone({ onDrop: handleFileDrop })
 
@@ -189,7 +191,7 @@ export function AppLayout({ children }: AppLayoutProps): React.JSX.Element {
           componentName="LeftSidebar"
           fallback={
             <div className="w-60 border-r bg-muted/50 flex items-center justify-center">
-              <ErrorFallback compact title="Sidebar Error" />
+              <ErrorFallback compact title={tr('Sidebar Error', '侧边栏错误')} />
             </div>
           }
         >

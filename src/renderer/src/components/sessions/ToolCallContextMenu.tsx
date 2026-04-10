@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/context-menu'
 import { ToolCallDebugModal } from './ToolCallDebugModal'
 import type { ToolUseInfo } from './ToolCard'
+import { useI18n } from '@/i18n/useI18n'
 
 interface ToolCallContextMenuProps {
   children: React.ReactNode
@@ -16,6 +17,7 @@ interface ToolCallContextMenuProps {
 }
 
 export function ToolCallContextMenu({ children, toolUse }: ToolCallContextMenuProps) {
+  const { tr } = useI18n()
   const [debugOpen, setDebugOpen] = useState(false)
 
   const handleCopyCommand = async () => {
@@ -50,15 +52,15 @@ export function ToolCallContextMenu({ children, toolUse }: ToolCallContextMenuPr
     }
 
     if (!textToCopy.trim()) {
-      toast.error('Nothing to copy')
+      toast.error(tr('Nothing to copy', '没有可复制的内容'))
       return
     }
 
     try {
       await navigator.clipboard.writeText(textToCopy)
-      toast.success('Copied to clipboard')
+      toast.success(tr('Copied to clipboard', '已复制到剪贴板'))
     } catch {
-      toast.error('Failed to copy')
+      toast.error(tr('Failed to copy', '复制失败'))
     }
   }
 
@@ -69,11 +71,11 @@ export function ToolCallContextMenu({ children, toolUse }: ToolCallContextMenuPr
         <ContextMenuContent>
           <ContextMenuItem onClick={handleCopyCommand} className="gap-2">
             <Copy className="h-3.5 w-3.5" />
-            Copy Details
+            {tr('Copy Details', '复制详情')}
           </ContextMenuItem>
           <ContextMenuItem onClick={() => setDebugOpen(true)} className="gap-2">
             <Bug className="h-3.5 w-3.5" />
-            Inspect Tool Call
+            {tr('Inspect Tool Call', '检查工具调用')}
           </ContextMenuItem>
         </ContextMenuContent>
       </ContextMenu>

@@ -69,10 +69,12 @@ import { LanguageIcon } from '@/components/projects/LanguageIcon'
 import { ArchiveConfirmDialog } from '@/components/worktrees/ArchiveConfirmDialog'
 import { AddAttachmentDialog } from '@/components/worktrees/AddAttachmentDialog'
 import { ManageConnectionWorktreesDialog } from '@/components/connections/ManageConnectionWorktreesDialog'
+import { useI18n } from '@/i18n'
 
 type PinnedItem = { kind: 'worktree'; id: string } | { kind: 'connection'; id: string }
 
 export function PinnedList(): React.JSX.Element | null {
+  const { tr } = useI18n()
   const pinnedWorktreeIds = usePinnedStore((s) => s.pinnedWorktreeIds)
   const pinnedConnectionIds = usePinnedStore((s) => s.pinnedConnectionIds)
   const loaded = usePinnedStore((s) => s.loaded)
@@ -100,9 +102,9 @@ export function PinnedList(): React.JSX.Element | null {
     <div className="mb-1" data-testid="pinned-list">
       <div className="flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-muted-foreground">
         <Pin className="h-3 w-3" />
-        <span>Pinned</span>
+        <span>{tr('Pinned', '已固定')}</span>
         <div className="ml-auto">
-          <Tooltip>
+        <Tooltip>
             <TooltipTrigger asChild>
               <button
                 onClick={() => {
@@ -123,7 +125,7 @@ export function PinnedList(): React.JSX.Element | null {
               </button>
             </TooltipTrigger>
             <TooltipContent side="right" sideOffset={4}>
-              Pinned Projects Board
+              {tr('Pinned Projects Board', '已固定项目看板')}
             </TooltipContent>
           </Tooltip>
         </div>
@@ -143,6 +145,7 @@ export function PinnedList(): React.JSX.Element | null {
 // ── Worktree item ──────────────────────────────────────────────
 
 function PinnedWorktreeItem({ worktreeId }: { worktreeId: string }): React.JSX.Element | null {
+  const { tr } = useI18n()
   const selectedWorktreeId = useWorktreeStore((s) => s.selectedWorktreeId)
   const selectWorktree = useWorktreeStore((s) => s.selectWorktree)
   const archiveWorktree = useWorktreeStore((s) => s.archiveWorktree)
@@ -251,12 +254,12 @@ function PinnedWorktreeItem({ worktreeId }: { worktreeId: string }): React.JSX.E
       const result = await window.db.worktree.removeAttachment(worktreeId, attachmentId)
       if (result.success) {
         setAttachments((prev) => prev.filter((a) => a.id !== attachmentId))
-        toast.success('Attachment removed')
+        toast.success(tr('Attachment removed', '附件已移除'))
       } else {
-        toast.error(result.error || 'Failed to remove attachment')
+        toast.error(result.error || tr('Failed to remove attachment', '移除附件失败'))
       }
     },
-    [worktreeId]
+    [worktreeId, tr]
   )
 
   const handleAttachmentAdded = useCallback((): void => {
@@ -305,7 +308,7 @@ function PinnedWorktreeItem({ worktreeId }: { worktreeId: string }): React.JSX.E
       .replace(/-+$/, '')
 
     if (!newBranch) {
-      toast.error('Invalid branch name')
+      toast.error(tr('Invalid branch name', '无效的分支名称'))
       setIsRenamingBranch(false)
       return
     }
@@ -319,17 +322,17 @@ function PinnedWorktreeItem({ worktreeId }: { worktreeId: string }): React.JSX.E
 
     if (result.success) {
       useWorktreeStore.getState().updateWorktreeBranch(worktree.id, newBranch)
-      toast.success(`Branch renamed to ${newBranch}`)
+      toast.success(`${tr('Branch renamed to', '分支已重命名为')} ${newBranch}`)
     } else {
-      toast.error(result.error || 'Failed to rename branch')
+      toast.error(result.error || tr('Failed to rename branch', '分支重命名失败'))
     }
     setIsRenamingBranch(false)
-  }, [branchNameInput, worktree])
+  }, [branchNameInput, worktree, tr])
 
   const handleDuplicate = useCallback(async (): Promise<void> => {
     if (!project || !worktree) return
     if (!worktree.branch_name) {
-      toast.error('Detached HEAD worktrees cannot be duplicated')
+      toast.error(tr('Detached HEAD worktrees cannot be duplicated', 'Detached HEAD 工作树无法复制'))
       return
     }
 
@@ -343,11 +346,13 @@ function PinnedWorktreeItem({ worktreeId }: { worktreeId: string }): React.JSX.E
         worktree.path
       )
     if (result.success) {
-      toast.success(`Duplicated to ${result.worktree?.name || 'new branch'}`)
+      toast.success(
+        `${tr('Duplicated to', '已复制到')} ${result.worktree?.name || tr('new branch', '新分支')}`
+      )
     } else {
-      toast.error(result.error || 'Failed to duplicate worktree')
+      toast.error(result.error || tr('Failed to duplicate worktree', '复制工作树失败'))
     }
-  }, [project, worktree])
+  }, [project, worktree, tr])
 
   const doArchive = useCallback(async (): Promise<void> => {
     if (!project || !worktree) return
@@ -402,12 +407,12 @@ function PinnedWorktreeItem({ worktreeId }: { worktreeId: string }): React.JSX.E
       if (worktree.branch_name) {
         gitToast.worktreeUnbranched(worktree.name)
       } else {
-        toast.success(`Worktree "${worktree.name}" removed`)
+        toast.success(`${tr('Worktree removed:', '工作树已移除：')} ${worktree.name}`)
       }
     } else {
       gitToast.operationFailed('unbranch worktree', result.error, handleUnbranch)
     }
-  }, [unbranchWorktree, worktree, project])
+  }, [unbranchWorktree, worktree, project, tr])
 
   if (!worktree || !project) return null
 
@@ -429,6 +434,18 @@ function PinnedWorktreeItem({ worktreeId }: { worktreeId: string }): React.JSX.E
               : worktreeStatus === 'completed'
                 ? { displayStatus: 'Ready', statusClass: 'font-semibold text-green-400' }
                 : { displayStatus: 'Ready', statusClass: 'text-muted-foreground' }
+  const localizedDisplayStatus =
+    displayStatus === 'Answer questions'
+      ? tr('Answer questions', '回答问题')
+      : displayStatus === 'Permission'
+        ? tr('Permission', '权限确认')
+        : displayStatus === 'Planning'
+          ? tr('Planning', '规划中')
+          : displayStatus === 'Working'
+            ? tr('Working', '执行中')
+            : displayStatus === 'Plan ready'
+              ? tr('Plan ready', '计划已就绪')
+              : tr('Ready', '就绪')
 
   const handleClick = (): void => {
     selectWorktree(worktreeId)
@@ -443,10 +460,13 @@ function PinnedWorktreeItem({ worktreeId }: { worktreeId: string }): React.JSX.E
   const handleOpenInTerminal = async (): Promise<void> => {
     const result = await window.worktreeOps.openInTerminal(worktree.path)
     if (result.success) {
-      toast.success('Opened in Terminal')
+      toast.success(tr('Opened in Terminal', '已在终端中打开'))
     } else {
-      toast.error(result.error || 'Failed to open in terminal', {
-        description: 'Make sure the worktree directory exists'
+      toast.error(result.error || tr('Failed to open in terminal', '在终端中打开失败'), {
+        description: tr(
+          'Make sure the worktree directory exists',
+          '请确认工作树目录存在'
+        )
       })
     }
   }
@@ -454,10 +474,10 @@ function PinnedWorktreeItem({ worktreeId }: { worktreeId: string }): React.JSX.E
   const handleOpenInEditor = async (): Promise<void> => {
     const result = await window.worktreeOps.openInEditor(worktree.path)
     if (result.success) {
-      toast.success('Opened in Editor')
+      toast.success(tr('Opened in Editor', '已在编辑器中打开'))
     } else {
-      toast.error(result.error || 'Failed to open in editor', {
-        description: 'Make sure VS Code is installed'
+      toast.error(result.error || tr('Failed to open in editor', '在编辑器中打开失败'), {
+        description: tr('Make sure VS Code is installed', '请确认已安装 VS Code')
       })
     }
   }
@@ -468,7 +488,7 @@ function PinnedWorktreeItem({ worktreeId }: { worktreeId: string }): React.JSX.E
 
   const handleCopyPath = async (): Promise<void> => {
     await window.projectOps.copyToClipboard(worktree.path)
-    clipboardToast.copied('Path')
+    clipboardToast.copied(tr('Path', '路径'))
   }
 
   const handleUnpin = async (): Promise<void> => {
@@ -499,14 +519,14 @@ function PinnedWorktreeItem({ worktreeId }: { worktreeId: string }): React.JSX.E
               <MenuSubContent className="w-40">
                 <MenuItem onClick={() => handleOpenAttachment(attachment.url)}>
                   <ExternalLink className="h-4 w-4 mr-2" />
-                  Open
+                  {tr('Open', '打开')}
                 </MenuItem>
                 <MenuItem
                   onClick={() => handleDetachAttachment(attachment.id)}
                   className="text-destructive focus:text-destructive focus:bg-destructive/10"
                 >
                   <Unlink className="h-4 w-4 mr-2" />
-                  Detach
+                  {tr('Detach', '解除关联')}
                 </MenuItem>
               </MenuSubContent>
             </MenuSub>
@@ -516,16 +536,16 @@ function PinnedWorktreeItem({ worktreeId }: { worktreeId: string }): React.JSX.E
       )}
       <MenuItem onClick={() => setAddAttachmentOpen(true)}>
         <Plus className="h-4 w-4 mr-2" />
-        Add Attachment
+        {tr('Add Attachment', '添加附件')}
       </MenuItem>
       <MenuSeparator />
       <MenuItem onClick={handleOpenInTerminal}>
         <Terminal className="h-4 w-4 mr-2" />
-        Open in Terminal
+        {tr('Open in Terminal', '在终端中打开')}
       </MenuItem>
       <MenuItem onClick={handleOpenInEditor}>
         <Code className="h-4 w-4 mr-2" />
-        Open in Editor
+        {tr('Open in Editor', '在编辑器中打开')}
       </MenuItem>
       <MenuItem onClick={handleOpenInFinder}>
         <ExternalLink className="h-4 w-4 mr-2" />
@@ -533,16 +553,16 @@ function PinnedWorktreeItem({ worktreeId }: { worktreeId: string }): React.JSX.E
       </MenuItem>
       <MenuItem onClick={handleCopyPath}>
         <Copy className="h-4 w-4 mr-2" />
-        Copy Path
+        {tr('Copy Path', '复制路径')}
       </MenuItem>
       <MenuItem onClick={handleUnpin}>
         <PinOff className="h-4 w-4 mr-2" />
-        Unpin
+        {tr('Unpin', '取消固定')}
       </MenuItem>
       <MenuSeparator />
       <MenuItem onClick={() => enterConnectionMode(worktree.id)}>
         <Link className="h-4 w-4 mr-2" />
-        Connect to...
+        {tr('Connect to...', '连接到...')}
       </MenuItem>
       {!worktree.is_default && (
         <>
@@ -550,25 +570,29 @@ function PinnedWorktreeItem({ worktreeId }: { worktreeId: string }): React.JSX.E
             <>
               <MenuItem onClick={startBranchRename}>
                 <Pencil className="h-4 w-4 mr-2" />
-                Rename Branch
+                {tr('Rename Branch', '重命名分支')}
               </MenuItem>
               <MenuItem onClick={handleDuplicate}>
                 <GitBranchPlus className="h-4 w-4 mr-2" />
-                Duplicate
+                {tr('Duplicate', '复制')}
               </MenuItem>
               <MenuSeparator />
               <MenuItem onClick={handleUnbranch}>
                 <GitBranchPlus className="h-4 w-4 mr-2" />
-                Unbranch
-                <span className="ml-auto text-xs text-muted-foreground">Keep branch</span>
+                {tr('Unbranch', '解除分支关联')}
+                <span className="ml-auto text-xs text-muted-foreground">
+                  {tr('Keep branch', '保留分支')}
+                </span>
               </MenuItem>
               <MenuItem
                 onClick={handleArchive}
                 className="text-destructive focus:text-destructive focus:bg-destructive/10"
               >
                 <Archive className="h-4 w-4 mr-2" />
-                Archive
-                <span className="ml-auto text-xs text-muted-foreground">Delete branch</span>
+                {tr('Archive', '归档')}
+                <span className="ml-auto text-xs text-muted-foreground">
+                  {tr('Delete branch', '删除分支')}
+                </span>
               </MenuItem>
             </>
           ) : (
@@ -579,8 +603,10 @@ function PinnedWorktreeItem({ worktreeId }: { worktreeId: string }): React.JSX.E
                 className="text-destructive focus:text-destructive focus:bg-destructive/10"
               >
                 <Archive className="h-4 w-4 mr-2" />
-                Remove Worktree
-                <span className="ml-auto text-xs text-muted-foreground">Detached HEAD</span>
+                {tr('Remove Worktree', '移除工作树')}
+                <span className="ml-auto text-xs text-muted-foreground">
+                  {tr('Detached HEAD', 'Detached HEAD')}
+                </span>
               </MenuItem>
             </>
           )}
@@ -678,7 +704,7 @@ function PinnedWorktreeItem({ worktreeId }: { worktreeId: string }): React.JSX.E
             <div className="flex items-center pr-1">
               <ModelIcon worktreeId={worktreeId} className="h-2.5 w-2.5 mr-1 shrink-0" />
               <span className={cn('text-[11px]', statusClass)} data-testid="pinned-status-text">
-                {displayStatus}
+                {localizedDisplayStatus}
               </span>
               <span className="flex-1" />
               {lastMessageTime && (
@@ -770,6 +796,7 @@ function PinnedConnectionItem({
 }: {
   connectionId: string
 }): React.JSX.Element | null {
+  const { tr } = useI18n()
   const selectedConnectionId = useConnectionStore((s) => s.selectedConnectionId)
   const selectConnection = useConnectionStore((s) => s.selectConnection)
   const deleteConnection = useConnectionStore((s) => s.deleteConnection)
@@ -862,21 +889,21 @@ function PinnedConnectionItem({
     if (!connection) return
     const result = await window.connectionOps.openInTerminal(connection.path)
     if (result.success) {
-      toast.success('Opened in Terminal')
+      toast.success(tr('Opened in Terminal', '已在终端中打开'))
     } else {
-      toast.error(result.error || 'Failed to open in terminal')
+      toast.error(result.error || tr('Failed to open in terminal', '在终端中打开失败'))
     }
-  }, [connection])
+  }, [connection, tr])
 
   const handleOpenInEditor = useCallback(async (): Promise<void> => {
     if (!connection) return
     const result = await window.connectionOps.openInEditor(connection.path)
     if (result.success) {
-      toast.success('Opened in Editor')
+      toast.success(tr('Opened in Editor', '已在编辑器中打开'))
     } else {
-      toast.error(result.error || 'Failed to open in editor')
+      toast.error(result.error || tr('Failed to open in editor', '在编辑器中打开失败'))
     }
-  }, [connection])
+  }, [connection, tr])
 
   const handleOpenInFinder = useCallback(async (): Promise<void> => {
     if (!connection) return
@@ -886,8 +913,8 @@ function PinnedConnectionItem({
   const handleCopyPath = useCallback(async (): Promise<void> => {
     if (!connection) return
     await window.projectOps.copyToClipboard(connection.path)
-    clipboardToast.copied('Path')
-  }, [connection])
+    clipboardToast.copied(tr('Path', '路径'))
+  }, [connection, tr])
 
   const handleUnpin = useCallback(async (): Promise<void> => {
     await unpinConnection(connectionId)
@@ -912,7 +939,7 @@ function PinnedConnectionItem({
   const hasCustomName = !!connection.custom_name
   const displayName = hasCustomName
     ? connection.custom_name!
-    : projectNames || connection.name || 'Connection'
+    : projectNames || connection.name || tr('Connection', '连接')
 
   // Derive display status text + color
   const { displayStatus, statusClass } =
@@ -929,6 +956,18 @@ function PinnedConnectionItem({
               : connectionStatus === 'completed'
                 ? { displayStatus: 'Ready', statusClass: 'font-semibold text-green-400' }
                 : { displayStatus: 'Ready', statusClass: 'text-muted-foreground' }
+  const localizedDisplayStatus =
+    displayStatus === 'Answer questions'
+      ? tr('Answer questions', '回答问题')
+      : displayStatus === 'Permission'
+        ? tr('Permission', '权限确认')
+        : displayStatus === 'Planning'
+          ? tr('Planning', '规划中')
+          : displayStatus === 'Working'
+            ? tr('Working', '执行中')
+            : displayStatus === 'Plan ready'
+              ? tr('Plan ready', '计划已就绪')
+              : tr('Ready', '就绪')
 
   const handleClick = (): void => {
     selectConnection(connectionId)
@@ -939,24 +978,24 @@ function PinnedConnectionItem({
     <>
       <MenuItem onClick={handleManageWorktrees}>
         <Settings2 className="h-4 w-4 mr-2" />
-        Connection Worktrees
+        {tr('Connection Worktrees', '连接工作树')}
       </MenuItem>
       <MenuItem onClick={handleStartRename}>
         <Pencil className="h-4 w-4 mr-2" />
-        Rename
+        {tr('Rename', '重命名')}
       </MenuItem>
       <MenuItem onClick={handleUnpin}>
         <PinOff className="h-4 w-4 mr-2" />
-        Unpin
+        {tr('Unpin', '取消固定')}
       </MenuItem>
       <MenuSeparator />
       <MenuItem onClick={handleOpenInTerminal}>
         <Terminal className="h-4 w-4 mr-2" />
-        Open in Terminal
+        {tr('Open in Terminal', '在终端中打开')}
       </MenuItem>
       <MenuItem onClick={handleOpenInEditor}>
         <Code className="h-4 w-4 mr-2" />
-        Open in Editor
+        {tr('Open in Editor', '在编辑器中打开')}
       </MenuItem>
       <MenuItem onClick={handleOpenInFinder}>
         <ExternalLink className="h-4 w-4 mr-2" />
@@ -964,7 +1003,7 @@ function PinnedConnectionItem({
       </MenuItem>
       <MenuItem onClick={handleCopyPath}>
         <Copy className="h-4 w-4 mr-2" />
-        Copy Path
+        {tr('Copy Path', '复制路径')}
       </MenuItem>
       <MenuSeparator />
       <MenuItem
@@ -972,7 +1011,7 @@ function PinnedConnectionItem({
         className="text-destructive focus:text-destructive focus:bg-destructive/10"
       >
         <Trash2 className="h-4 w-4 mr-2" />
-        Delete
+        {tr('Delete', '删除')}
       </MenuItem>
     </>
   )
@@ -1054,7 +1093,7 @@ function PinnedConnectionItem({
                 }}
                 onClick={(e) => e.stopPropagation()}
                 className="bg-background border border-border rounded px-1.5 py-0.5 text-sm w-full focus:outline-none focus:ring-1 focus:ring-ring"
-                placeholder={projectNames || 'Connection name'}
+                placeholder={projectNames || tr('Connection name', '连接名称')}
               />
             ) : (
               <>
@@ -1062,7 +1101,7 @@ function PinnedConnectionItem({
                   {displayName}
                 </span>
                 <span className={cn('text-[11px]', statusClass)} data-testid="pinned-status-text">
-                  {displayStatus}
+                  {localizedDisplayStatus}
                   {hasCustomName && projectNames && (
                     <span className="text-muted-foreground font-normal"> · {projectNames}</span>
                   )}

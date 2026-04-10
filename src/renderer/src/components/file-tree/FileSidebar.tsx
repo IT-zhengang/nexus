@@ -8,6 +8,7 @@ import { FileTree } from './FileTree'
 import { ChangesView } from './ChangesView'
 import { BranchDiffView } from './BranchDiffView'
 import { PrReviewViewer } from '@/components/pr-review/PrReviewViewer'
+import { useI18n } from '@/i18n'
 
 interface ConnectionMemberInfo {
   worktree_path: string
@@ -36,6 +37,7 @@ export function FileSidebar({
   isCollapsed,
   onToggleCollapse
 }: FileSidebarProps): React.JSX.Element {
+  const { tr } = useI18n()
   const [activeTab, setActiveTab] = useState<'changes' | 'files' | 'diffs' | 'comments'>('changes')
   const vimModeEnabled = useSettingsStore((s) => s.vimModeEnabled)
   const selectedWorktreeId = useWorktreeStore((s) => s.selectedWorktreeId)
@@ -45,7 +47,6 @@ export function FileSidebar({
 
   useEffect(() => {
     const handler = (e: Event): void => {
-      if (!vimModeEnabled) return
       const tab = (e as CustomEvent).detail?.tab
       if (tab === 'changes' || tab === 'files' || tab === 'diffs' || tab === 'comments') {
         setActiveTab(tab)
@@ -53,7 +54,7 @@ export function FileSidebar({
     }
     window.addEventListener('hive:right-sidebar-tab', handler)
     return () => window.removeEventListener('hive:right-sidebar-tab', handler)
-  }, [vimModeEnabled])
+  }, [])
 
   // Switch away from comments tab if PR is detached
   useEffect(() => {
@@ -79,7 +80,7 @@ export function FileSidebar({
               <span className="text-primary">C</span>hanges
             </>
           ) : (
-            'Changes'
+            tr('Changes', '变更')
           )}
           {activeTab === 'changes' && (
             <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
@@ -99,7 +100,7 @@ export function FileSidebar({
               <span className="text-primary">F</span>iles
             </>
           ) : (
-            'Files'
+            tr('Files', '文件')
           )}
           {activeTab === 'files' && (
             <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
@@ -119,7 +120,7 @@ export function FileSidebar({
               <span className="text-primary">D</span>iffs
             </>
           ) : (
-            'Diffs'
+            tr('Diffs', '对比')
           )}
           {activeTab === 'diffs' && (
             <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
@@ -140,7 +141,7 @@ export function FileSidebar({
                 C<span className="text-primary">o</span>mments
               </>
             ) : (
-              'Comments'
+              tr('Comments', '评论')
             )}
             {activeTab === 'comments' && (
               <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
@@ -152,7 +153,7 @@ export function FileSidebar({
           <button
             onClick={onToggleCollapse}
             className="p-1 text-muted-foreground hover:text-foreground rounded"
-            aria-label={isCollapsed ? 'Expand panel' : 'Collapse panel'}
+            aria-label={isCollapsed ? tr('Expand panel', '展开面板') : tr('Collapse panel', '折叠面板')}
           >
             {isCollapsed ? (
               <ChevronDown className="h-3.5 w-3.5" />
@@ -164,7 +165,7 @@ export function FileSidebar({
         <button
           onClick={onClose}
           className="p-1 text-muted-foreground hover:text-foreground rounded"
-          aria-label="Close sidebar"
+          aria-label={tr('Close sidebar', '关闭侧边栏')}
         >
           <X className="h-3.5 w-3.5" />
         </button>

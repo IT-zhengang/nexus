@@ -10,6 +10,7 @@ import { BoardChatDrawer } from '@/components/kanban/BoardChatDrawer'
 import { BoardChatLauncher } from '@/components/kanban/BoardChatLauncher'
 import { MergeOnDoneDialog } from './MergeOnDoneDialog'
 import type { KanbanTicketColumn } from '../../../../main/db/types'
+import { useI18n } from '@/i18n/useI18n'
 
 const COLUMNS: KanbanTicketColumn[] = ['todo', 'in_progress', 'review', 'done']
 
@@ -21,6 +22,7 @@ interface KanbanBoardProps {
 }
 
 export function KanbanBoard({ projectId, projectPath, connectionId, isPinnedMode }: KanbanBoardProps) {
+  const { tr } = useI18n()
   const loadTickets = useKanbanStore((state) => state.loadTickets)
   const loadTicketsForConnection = useKanbanStore((state) => state.loadTicketsForConnection)
   const loadTicketsForPinnedProjects = useKanbanStore((state) => state.loadTicketsForPinnedProjects)
@@ -72,7 +74,7 @@ export function KanbanBoard({ projectId, projectPath, connectionId, isPinnedMode
           <div className="flex items-center gap-2 px-3 pt-3 pb-0">
             <Pin className="h-4 w-4 text-muted-foreground" />
             <h2 className="text-sm font-medium text-muted-foreground">
-              Pinned Projects ({pinnedProjectIdsArray.length})
+              {tr('Pinned Projects', '已固定项目')} ({pinnedProjectIdsArray.length})
             </h2>
           </div>
         )}
@@ -81,7 +83,7 @@ export function KanbanBoard({ projectId, projectPath, connectionId, isPinnedMode
           <div className="flex-1 flex items-center justify-center text-muted-foreground">
             <div className="text-center">
               <Pin className="h-8 w-8 mx-auto mb-3 opacity-50" />
-              <p className="text-sm">Pin worktrees to see their projects here</p>
+              <p className="text-sm">{tr('Pin worktrees to see their projects here', '固定工作树后即可在此查看其项目')}</p>
             </div>
           </div>
         ) : (

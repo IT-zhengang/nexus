@@ -52,6 +52,7 @@ import { WorktreeList, BranchPickerDialog } from '@/components/worktrees'
 import { LanguageIcon } from './LanguageIcon'
 import { HighlightedText } from './HighlightedText'
 import { gitToast } from '@/lib/toast'
+import { useI18n } from '@/i18n'
 
 interface Project {
   id: string
@@ -94,6 +95,7 @@ export function ProjectItem({
   onDrop,
   onDragEnd
 }: ProjectItemProps): React.JSX.Element {
+  const { tr } = useI18n()
   const {
     selectedProjectId,
     expandedProjectIds,
@@ -170,9 +172,9 @@ export function ProjectItem({
     if (trimmedName && trimmedName !== project.name) {
       const success = await updateProjectName(project.id, trimmedName)
       if (success) {
-        toast.success('Project renamed successfully')
+        toast.success(tr('Project renamed successfully', '项目重命名成功'))
       } else {
-        toast.error('Failed to rename project')
+        toast.error(tr('Failed to rename project', '项目重命名失败'))
       }
     }
     setEditingProject(null)
@@ -195,9 +197,9 @@ export function ProjectItem({
     setRemoveConfirmOpen(false)
     const success = await removeProject(project.id)
     if (success) {
-      toast.success('Project removed from Hive')
+      toast.success(tr('Project removed from Hive', '项目已从 Hive 中移除'))
     } else {
-      toast.error('Failed to remove project')
+      toast.error(tr('Failed to remove project', '移除项目失败'))
     }
   }
 
@@ -207,12 +209,12 @@ export function ProjectItem({
 
   const handleCopyPath = async (): Promise<void> => {
     await window.projectOps.copyToClipboard(project.path)
-    toast.success('Path copied to clipboard')
+    toast.success(tr('Path copied to clipboard', '路径已复制到剪贴板'))
   }
 
   const handleRefreshProject = async (): Promise<void> => {
     await syncWorktrees(project.id, project.path)
-    toast.success('Project refreshed')
+    toast.success(tr('Project refreshed', '项目已刷新'))
   }
 
   const doCreateWorktree = useCallback(async (): Promise<void> => {
@@ -227,8 +229,8 @@ export function ProjectItem({
 
     // Show loading toast with appropriate progress message based on auto-pull setting
     const loadingToastId = autoPullBeforeWorktree
-      ? toast.loading('Pulling latest changes from origin...')
-      : toast.loading('Creating worktree...')
+      ? toast.loading(tr('Pulling latest changes from origin...', '正在从 origin 拉取最新变更...'))
+      : toast.loading(tr('Creating worktree...', '正在创建工作树...'))
 
     try {
       const result = await createWorktree(project.id, project.path, project.name)
@@ -239,7 +241,12 @@ export function ProjectItem({
       if (result.success) {
         // Show warning if auto-pull was enabled but pull failed
         if (autoPullBeforeWorktree && result.pullInfo?.pulled === false) {
-          toast.warning('Failed to pull latest changes - worktree created from local branch')
+          toast.warning(
+            tr(
+              'Failed to pull latest changes - worktree created from local branch',
+              '拉取最新变更失败 - 已基于本地分支创建工作树'
+            )
+          )
           // Delay success toast so warning is visible
           setTimeout(() => {
             gitToast.worktreeCreated(project.name)
@@ -247,7 +254,7 @@ export function ProjectItem({
         }
         // Show info toast if commits were pulled
         else if (result.pullInfo?.updated) {
-          toast.info('Pulled latest changes from origin')
+          toast.info(tr('Pulled latest changes from origin', '已从 origin 拉取最新变更'))
           gitToast.worktreeCreated(project.name)
         } else {
           // No pull info to show, just success
@@ -260,10 +267,10 @@ export function ProjectItem({
       toast.dismiss(loadingToastId)
       gitToast.operationFailed(
         'create worktree',
-        error instanceof Error ? error.message : 'Unknown error'
+        error instanceof Error ? error.message : tr('Unknown error', '未知错误')
       )
     }
-  }, [isCreatingWorktree, createWorktree, project, autoPullBeforeWorktree])
+  }, [isCreatingWorktree, createWorktree, project, autoPullBeforeWorktree, tr])
 
   const handleCreateWorktree = useCallback(
     async (e: React.MouseEvent): Promise<void> => {
@@ -288,8 +295,8 @@ export function ProjectItem({
 
       // Show loading toast with appropriate progress message based on auto-pull setting
       const loadingToastId = autoPullBeforeWorktree && !prNumber
-        ? toast.loading('Pulling latest changes from origin...')
-        : toast.loading('Creating worktree...')
+        ? toast.loading(tr('Pulling latest changes from origin...', '正在从 origin 拉取最新变更...'))
+        : toast.loading(tr('Creating worktree...', '正在创建工作树...'))
 
       try {
         const result = await window.worktreeOps.createFromBranch(
@@ -309,7 +316,12 @@ export function ProjectItem({
 
           // Show warning if auto-pull was enabled but pull failed (not for PRs)
           if (autoPullBeforeWorktree && !prNumber && result.pullInfo?.pulled === false) {
-            toast.warning('Failed to pull latest changes - worktree created from local branch')
+            toast.warning(
+              tr(
+                'Failed to pull latest changes - worktree created from local branch',
+                '拉取最新变更失败 - 已基于本地分支创建工作树'
+              )
+            )
             // Delay success toast so warning is visible
             setTimeout(() => {
               gitToast.worktreeCreated(branchName)
@@ -317,7 +329,7 @@ export function ProjectItem({
           }
           // Show info toast if commits were pulled (not applicable for PR checkouts)
           else if (!prNumber && result.pullInfo?.updated) {
-            toast.info('Pulled latest changes from origin')
+            toast.info(tr('Pulled latest changes from origin', '已从 origin 拉取最新变更'))
             gitToast.worktreeCreated(branchName)
           } else {
             // No pull info to show, just success
@@ -330,11 +342,11 @@ export function ProjectItem({
         toast.dismiss(loadingToastId)
         gitToast.operationFailed(
           'create worktree from branch',
-          error instanceof Error ? error.message : 'Unknown error'
+          error instanceof Error ? error.message : tr('Unknown error', '未知错误')
         )
       }
     },
-    [project, autoPullBeforeWorktree]
+    [project, autoPullBeforeWorktree, tr]
   )
 
   return (
@@ -459,7 +471,7 @@ export function ProjectItem({
           <ContextMenuContent className="w-48">
             <ContextMenuItem onClick={handleStartEdit}>
               <Pencil className="h-4 w-4 mr-2" />
-              Edit Name
+              {tr('Edit Name', '编辑名称')}
             </ContextMenuItem>
             <ContextMenuItem onClick={handleOpenInFinder}>
               <ExternalLink className="h-4 w-4 mr-2" />
@@ -467,32 +479,32 @@ export function ProjectItem({
             </ContextMenuItem>
             <ContextMenuItem onClick={handleCopyPath}>
               <Copy className="h-4 w-4 mr-2" />
-              Copy Path
+              {tr('Copy Path', '复制路径')}
             </ContextMenuItem>
             <ContextMenuItem onClick={() => refreshLanguage(project.id)}>
               <RefreshCw className="h-4 w-4 mr-2" />
-              Refresh Language
+              {tr('Refresh Language', '刷新语言')}
             </ContextMenuItem>
             <ContextMenuItem onClick={handleRefreshProject}>
               <RefreshCw className="h-4 w-4 mr-2" />
-              Refresh Project
+              {tr('Refresh Project', '刷新项目')}
             </ContextMenuItem>
             <ContextMenuItem onClick={() => setBranchPickerOpen(true)}>
               <GitBranch className="h-4 w-4 mr-2" />
-              New Workspace From...
+              {tr('New Workspace From...', '从以下来源新建工作区...')}
             </ContextMenuItem>
             <ContextMenuItem
               onClick={() => useProjectStore.getState().openProjectSettings(project.id)}
             >
               <Settings className="h-4 w-4 mr-2" />
-              Project Settings
+              {tr('Project Settings', '项目设置')}
             </ContextMenuItem>
             {spaces.length > 0 && (
               <>
                 <ContextMenuSub>
                   <ContextMenuSubTrigger>
                     <FolderHeart className="h-4 w-4 mr-2" />
-                    Assign to Space
+                    {tr('Assign to Space', '分配到空间')}
                   </ContextMenuSubTrigger>
                   <ContextMenuSubContent className="w-40">
                     {spaces.map((space) => {
@@ -524,7 +536,7 @@ export function ProjectItem({
               className="text-destructive focus:text-destructive focus:bg-destructive/10"
             >
               <Trash2 className="h-4 w-4 mr-2" />
-              Remove from Hive
+              {tr('Remove from Hive', '从 Hive 中移除')}
             </ContextMenuItem>
           </ContextMenuContent>
         )}
@@ -545,26 +557,28 @@ export function ProjectItem({
       <AlertDialog open={removeConfirmOpen} onOpenChange={setRemoveConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Remove project from Hive?</AlertDialogTitle>
+            <AlertDialogTitle>{tr('Remove project from Hive?', '要从 Hive 中移除此项目吗？')}</AlertDialogTitle>
             <AlertDialogDescription asChild>
               <div className="space-y-2">
                 <p>
-                  This will remove <span className="font-semibold">{project.name}</span> from Hive.
+                  {tr('This will remove', '这将从 Hive 中移除')}{' '}
+                  <span className="font-semibold">{project.name}</span>
+                  {tr('from Hive.', '。')}
                 </p>
                 <p className="font-mono text-xs bg-muted rounded px-2 py-1 break-all">
                   {project.path}
                 </p>
-                <p>Your files on disk will not be affected.</p>
+                <p>{tr('Your files on disk will not be affected.', '磁盘上的文件不会受到影响。')}</p>
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{tr('Cancel', '取消')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleRemove}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Remove
+              {tr('Remove', '移除')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -574,13 +588,18 @@ export function ProjectItem({
       <AlertDialog open={noCommitsDialogOpen} onOpenChange={setNoCommitsDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Initial Commit Required</AlertDialogTitle>
+            <AlertDialogTitle>{tr('Initial Commit Required', '需要初始提交')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Creating a first commit with the initial state is required for adding worktrees.
+              {tr(
+                'Creating a first commit with the initial state is required for adding worktrees.',
+                '要添加工作树，需要先基于当前初始状态创建第一次提交。'
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogAction onClick={() => setNoCommitsDialogOpen(false)}>OK</AlertDialogAction>
+            <AlertDialogAction onClick={() => setNoCommitsDialogOpen(false)}>
+              {tr('OK', '确定')}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

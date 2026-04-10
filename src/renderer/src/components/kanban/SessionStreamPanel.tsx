@@ -3,6 +3,7 @@ import { useSessionStream } from '@/hooks/useSessionStream'
 import { MessageRenderer } from '@/components/sessions/MessageRenderer'
 import { ScrollToBottomFab } from '@/components/sessions/ScrollToBottomFab'
 import type { OpenCodeMessage } from '@/components/sessions/SessionView'
+import { useI18n } from '@/i18n/useI18n'
 
 export interface SessionStreamPanelProps {
   sessionId: string
@@ -24,6 +25,7 @@ export function SessionStreamPanel({
   headerAction,
   fullWidth = false
 }: SessionStreamPanelProps): React.JSX.Element {
+  const { tr } = useI18n()
   const { messages, streamingParts, streamingContent, isStreaming, isLoading } = useSessionStream({
     sessionId,
     worktreePath,
@@ -42,6 +44,7 @@ export function SessionStreamPanel({
   const manualScrollIntentRef = useRef(false)
   const pointerDownInScrollerRef = useRef(false)
   const userHasScrolledUpRef = useRef(false)
+  const hasInitialScrollRef = useRef(false)
   const [showScrollFab, setShowScrollFab] = useState(false)
 
   const markProgrammaticScroll = useCallback(() => {
@@ -134,16 +137,18 @@ export function SessionStreamPanel({
   // Reset auto-scroll state on session change
   useEffect(() => {
     resetAutoScrollState()
+    hasInitialScrollRef.current = false
   }, [sessionId, resetAutoScrollState])
 
   // Scroll to bottom on initial load
   useEffect(() => {
-    if (!isLoading && messages.length > 0) {
-      requestAnimationFrame(() => {
-        scrollToBottom('instant')
-      })
-    }
-  }, [isLoading]) // eslint-disable-line react-hooks/exhaustive-deps
+    if (isLoading || messages.length === 0 || hasInitialScrollRef.current) return
+
+    hasInitialScrollRef.current = true
+    requestAnimationFrame(() => {
+      scrollToBottom('instant')
+    })
+  }, [isLoading, messages.length, scrollToBottom])
 
   // Cleanup programmatic scroll reset on unmount
   useEffect(() => {
@@ -160,9 +165,15 @@ export function SessionStreamPanel({
     <div className={`flex flex-col h-full bg-background flex-1 min-w-0${fullWidth ? '' : ' border-l border-border/60'}`}>
       {/* Header */}
       <div className={`shrink-0 px-4 py-3 border-b border-border/60 flex items-center gap-2${headerAction ? ' pr-16' : ''}`}>
-        <span className="text-sm font-medium text-foreground truncate">{title || 'Session'}</span>
+        <span className="text-sm font-medium text-foreground truncate">
+          {title || tr('Session', '会话')}
+        </span>
         {isStreaming && (
-          <span role="status" aria-label="Streaming active" className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+          <span
+            role="status"
+            aria-label={tr('Streaming active', '正在流式输出')}
+            className="h-2 w-2 rounded-full bg-green-500 animate-pulse"
+          />
         )}
         {headerAction && <div className="ml-auto shrink-0">{headerAction}</div>}
       </div>
@@ -173,12 +184,14 @@ export function SessionStreamPanel({
           <div className="flex items-center justify-center h-full">
             <div className="flex flex-col items-center gap-2 text-muted-foreground">
               <div className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" />
-              <span className="text-xs">Loading session...</span>
+              <span className="text-xs">{tr('Loading session...', '正在加载会话...')}</span>
             </div>
           </div>
         ) : messages.length === 0 && !hasStreamingContent ? (
           <div className="flex items-center justify-center h-full">
-            <span className="text-sm text-muted-foreground">No messages yet</span>
+            <span className="text-sm text-muted-foreground">
+              {tr('No messages yet', '暂无消息')}
+            </span>
           </div>
         ) : (
           <div

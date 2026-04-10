@@ -2,6 +2,7 @@ import { Bot, MessageSquareText } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import type { BoardChatStatus } from '@/stores/useBoardChatStore'
+import { useI18n } from '@/i18n/useI18n'
 
 interface BoardChatLauncherProps {
   disabled?: boolean
@@ -30,6 +31,7 @@ export function BoardChatLauncher({
   onClick,
   status
 }: BoardChatLauncherProps): React.JSX.Element {
+  const { tr } = useI18n()
   return (
     <div className="pointer-events-auto">
       <Button
@@ -51,7 +53,7 @@ export function BoardChatLauncher({
           <span className={cn('h-2.5 w-2.5 rounded-full', getStatusTone(status))} />
         )}
         <MessageSquareText className="h-4 w-4" />
-        <span className="text-sm font-medium">Board Assistant</span>
+        <span className="text-sm font-medium">{tr('Board Assistant', '看板助手')}</span>
       </Button>
     </div>
   )

@@ -10,6 +10,7 @@ import { RunOutputLine } from './RunOutputLine'
 import type { SearchHighlight } from './RunOutputLine'
 import { RunOutputSearch } from './RunOutputSearch'
 import type { RunSearchMatch } from './RunOutputSearch'
+import { useI18n } from '@/i18n/useI18n'
 
 interface RunTabProps {
   worktreeId: string | null
@@ -18,6 +19,7 @@ interface RunTabProps {
 const ROW_ESTIMATE_PX = 20
 
 export function RunTab({ worktreeId }: RunTabProps): React.JSX.Element {
+  const { tr } = useI18n()
   const outputRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -278,12 +280,12 @@ export function RunTab({ worktreeId }: RunTabProps): React.JSX.Element {
           {runRunning ? (
             <>
               <span className="h-2 w-2 rounded-full bg-green-500 shrink-0" />
-              <span className="text-muted-foreground">Running</span>
+              <span className="text-muted-foreground">{tr('Running', '运行中')}</span>
             </>
           ) : lineCount > 0 ? (
             <>
               <span className="h-2 w-2 rounded-full bg-muted-foreground shrink-0" />
-              <span className="text-muted-foreground">Stopped</span>
+              <span className="text-muted-foreground">{tr('Stopped', '已停止')}</span>
             </>
           ) : null}
           {assignedPort && (

@@ -6,6 +6,7 @@ import { QueuedMessageBubble } from './QueuedMessageBubble'
 import type { OpenCodeMessage } from './SessionView'
 import { formatCompletionDuration } from '@/lib/format-utils'
 import beeIcon from '@/assets/bee.png'
+import { useI18n } from '@/i18n/useI18n'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -73,6 +74,7 @@ export const VirtualizedMessageList = memo(
   completionEntry,
   scrollElement
 }: VirtualizedMessageListProps, ref): React.JSX.Element {
+  const { tr } = useI18n()
   // Build the flat item array that drives the virtualizer
   const items = useMemo(() => {
     const result: VirtualItem[] = []
@@ -190,7 +192,7 @@ export const VirtualizedMessageList = memo(
               <div className="flex items-start gap-2 text-destructive">
                 <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
                 <div>
-                  <p className="text-sm font-medium">Session error</p>
+                  <p className="text-sm font-medium">{tr('Session error', '会话错误')}</p>
                   <p className="mt-0.5 text-sm text-destructive/90">{sessionErrorMessage}</p>
                   {sessionErrorStderr && (
                     <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap break-words rounded bg-destructive/10 px-2 py-1.5 font-mono text-xs text-destructive/80">
@@ -241,7 +243,7 @@ export const VirtualizedMessageList = memo(
               {isCompacting ? (
                 <div className="flex items-center gap-1.5 text-muted-foreground text-xs">
                   <Minimize2 className="h-3.5 w-3.5 animate-pulse" />
-                  <span>Compacting conversation...</span>
+                  <span>{tr('Compacting conversation...', '正在压缩会话内容...')}</span>
                 </div>
               ) : (
                 <div className="flex items-center gap-1.5">
@@ -271,7 +273,8 @@ export const VirtualizedMessageList = memo(
             >
               <img src={beeIcon} alt="bee" className="h-7 w-7" />
               <span className="font-medium">
-                {completionEntry?.word ?? 'Worked'} for{' '}
+                {completionEntry?.word ?? tr('Worked', '已工作')}{' '}
+                {tr('for', '持续')}
                 {formatCompletionDuration(completionEntry?.durationMs ?? 0)}
               </span>
             </div>

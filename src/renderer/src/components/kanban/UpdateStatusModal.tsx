@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useCallback, useState, useEffect } from 'react'
 import { getProviderSettings } from '@/lib/provider-settings'
 import { Loader2, RefreshCw } from 'lucide-react'
 import {
@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
+import { useI18n } from '@/i18n/useI18n'
 
 interface UpdateStatusModalProps {
   open: boolean
@@ -27,14 +28,15 @@ export function UpdateStatusModal({
   externalUrl,
   ticketTitle
 }: UpdateStatusModalProps) {
+  const { tr } = useI18n()
   const [statuses, setStatuses] = useState<Array<{ id: string; label: string }>>([])
   const [loading, setLoading] = useState(false)
   const [updating, setUpdating] = useState(false)
 
-  const getRepoFromUrl = (): string | null => {
+  const getRepoFromUrl = useCallback((): string | null => {
     const match = externalUrl.match(/github\.com\/([^/]+\/[^/]+)/)
     return match ? match[1] : null
-  }
+  }, [externalUrl])
 
   useEffect(() => {
     if (!open) return
@@ -46,11 +48,13 @@ export function UpdateStatusModal({
       .getAvailableStatuses(externalProvider, repo, externalId, getProviderSettings())
       .then(setStatuses)
       .catch((err) => {
-        toast.error(`Failed to fetch statuses: ${err instanceof Error ? err.message : String(err)}`)
+        toast.error(
+          `${tr('Failed to fetch statuses', '获取状态失败')}: ${err instanceof Error ? err.message : String(err)}`
+        )
         setStatuses([])
       })
       .finally(() => setLoading(false))
-  }, [open, externalProvider, externalId, externalUrl])
+  }, [open, externalProvider, externalId, externalUrl, getRepoFromUrl, tr])
 
   const handleUpdate = async (statusId: string) => {
     const repo = getRepoFromUrl()
@@ -66,13 +70,15 @@ export function UpdateStatusModal({
         getProviderSettings()
       )
       if (result.success) {
-        toast.success(`Updated #${externalId} to "${statuses.find((s) => s.id === statusId)?.label}"`)
+        toast.success(
+          `${tr('Updated', '已更新')} #${externalId} ${tr('to', '为')} "${statuses.find((s) => s.id === statusId)?.label}"`
+        )
         onOpenChange(false)
       } else {
-        toast.error(result.error ?? 'Failed to update status')
+        toast.error(result.error ?? tr('Failed to update status', '更新状态失败'))
       }
     } catch (err) {
-      toast.error(`Failed: ${err instanceof Error ? err.message : String(err)}`)
+      toast.error(`${tr('Failed', '失败')}: ${err instanceof Error ? err.message : String(err)}`)
     } finally {
       setUpdating(false)
     }
@@ -84,7 +90,7 @@ export function UpdateStatusModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-sm">
             <RefreshCw className="h-4 w-4" />
-            Update status on GitHub
+            {tr('Update status on GitHub', '更新 GitHub 状态')}
           </DialogTitle>
           <p className="text-xs text-muted-foreground truncate mt-1">
             #{externalId} — {ticketTitle}
@@ -95,7 +101,7 @@ export function UpdateStatusModal({
           {loading ? (
             <div className="flex items-center justify-center gap-2 py-4 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
-              Loading statuses...
+              {tr('Loading statuses...', '正在加载状态...')}
             </div>
           ) : (
             statuses.map((status) => (

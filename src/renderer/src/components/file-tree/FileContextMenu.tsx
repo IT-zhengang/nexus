@@ -20,6 +20,7 @@ import {
 } from 'lucide-react'
 import { useGitStore, type GitStatusCode } from '@/stores/useGitStore'
 import { DiffModal } from '@/components/diff'
+import { useI18n } from '@/i18n/useI18n'
 
 interface FileTreeNode {
   name: string
@@ -49,6 +50,7 @@ export function FileContextMenu({
   onClose,
   hideGitContextActions
 }: FileContextMenuProps): React.JSX.Element {
+  const { tr } = useI18n()
   const isWebMode = useIsWebMode()
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false)
   const [showDiffModal, setShowDiffModal] = useState(false)
@@ -132,19 +134,19 @@ export function FileContextMenu({
               {showViewChanges && (
                 <ContextMenuItem onClick={handleViewChanges}>
                   <FileDiff className="mr-2 h-4 w-4 text-blue-500" />
-                  View Changes
+                  {tr('View Changes', '查看变更')}
                 </ContextMenuItem>
               )}
               {showStage && (
                 <ContextMenuItem onClick={handleStage}>
                   <GitBranch className="mr-2 h-4 w-4 text-green-500" />
-                  Stage File
+                  {tr('Stage File', '暂存文件')}
                 </ContextMenuItem>
               )}
               {showUnstage && (
                 <ContextMenuItem onClick={handleUnstage}>
                   <GitBranch className="mr-2 h-4 w-4 text-yellow-500" />
-                  Unstage File
+                  {tr('Unstage File', '取消暂存文件')}
                 </ContextMenuItem>
               )}
               {showDiscard && (
@@ -153,14 +155,16 @@ export function FileContextMenu({
                   className={showDiscardConfirm ? 'text-red-500' : ''}
                 >
                   <Trash2 className="mr-2 h-4 w-4 text-red-500" />
-                  {showDiscardConfirm ? 'Click again to confirm' : 'Discard Changes'}
+                  {showDiscardConfirm
+                    ? tr('Click again to confirm', '再次点击以确认')
+                    : tr('Discard Changes', '丢弃变更')}
                   {showDiscardConfirm && <AlertCircle className="ml-auto h-4 w-4 text-red-500" />}
                 </ContextMenuItem>
               )}
               {showGitignore && (
                 <ContextMenuItem onClick={handleAddToGitignore}>
                   <EyeOff className="mr-2 h-4 w-4 text-gray-500" />
-                  Add to .gitignore
+                  {tr('Add to .gitignore', '添加到 .gitignore')}
                 </ContextMenuItem>
               )}
               <ContextMenuSeparator />
@@ -170,7 +174,7 @@ export function FileContextMenu({
           {/* File actions */}
           <ContextMenuItem onClick={handleOpenInEditor}>
             <FileCode className="mr-2 h-4 w-4" />
-            Open in Editor
+            {tr('Open in Editor', '在编辑器中打开')}
           </ContextMenuItem>
           {!isWebMode && (
             <ContextMenuItem onClick={handleOpenInFinder}>
@@ -184,12 +188,12 @@ export function FileContextMenu({
           {/* Copy actions */}
           <ContextMenuItem onClick={handleCopyPath}>
             <Copy className="mr-2 h-4 w-4" />
-            Copy Path
+            {tr('Copy Path', '复制路径')}
             <ContextMenuShortcut>Abs</ContextMenuShortcut>
           </ContextMenuItem>
           <ContextMenuItem onClick={handleCopyRelativePath}>
             <Copy className="mr-2 h-4 w-4" />
-            Copy Relative Path
+            {tr('Copy Relative Path', '复制相对路径')}
             <ContextMenuShortcut>Rel</ContextMenuShortcut>
           </ContextMenuItem>
         </ContextMenuContent>

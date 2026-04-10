@@ -12,6 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
+import { useI18n } from '@/i18n/useI18n'
 
 interface ModelInfo {
   id: string
@@ -54,6 +55,7 @@ export function ModelSelector({
   disableTitleTooltip = false,
   hideProviderPrefix = false
 }: ModelSelectorProps): React.JSX.Element {
+  const { tr } = useI18n()
   // Read per-session model from session store (with global fallback)
   const session = useSessionStore((state) => {
     if (!sessionId) return null
@@ -331,11 +333,13 @@ export function ModelSelector({
               'border select-none',
               'bg-muted/50 border-border text-muted-foreground hover:bg-muted hover:text-foreground'
             )}
-            title={disableTitleTooltip ? undefined : 'Select model'}
-            aria-label={`Current model: ${displayName}. Click to change model`}
+            title={disableTitleTooltip ? undefined : tr('Select model', '选择模型')}
+            aria-label={tr(`Current model: ${displayName}. Click to change model`, `当前模型：${displayName}。点击以更换模型`)}
             data-testid="model-selector"
           >
-            <span className="truncate max-w-[140px]">{isLoading ? 'Loading...' : displayName}</span>
+            <span className="truncate max-w-[140px]">
+              {isLoading ? tr('Loading...', '加载中...') : displayName}
+            </span>
             {hasVariants && selectedModel?.variant && (
               <span
                 className="text-[10px] font-semibold text-primary uppercase"
@@ -355,7 +359,7 @@ export function ModelSelector({
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
               onKeyDown={(e) => e.stopPropagation()}
-              placeholder="Filter models..."
+              placeholder={tr('Filter models...', '筛选模型...')}
               className="flex-1 bg-transparent text-xs outline-none placeholder:text-muted-foreground/60"
             />
           </div>

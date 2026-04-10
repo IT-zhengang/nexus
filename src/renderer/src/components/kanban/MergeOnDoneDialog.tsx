@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
 import { Loader2, GitMerge, GitCommit, Archive } from 'lucide-react'
+import { useI18n } from '@/i18n/useI18n'
 
 type Step = 'loading' | 'commit_base' | 'commit' | 'merge' | 'archive'
 
@@ -31,6 +32,7 @@ interface ResolvedState {
 }
 
 export function MergeOnDoneDialog() {
+  const { tr } = useI18n()
   const pendingDoneMove = useKanbanStore((s) => s.pendingDoneMove)
   const completeDoneMove = useKanbanStore((s) => s.completeDoneMove)
 
@@ -77,7 +79,7 @@ export function MergeOnDoneDialog() {
         const resolvedBaseBranch = featureWorktree.base_branch ?? defaultWt?.branch_name
 
         if (!resolvedBaseBranch) {
-          toast.warning('Cannot merge — no base branch resolved')
+          toast.warning(tr('Cannot merge — no base branch resolved', '无法合并：未解析到基础分支'))
           await completeDoneMove()
           return
         }
@@ -88,7 +90,9 @@ export function MergeOnDoneDialog() {
         )
 
         if (!baseWorktree) {
-          toast.warning(`Cannot merge — no worktree for ${resolvedBaseBranch}`)
+          toast.warning(
+            `${tr('Cannot merge — no worktree for', '无法合并：未找到对应工作树')} ${resolvedBaseBranch}`
+          )
           await completeDoneMove()
           return
         }
@@ -169,7 +173,9 @@ export function MergeOnDoneDialog() {
         setStep(baseDirty ? 'commit_base' : hasUncommitted ? 'commit' : 'merge')
       } catch (err) {
         if (!cancelled) {
-          toast.error(`Failed to check branch: ${err instanceof Error ? err.message : String(err)}`)
+          toast.error(
+            `${tr('Failed to check branch', '检查分支失败')}: ${err instanceof Error ? err.message : String(err)}`
+          )
           await completeDoneMove()
         }
       }
@@ -179,7 +185,7 @@ export function MergeOnDoneDialog() {
     return () => {
       cancelled = true
     }
-  }, [pendingDoneMove, completeDoneMove])
+  }, [pendingDoneMove, completeDoneMove, tr])
 
   const handleCommit = useCallback(async () => {
     if (!resolved || !commitMessage.trim()) return
@@ -187,7 +193,7 @@ export function MergeOnDoneDialog() {
     try {
       const stageResult = await window.gitOps.stageAll(resolved.featureWorktreePath)
       if (!stageResult.success) {
-        toast.error(`Failed to stage: ${stageResult.error}`)
+        toast.error(`${tr('Failed to stage', '暂存失败')}: ${stageResult.error}`)
         return
       }
 
@@ -196,11 +202,11 @@ export function MergeOnDoneDialog() {
         commitMessage.trim()
       )
       if (!commitResult.success) {
-        toast.error(`Failed to commit: ${commitResult.error}`)
+        toast.error(`${tr('Failed to commit', '提交失败')}: ${commitResult.error}`)
         return
       }
 
-      toast.success('Changes committed')
+      toast.success(tr('Changes committed', '更改已提交'))
 
       // Re-check branch divergence after commit
       const statResult = await window.gitOps.branchDiffShortStat(
@@ -228,11 +234,11 @@ export function MergeOnDoneDialog() {
         await completeDoneMove()
       }
     } catch (err) {
-      toast.error(`Commit failed: ${err instanceof Error ? err.message : String(err)}`)
+      toast.error(`${tr('Commit failed', '提交失败')}: ${err instanceof Error ? err.message : String(err)}`)
     } finally {
       setCommitting(false)
     }
-  }, [resolved, commitMessage, completeDoneMove])
+  }, [resolved, commitMessage, completeDoneMove, tr])
 
   const handleCommitBase = useCallback(async () => {
     if (!resolved || !baseCommitMessage.trim()) return
@@ -240,7 +246,9 @@ export function MergeOnDoneDialog() {
     try {
       const stageResult = await window.gitOps.stageAll(resolved.baseWorktreePath)
       if (!stageResult.success) {
-        toast.error(`Failed to stage on ${resolved.baseBranch}: ${stageResult.error}`)
+        toast.error(
+          `${tr('Failed to stage on', '在以下分支暂存失败')} ${resolved.baseBranch}: ${stageResult.error}`
+        )
         return
       }
 
@@ -249,11 +257,13 @@ export function MergeOnDoneDialog() {
         baseCommitMessage.trim()
       )
       if (!commitResult.success) {
-        toast.error(`Failed to commit on ${resolved.baseBranch}: ${commitResult.error}`)
+        toast.error(
+          `${tr('Failed to commit on', '在以下分支提交失败')} ${resolved.baseBranch}: ${commitResult.error}`
+        )
         return
       }
 
-      toast.success(`Changes committed on ${resolved.baseBranch}`)
+      toast.success(`${tr('Changes committed on', '已在以下分支提交更改')} ${resolved.baseBranch}`)
 
       // Check if feature branch still has uncommitted changes
       const featureHasUncommitted = await window.gitOps.hasUncommittedChanges(
@@ -288,11 +298,11 @@ export function MergeOnDoneDialog() {
         }
       }
     } catch (err) {
-      toast.error(`Commit failed: ${err instanceof Error ? err.message : String(err)}`)
+      toast.error(`${tr('Commit failed', '提交失败')}: ${err instanceof Error ? err.message : String(err)}`)
     } finally {
       setCommittingBase(false)
     }
-  }, [resolved, baseCommitMessage, completeDoneMove])
+  }, [resolved, baseCommitMessage, completeDoneMove, tr])
 
   const handleMerge = useCallback(async () => {
     if (!resolved) return
@@ -303,7 +313,9 @@ export function MergeOnDoneDialog() {
       if (remoteResult.url) {
         const pullResult = await window.gitOps.pull(resolved.baseWorktreePath)
         if (!pullResult.success) {
-          toast.warning(`Pull failed on ${resolved.baseBranch} — continuing with local merge`)
+          toast.warning(
+            `${tr('Pull failed on', '在以下分支拉取失败')} ${resolved.baseBranch} — ${tr('continuing with local merge', '继续执行本地合并')}`
+          )
         }
       }
 
@@ -318,24 +330,27 @@ export function MergeOnDoneDialog() {
         if (mergeResult.conflicts && mergeResult.conflicts.length > 0) {
           await window.gitOps.mergeAbort(resolved.baseWorktreePath)
           toast.error(
-            `Merge conflicts in ${mergeResult.conflicts.length} file${mergeResult.conflicts.length !== 1 ? 's' : ''} — merge manually`
+            `${tr('Merge conflicts in', '以下文件存在合并冲突')} ${mergeResult.conflicts.length} ${tr(
+              mergeResult.conflicts.length !== 1 ? 'files' : 'file',
+              '个文件'
+            )} — ${tr('merge manually', '请手动合并')}`
           )
         } else {
-          toast.error(`Merge failed: ${mergeResult.error}`)
+          toast.error(`${tr('Merge failed', '合并失败')}: ${mergeResult.error}`)
         }
         await completeDoneMove()
         return
       }
 
-      toast.success('Branch merged successfully')
+      toast.success(tr('Branch merged successfully', '分支合并成功'))
       setStep('archive')
     } catch (err) {
-      toast.error(`Merge failed: ${err instanceof Error ? err.message : String(err)}`)
+      toast.error(`${tr('Merge failed', '合并失败')}: ${err instanceof Error ? err.message : String(err)}`)
       await completeDoneMove()
     } finally {
       setMerging(false)
     }
-  }, [resolved, completeDoneMove])
+  }, [resolved, completeDoneMove, tr])
 
   const handleArchive = useCallback(async () => {
     if (!resolved) return
@@ -349,24 +364,24 @@ export function MergeOnDoneDialog() {
       )
 
       if (result.success) {
-        toast.success('Worktree archived')
+        toast.success(tr('Worktree archived', '工作树已归档'))
       } else {
-        toast.error(`Failed to archive: ${result.error}`)
+        toast.error(`${tr('Failed to archive', '归档失败')}: ${result.error}`)
       }
     } catch (err) {
-      toast.error(`Archive failed: ${err instanceof Error ? err.message : String(err)}`)
+      toast.error(`${tr('Archive failed', '归档失败')}: ${err instanceof Error ? err.message : String(err)}`)
     } finally {
       setArchiving(false)
       await completeDoneMove()
     }
-  }, [resolved, completeDoneMove])
+  }, [resolved, completeDoneMove, tr])
 
   const stepTitle: Record<Step, string> = {
-    loading: 'Moving to Done...',
-    commit_base: 'Uncommitted changes on base',
-    commit: 'Uncommitted changes',
-    merge: 'Merge branch',
-    archive: 'Archive worktree'
+    loading: tr('Moving to Done...', '正在移至已完成...'),
+    commit_base: tr('Uncommitted changes on base', '基础分支上有未提交更改'),
+    commit: tr('Uncommitted changes', '存在未提交更改'),
+    merge: tr('Merge branch', '合并分支'),
+    archive: tr('Archive worktree', '归档工作树')
   }
 
   const stepIcon: Record<Step, React.ReactNode> = {
@@ -395,30 +410,30 @@ export function MergeOnDoneDialog() {
         {step === 'loading' && (
           <div className="flex items-center justify-center gap-2 py-6 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" />
-            Checking branch status...
+            {tr('Checking branch status...', '正在检查分支状态...')}
           </div>
         )}
 
         {step === 'commit_base' && resolved && (
           <div className="flex flex-col gap-3 py-2">
             <p className="text-xs text-muted-foreground">
-              <code className="bg-muted px-1 rounded">{resolved.baseBranch}</code> has uncommitted
-              changes:{' '}
-              {resolved.baseUncommittedStats.filesChanged} files changed,{' '}
+              <code className="bg-muted px-1 rounded">{resolved.baseBranch}</code>{' '}
+              {tr('has uncommitted changes', '有未提交更改')}:{' '}
+              {resolved.baseUncommittedStats.filesChanged} {tr('files changed', '个文件已更改')},{' '}
               <span className="text-green-500">+{resolved.baseUncommittedStats.insertions}</span>{' '}
               <span className="text-red-500">-{resolved.baseUncommittedStats.deletions}</span>
             </p>
             <Input
               value={baseCommitMessage}
               onChange={(e) => setBaseCommitMessage(e.target.value)}
-              placeholder="Commit message for base branch"
+              placeholder={tr('Commit message for base branch', '基础分支的提交信息')}
             />
             <div className="flex items-center justify-between">
               <button
                 onClick={() => completeDoneMove()}
                 className="text-xs text-muted-foreground hover:text-foreground"
               >
-                Skip, just move to Done
+                {tr('Skip, just move to Done', '跳过，直接移至已完成')}
               </button>
               <Button
                 size="sm"
@@ -430,7 +445,7 @@ export function MergeOnDoneDialog() {
                 ) : (
                   <GitCommit className="h-3 w-3 mr-1" />
                 )}
-                Commit
+                {tr('Commit', '提交')}
               </Button>
             </div>
           </div>
@@ -439,21 +454,21 @@ export function MergeOnDoneDialog() {
         {step === 'commit' && resolved && (
           <div className="flex flex-col gap-3 py-2">
             <p className="text-xs text-muted-foreground">
-              {resolved.uncommittedStats.filesChanged} files changed,{' '}
+              {resolved.uncommittedStats.filesChanged} {tr('files changed', '个文件已更改')},{' '}
               <span className="text-green-500">+{resolved.uncommittedStats.insertions}</span>{' '}
               <span className="text-red-500">-{resolved.uncommittedStats.deletions}</span>
             </p>
             <Input
               value={commitMessage}
               onChange={(e) => setCommitMessage(e.target.value)}
-              placeholder="Commit message"
+              placeholder={tr('Commit message', '提交信息')}
             />
             <div className="flex items-center justify-between">
               <button
                 onClick={() => completeDoneMove()}
                 className="text-xs text-muted-foreground hover:text-foreground"
               >
-                Skip, just move to Done
+                {tr('Skip, just move to Done', '跳过，直接移至已完成')}
               </button>
               <Button
                 size="sm"
@@ -465,7 +480,7 @@ export function MergeOnDoneDialog() {
                 ) : (
                   <GitCommit className="h-3 w-3 mr-1" />
                 )}
-                Commit
+                {tr('Commit', '提交')}
               </Button>
             </div>
           </div>
@@ -474,22 +489,21 @@ export function MergeOnDoneDialog() {
         {step === 'merge' && resolved && (
           <div className="flex flex-col gap-3 py-2">
             <p className="text-xs text-muted-foreground">
-              Merge <code className="bg-muted px-1 rounded">{resolved.featureBranch}</code> into{' '}
+              {tr('Merge', '合并')} <code className="bg-muted px-1 rounded">{resolved.featureBranch}</code> {tr('into', '到')}{' '}
               <code className="bg-muted px-1 rounded">{resolved.baseBranch}</code>
             </p>
             <p className="text-xs text-muted-foreground">
-              {resolved.branchStats.filesChanged} files changed,
+              {resolved.branchStats.filesChanged} {tr('files changed', '个文件已更改')}，
               <span className="text-green-500"> +{resolved.branchStats.insertions}</span>
-              <span className="text-red-500"> -{resolved.branchStats.deletions}</span>,{' '}
-              {resolved.branchStats.commitsAhead} commit
-              {resolved.branchStats.commitsAhead !== 1 ? 's' : ''} ahead
+              <span className="text-red-500"> -{resolved.branchStats.deletions}</span>，
+              {resolved.branchStats.commitsAhead} {tr('commits ahead', '个提交领先')}
             </p>
             <div className="flex items-center justify-between">
               <button
                 onClick={() => completeDoneMove()}
                 className="text-xs text-muted-foreground hover:text-foreground"
               >
-                Skip, just move to Done
+                {tr('Skip, just move to Done', '跳过，直接移至已完成')}
               </button>
               <Button size="sm" onClick={handleMerge} disabled={merging}>
                 {merging ? (
@@ -497,7 +511,7 @@ export function MergeOnDoneDialog() {
                 ) : (
                   <GitMerge className="h-3 w-3 mr-1" />
                 )}
-                Merge
+                {tr('Merge', '合并')}
               </Button>
             </div>
           </div>
@@ -506,12 +520,12 @@ export function MergeOnDoneDialog() {
         {step === 'archive' && resolved && (
           <div className="flex flex-col gap-3 py-2">
             <p className="text-xs text-muted-foreground">
-              Merge successful! Archive the{' '}
-              <code className="bg-muted px-1 rounded">{resolved.featureBranch}</code> worktree?
+              {tr('Merge successful! Archive the', '合并成功！是否归档')}{' '}
+              <code className="bg-muted px-1 rounded">{resolved.featureBranch}</code> {tr('worktree?', '工作树？')}
             </p>
             <div className="flex items-center justify-between">
               <Button variant="outline" size="sm" onClick={() => completeDoneMove()}>
-                Keep
+                {tr('Keep', '保留')}
               </Button>
               <Button size="sm" onClick={handleArchive} disabled={archiving}>
                 {archiving ? (
@@ -519,7 +533,7 @@ export function MergeOnDoneDialog() {
                 ) : (
                   <Archive className="h-3 w-3 mr-1" />
                 )}
-                Archive
+                {tr('Archive', '归档')}
               </Button>
             </div>
           </div>

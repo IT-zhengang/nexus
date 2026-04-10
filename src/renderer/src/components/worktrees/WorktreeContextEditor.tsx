@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { MarkdownRenderer } from '@/components/sessions/MarkdownRenderer'
 import { useFileViewerStore } from '@/stores/useFileViewerStore'
 import { toast } from '@/lib/toast'
+import { useI18n } from '@/i18n'
 
 interface WorktreeContextEditorProps {
   worktreeId: string
@@ -12,6 +13,7 @@ interface WorktreeContextEditorProps {
 export function WorktreeContextEditor({
   worktreeId
 }: WorktreeContextEditorProps): React.JSX.Element {
+  const { tr } = useI18n()
   const [content, setContent] = useState('')
   const [savedContent, setSavedContent] = useState('')
   const [isEditing, setIsEditing] = useState(false)
@@ -38,7 +40,7 @@ export function WorktreeContextEditor({
         }
       } catch {
         if (!cancelled) {
-          toast.error('Failed to load worktree context')
+          toast.error(tr('Failed to load worktree context', '加载工作树上下文失败'))
         }
       } finally {
         if (!cancelled) {
@@ -50,7 +52,7 @@ export function WorktreeContextEditor({
     return () => {
       cancelled = true
     }
-  }, [worktreeId])
+  }, [worktreeId, tr])
 
   const handleSave = useCallback(async () => {
     setIsSaving(true)
@@ -58,16 +60,16 @@ export function WorktreeContextEditor({
       const result = await window.worktreeOps.updateContext(worktreeId, content || null)
       if (result.success) {
         setSavedContent(content)
-        toast.success('Context saved')
+        toast.success(tr('Context saved', '上下文已保存'))
       } else {
-        toast.error(result.error || 'Failed to save context')
+        toast.error(result.error || tr('Failed to save context', '保存上下文失败'))
       }
     } catch {
-      toast.error('Failed to save context')
+      toast.error(tr('Failed to save context', '保存上下文失败'))
     } finally {
       setIsSaving(false)
     }
-  }, [worktreeId, content])
+  }, [worktreeId, content, tr])
 
   // Save on Cmd+S / Ctrl+S
   useEffect(() => {
@@ -88,11 +90,13 @@ export function WorktreeContextEditor({
 
   const handleClose = useCallback(() => {
     if (hasUnsavedChanges) {
-      const confirmed = window.confirm('You have unsaved changes. Discard them?')
+      const confirmed = window.confirm(
+        tr('You have unsaved changes. Discard them?', '你有未保存的更改。要放弃它们吗？')
+      )
       if (!confirmed) return
     }
     useFileViewerStore.getState().closeContextEditor()
-  }, [hasUnsavedChanges])
+  }, [hasUnsavedChanges, tr])
 
   if (isLoading) {
     return (
@@ -110,11 +114,11 @@ export function WorktreeContextEditor({
       <div className="flex items-center gap-2 px-4 py-2 border-b border-border bg-muted/30">
         {/* Left: icon + title + unsaved indicator */}
         <FileText className="h-4 w-4 text-emerald-400 flex-shrink-0" />
-        <span className="text-sm font-bold">Worktree Context</span>
+        <span className="text-sm font-bold">{tr('Worktree Context', '工作树上下文')}</span>
         {hasUnsavedChanges && isEditing && (
           <span
             className="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0"
-            title="Unsaved changes"
+            title={tr('Unsaved changes', '未保存的更改')}
           />
         )}
 
@@ -130,7 +134,7 @@ export function WorktreeContextEditor({
             onClick={() => setIsEditing(false)}
           >
             <Eye className="h-3.5 w-3.5" />
-            Preview
+            {tr('Preview', '预览')}
           </Button>
           <Button
             variant={isEditing ? 'secondary' : 'ghost'}
@@ -139,7 +143,7 @@ export function WorktreeContextEditor({
             onClick={() => setIsEditing(true)}
           >
             <Pencil className="h-3.5 w-3.5" />
-            Edit
+            {tr('Edit', '编辑')}
           </Button>
         </div>
 
@@ -147,7 +151,7 @@ export function WorktreeContextEditor({
         <button
           onClick={handleClose}
           className="p-1 rounded hover:bg-accent transition-colors"
-          title="Close"
+          title={tr('Close', '关闭')}
         >
           <X className="h-4 w-4" />
         </button>
@@ -160,7 +164,10 @@ export function WorktreeContextEditor({
             value={content}
             onChange={(e) => setContent(e.target.value)}
             placeholder={
-              'Enter worktree context here. This markdown will be injected into the first prompt of each new AI session.\n\nExample:\n## Feature: User Authentication\n- Working on login/signup flow\n- Backend API at /api/auth\n- Using JWT tokens'
+              tr(
+                'Enter worktree context here. This markdown will be injected into the first prompt of each new AI session.\n\nExample:\n## Feature: User Authentication\n- Working on login/signup flow\n- Backend API at /api/auth\n- Using JWT tokens',
+                '在这里输入工作树上下文。该 Markdown 会注入到每个新 AI 会话的第一条提示中。\n\n示例：\n## 功能：用户认证\n- 正在开发登录/注册流程\n- 后端 API 位于 /api/auth\n- 使用 JWT 令牌'
+              )
             }
             className="w-full h-full resize-none bg-transparent font-mono text-sm p-4 focus:outline-none"
           />
@@ -170,8 +177,10 @@ export function WorktreeContextEditor({
           </div>
         ) : (
           <div className="flex items-center justify-center h-full text-sm text-muted-foreground px-8 text-center">
-            No worktree context set. Click Edit to add context that will be injected into AI
-            sessions.
+            {tr(
+              'No worktree context set. Click Edit to add context that will be injected into AI sessions.',
+              '尚未设置工作树上下文。点击“编辑”可添加会注入到 AI 会话中的上下文。'
+            )}
           </div>
         )}
       </div>
@@ -190,7 +199,7 @@ export function WorktreeContextEditor({
             ) : (
               <Save className="h-3.5 w-3.5" />
             )}
-            Save Context
+            {tr('Save Context', '保存上下文')}
           </Button>
         </div>
       )}

@@ -1,5 +1,6 @@
 import { AlertTriangle, RefreshCw } from 'lucide-react'
 import { Button } from '../ui/button'
+import { useI18n } from '@/i18n'
 
 interface ErrorFallbackProps {
   error?: Error | null
@@ -16,7 +17,10 @@ export function ErrorFallback({
   message,
   compact = false
 }: ErrorFallbackProps): JSX.Element {
-  const errorMessage = message || error?.message || 'An unexpected error occurred'
+  const { tr } = useI18n()
+  const resolvedTitle =
+    title === 'Something went wrong' ? tr('Something went wrong', '出现了一些问题') : title
+  const errorMessage = message || error?.message || tr('An unexpected error occurred', '发生了一个意外错误')
 
   if (compact) {
     return (
@@ -35,12 +39,12 @@ export function ErrorFallback({
   return (
     <div className="flex flex-col items-center justify-center p-6 text-center">
       <AlertTriangle className="h-8 w-8 text-destructive mb-3" />
-      <h3 className="font-medium mb-1">{title}</h3>
+      <h3 className="font-medium mb-1">{resolvedTitle}</h3>
       <p className="text-sm text-muted-foreground mb-4 max-w-sm">{errorMessage}</p>
       {resetError && (
         <Button variant="outline" size="sm" onClick={resetError}>
           <RefreshCw className="h-4 w-4 mr-2" />
-          Try Again
+          {tr('Try Again', '重试')}
         </Button>
       )}
     </div>

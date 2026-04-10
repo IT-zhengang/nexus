@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { X, GitPullRequest } from 'lucide-react'
 import { PopoverContent } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
@@ -8,6 +8,7 @@ import { useProjectStore } from '@/stores/useProjectStore'
 import { useGitStore } from '@/stores/useGitStore'
 import { useWorktreeStore } from '@/stores/useWorktreeStore'
 import type { KanbanTicket } from '../../../../main/db/types'
+import { useI18n } from '@/i18n/useI18n'
 
 interface PRItem {
   number: number
@@ -36,6 +37,7 @@ function getStateBadgeClass(state: string): string {
 }
 
 export function AttachPRPopover({ ticket, open, onOpenChange }: AttachPRPopoverProps) {
+  const { tr } = useI18n()
   const [prs, setPRs] = useState<PRItem[]>([])
   const [filter, setFilter] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -57,7 +59,7 @@ export function AttachPRPopover({ ticket, open, onOpenChange }: AttachPRPopoverP
 
   // ── Helpers ────────────────────────────────────────────────────────
 
-  function buildPRUrl(prNumber: number): string {
+  const buildPRUrl = useCallback((prNumber: number): string => {
     const worktrees =
       useWorktreeStore.getState().worktreesByProject.get(ticket.project_id) ?? []
     for (const wt of worktrees) {
@@ -68,15 +70,15 @@ export function AttachPRPopover({ ticket, open, onOpenChange }: AttachPRPopoverP
       }
     }
     return ''
-  }
+  }, [ticket.project_id])
 
-  function getTicketBranchName(): string {
+  const getTicketBranchName = useCallback((): string => {
     if (!ticket.worktree_id) return ''
     const worktrees =
       useWorktreeStore.getState().worktreesByProject.get(ticket.project_id) ?? []
     const wt = worktrees.find((w) => w.id === ticket.worktree_id)
     return wt?.branch_name ?? ''
-  }
+  }, [ticket.project_id, ticket.worktree_id])
 
   // ── Load PR list on open ───────────────────────────────────────────
   useEffect(() => {
@@ -113,12 +115,12 @@ export function AttachPRPopover({ ticket, open, onOpenChange }: AttachPRPopoverP
           })
           setPRs(sorted)
         } else {
-          setError(result.error ?? 'Failed to load PRs')
+          setError(result.error ?? tr('Failed to load PRs', '加载 PR 失败'))
         }
       })
       .catch(() => {
         if (stale) return
-        setError('Failed to load PRs')
+        setError(tr('Failed to load PRs', '加载 PR 失败'))
       })
       .finally(() => {
         if (stale) return
@@ -128,7 +130,7 @@ export function AttachPRPopover({ ticket, open, onOpenChange }: AttachPRPopoverP
     return () => {
       stale = true
     }
-  }, [open, ticket.project_id, ticket.worktree_id])
+  }, [open, ticket.project_id, ticket.worktree_id, getTicketBranchName, tr])
 
   // ── Auto-focus input when open ─────────────────────────────────────
   useEffect(() => {
@@ -216,11 +218,13 @@ export function AttachPRPopover({ ticket, open, onOpenChange }: AttachPRPopoverP
     !filteredPRs.some((p) => p.number === lookedUpPR.number)
 
   // All selectable items for keyboard nav
-  const allItems: Array<PRItem | { number: number; title: string; state: string; isLookedUp: true }> =
-    [
+  const allItems: Array<PRItem | { number: number; title: string; state: string; isLookedUp: true }> = useMemo(
+    () => [
       ...(showLookedUp ? [{ ...lookedUpPR!, isLookedUp: true as const }] : []),
       ...filteredPRs
-    ]
+    ],
+    [filteredPRs, lookedUpPR, showLookedUp]
+  )
 
   // ── Reset selectedIndex on filter change ──────────────────────────
   useEffect(() => {
@@ -236,6 +240,23 @@ export function AttachPRPopover({ ticket, open, onOpenChange }: AttachPRPopoverP
       item.scrollIntoView({ block: 'nearest' })
     }
   }, [selectedIndex])
+
+  const handleAttach = useCallback(async (pr: { number: number; title: string }) => {
+    if (isAttachingRef.current) return
+    isAttachingRef.current = true
+    const prUrl = buildPRUrl(pr.number)
+    useKanbanStore.getState().attachPRToTicket(ticket.id, ticket.project_id, pr.number, prUrl)
+    try {
+      await window.kanban.ticket.attachPR(ticket.id, ticket.project_id, pr.number, prUrl)
+      toast.success(`PR #${pr.number} attached`)
+    } catch {
+      useKanbanStore.getState().detachPRFromTicket(ticket.id, ticket.project_id)
+      toast.error(tr('Failed to attach PR', '附加 PR 失败'))
+    } finally {
+      isAttachingRef.current = false
+    }
+    onOpenChange(false)
+  }, [buildPRUrl, onOpenChange, ticket.id, ticket.project_id, tr])
 
   // ── Keyboard navigation ────────────────────────────────────────────
   useEffect(() => {
@@ -264,28 +285,9 @@ export function AttachPRPopover({ ticket, open, onOpenChange }: AttachPRPopoverP
 
     window.addEventListener('keydown', handleKeyDown, true)
     return () => window.removeEventListener('keydown', handleKeyDown, true)
-  }, [open, allItems, selectedIndex, onOpenChange])
+  }, [open, allItems, selectedIndex, onOpenChange, handleAttach])
 
   // ── Handlers ──────────────────────────────────────────────────────
-
-  const handleAttach = async (pr: { number: number; title: string }) => {
-    if (isAttachingRef.current) return
-    isAttachingRef.current = true
-    const prUrl = buildPRUrl(pr.number)
-    // Optimistic update
-    useKanbanStore.getState().attachPRToTicket(ticket.id, ticket.project_id, pr.number, prUrl)
-    try {
-      await window.kanban.ticket.attachPR(ticket.id, ticket.project_id, pr.number, prUrl)
-      toast.success(`PR #${pr.number} attached`)
-    } catch {
-      // Rollback
-      useKanbanStore.getState().detachPRFromTicket(ticket.id, ticket.project_id)
-      toast.error('Failed to attach PR')
-    } finally {
-      isAttachingRef.current = false
-    }
-    onOpenChange(false)
-  }
 
   const handleDetach = async () => {
     if (isAttachingRef.current) return
@@ -295,13 +297,13 @@ export function AttachPRPopover({ ticket, open, onOpenChange }: AttachPRPopoverP
     useKanbanStore.getState().detachPRFromTicket(ticket.id, ticket.project_id)
     try {
       await window.kanban.ticket.detachPR(ticket.id, ticket.project_id)
-      toast.success('PR detached')
+      toast.success(tr('PR detached', 'PR 已分离'))
     } catch {
       // Rollback
       useKanbanStore
         .getState()
         .attachPRToTicket(ticket.id, ticket.project_id, prev.number, prev.url)
-      toast.error('Failed to detach PR')
+      toast.error(tr('Failed to detach PR', '分离 PR 失败'))
     } finally {
       isAttachingRef.current = false
     }
@@ -318,13 +320,13 @@ export function AttachPRPopover({ ticket, open, onOpenChange }: AttachPRPopoverP
           <div className="flex items-center gap-1.5 min-w-0">
             <GitPullRequest className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
             <span className="text-xs text-muted-foreground truncate">
-              Current PR:{' '}
+              {tr('Current PR:', '当前 PR：')}{' '}
               <span className="font-medium text-foreground">#{ticket.github_pr_number}</span>
             </span>
           </div>
           <button
             onClick={handleDetach}
-            title="Detach PR"
+            title={tr('Detach PR', '分离 PR')}
             className="shrink-0 rounded p-0.5 text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
           >
             <X className="h-3.5 w-3.5" />
@@ -339,7 +341,7 @@ export function AttachPRPopover({ ticket, open, onOpenChange }: AttachPRPopoverP
           type="text"
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
-          placeholder="Search PRs or enter a number..."
+          placeholder={tr('Search PRs or enter a number...', '搜索 PR 或输入编号...')}
           className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
         />
       </div>
@@ -347,14 +349,18 @@ export function AttachPRPopover({ ticket, open, onOpenChange }: AttachPRPopoverP
       {/* PR list */}
       <div ref={listRef} className="max-h-64 overflow-y-auto">
         {isLoading ? (
-          <div className="px-3 py-4 text-xs text-muted-foreground text-center">Loading PRs…</div>
+          <div className="px-3 py-4 text-xs text-muted-foreground text-center">
+            {tr('Loading PRs…', '正在加载 PR…')}
+          </div>
         ) : error ? (
           <div className="px-3 py-4 text-xs text-red-500 text-center">{error}</div>
         ) : (
           <>
             {/* Looked-up PR (numeric search, not in open list) */}
             {isNumericFilter && isLookingUp && !lookedUpPR && (
-              <div className="px-3 py-2 text-xs text-muted-foreground">Looking up PR…</div>
+              <div className="px-3 py-2 text-xs text-muted-foreground">
+                {tr('Looking up PR…', '正在查找 PR…')}
+              </div>
             )}
 
             {showLookedUp && lookedUpPR && (

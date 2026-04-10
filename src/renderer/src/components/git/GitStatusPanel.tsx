@@ -32,6 +32,7 @@ import {
 import { GitCommitForm } from './GitCommitForm'
 import { GitPushPull } from './GitPushPull'
 import { cn } from '@/lib/utils'
+import { useI18n } from '@/i18n'
 
 interface GitStatusPanelProps {
   worktreePath: string | null
@@ -74,6 +75,7 @@ const FileItem = memo(function FileItem({
   onViewDiff,
   isStaged
 }: FileItemProps): React.JSX.Element {
+  const { tr } = useI18n()
   return (
     <div
       className="flex items-center gap-2 px-2 py-0.5 hover:bg-accent/30 group"
@@ -83,7 +85,11 @@ const FileItem = memo(function FileItem({
         checked={isStaged}
         onCheckedChange={() => onToggle(file)}
         className="h-3.5 w-3.5"
-        aria-label={isStaged ? `Unstage ${file.relativePath}` : `Stage ${file.relativePath}`}
+        aria-label={
+          isStaged
+            ? tr(`Unstage ${file.relativePath}`, `取消暂存 ${file.relativePath}`)
+            : tr(`Stage ${file.relativePath}`, `暂存 ${file.relativePath}`)
+        }
       />
       <span className={cn('text-[10px] font-mono w-3', statusColors[file.status])}>
         {file.status}
@@ -92,7 +98,7 @@ const FileItem = memo(function FileItem({
         type="button"
         className="text-xs truncate flex-1 text-left hover:underline cursor-pointer"
         onClick={() => onViewDiff(file)}
-        title={`View changes: ${file.relativePath}`}
+        title={tr(`View changes: ${file.relativePath}`, `查看变更：${file.relativePath}`)}
       >
         {file.relativePath}
       </button>
@@ -101,7 +107,7 @@ const FileItem = memo(function FileItem({
         size="icon"
         className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
         onClick={() => onViewDiff(file)}
-        title="View changes"
+        title={tr('View changes', '查看变更')}
         data-testid={`view-diff-${file.relativePath}`}
       >
         <FileDiff className="h-3 w-3 text-muted-foreground" />
@@ -114,6 +120,7 @@ export function GitStatusPanel({
   worktreePath,
   className
 }: GitStatusPanelProps): React.JSX.Element | null {
+  const { tr } = useI18n()
   const {
     loadFileStatuses,
     loadBranchInfo,
@@ -188,21 +195,21 @@ export function GitStatusPanel({
     if (!worktreePath) return
     const success = await stageAll(worktreePath)
     if (success) {
-      toast.success('All changes staged')
+      toast.success(tr('All changes staged', '所有变更已暂存'))
     } else {
-      toast.error('Failed to stage changes')
+      toast.error(tr('Failed to stage changes', '暂存变更失败'))
     }
-  }, [worktreePath, stageAll])
+  }, [worktreePath, stageAll, tr])
 
   const handleUnstageAll = useCallback(async () => {
     if (!worktreePath) return
     const success = await unstageAll(worktreePath)
     if (success) {
-      toast.success('All changes unstaged')
+      toast.success(tr('All changes unstaged', '所有变更已取消暂存'))
     } else {
-      toast.error('Failed to unstage changes')
+      toast.error(tr('Failed to unstage changes', '取消暂存失败'))
     }
-  }, [worktreePath, unstageAll])
+  }, [worktreePath, unstageAll, tr])
 
   const handleToggleFile = useCallback(
     async (file: GitFileStatus) => {
@@ -210,16 +217,16 @@ export function GitStatusPanel({
       if (file.staged) {
         const success = await unstageFile(worktreePath, file.relativePath)
         if (!success) {
-          toast.error(`Failed to unstage ${file.relativePath}`)
+          toast.error(tr(`Failed to unstage ${file.relativePath}`, `取消暂存 ${file.relativePath} 失败`))
         }
       } else {
         const success = await stageFile(worktreePath, file.relativePath)
         if (!success) {
-          toast.error(`Failed to stage ${file.relativePath}`)
+          toast.error(tr(`Failed to stage ${file.relativePath}`, `暂存 ${file.relativePath} 失败`))
         }
       }
     },
-    [worktreePath, stageFile, unstageFile]
+    [worktreePath, stageFile, unstageFile, tr]
   )
 
   const handleViewDiff = useCallback(
@@ -275,7 +282,7 @@ export function GitStatusPanel({
         type: 'header',
         key: 'h-conflicts',
         groupId: 'conflicts',
-        title: 'Conflicts',
+        title: tr('Conflicts', '冲突'),
         count: conflictedFiles.length,
         testId: 'git-conflicts-section'
       })
@@ -296,7 +303,7 @@ export function GitStatusPanel({
         type: 'header',
         key: 'h-staged',
         groupId: 'staged',
-        title: 'Staged Changes',
+        title: tr('Staged Changes', '已暂存变更'),
         count: stagedFiles.length,
         action: hasStaged ? (
           <Button
@@ -304,11 +311,11 @@ export function GitStatusPanel({
             size="sm"
             className="h-5 px-1.5 text-[10px]"
             onClick={handleUnstageAll}
-            title="Unstage all files"
+            title={tr('Unstage all files', '取消暂存所有文件')}
             data-testid="git-unstage-all"
           >
             <Minus className="h-3 w-3 mr-0.5" />
-            Unstage All
+            {tr('Unstage All', '全部取消暂存')}
           </Button>
         ) : undefined,
         testId: 'git-staged-section'
@@ -330,7 +337,7 @@ export function GitStatusPanel({
         type: 'header',
         key: 'h-changes',
         groupId: 'changes',
-        title: 'Changes',
+        title: tr('Changes', '变更'),
         count: modifiedFiles.length,
         action: hasUnstaged ? (
           <Button
@@ -338,11 +345,11 @@ export function GitStatusPanel({
             size="sm"
             className="h-5 px-1.5 text-[10px]"
             onClick={handleStageAll}
-            title="Stage all files"
+            title={tr('Stage all files', '暂存所有文件')}
             data-testid="git-stage-all"
           >
             <Plus className="h-3 w-3 mr-0.5" />
-            Stage All
+            {tr('Stage All', '全部暂存')}
           </Button>
         ) : undefined,
         testId: 'git-modified-section'
@@ -364,7 +371,7 @@ export function GitStatusPanel({
         type: 'header',
         key: 'h-untracked',
         groupId: 'untracked',
-        title: 'Untracked',
+        title: tr('Untracked', '未跟踪'),
         count: untrackedFiles.length,
         testId: 'git-untracked-section'
       })
@@ -390,7 +397,8 @@ export function GitStatusPanel({
     hasStaged,
     hasUnstaged,
     handleUnstageAll,
-    handleStageAll
+    handleStageAll,
+    tr
   ])
 
   const virtualizer = useVirtualizer({
@@ -409,7 +417,7 @@ export function GitStatusPanel({
       const worktreeStore = useWorktreeStore.getState()
       const selectedWorktreeId = worktreeStore.selectedWorktreeId
       if (!selectedWorktreeId) {
-        toast.error('No worktree selected')
+        toast.error(tr('No worktree selected', '未选择工作树'))
         return
       }
 
@@ -421,29 +429,29 @@ export function GitStatusPanel({
         }
       }
       if (!projectId) {
-        toast.error('Could not find project for worktree')
+        toast.error(tr('Could not find project for worktree', '找不到该工作树对应的项目'))
         return
       }
 
-      const branchName = branchInfo?.name || 'unknown'
+      const branchName = branchInfo?.name || tr('unknown', '未知')
 
       const sessionStore = useSessionStore.getState()
       const result = await sessionStore.createSession(selectedWorktreeId, projectId, undefined, resolvedMode)
       if (!result.success || !result.session) {
-        toast.error('Failed to create session')
+        toast.error(tr('Failed to create session', '创建会话失败'))
         return
       }
 
       await sessionStore.updateSessionName(result.session.id, `Merge Conflicts — ${branchName}`)
 
-      sessionStore.setPendingMessage(result.session.id, 'Fix merge conflicts')
+      sessionStore.setPendingMessage(result.session.id, tr('Fix merge conflicts', '修复合并冲突'))
     } catch (error) {
       console.error('Failed to start conflict resolution:', error)
-      toast.error('Failed to start conflict resolution')
+      toast.error(tr('Failed to start conflict resolution', '启动冲突修复失败'))
     } finally {
       setIsFixingConflicts(false)
     }
-  }, [worktreePath, branchInfo, mergeConflictMode])
+  }, [worktreePath, branchInfo, mergeConflictMode, tr])
 
   if (!worktreePath) {
     return null
@@ -456,14 +464,14 @@ export function GitStatusPanel({
       className={cn('flex flex-col border-b', className)}
       data-testid="git-status-panel"
       role="region"
-      aria-label="Git status"
+      aria-label={tr('Git status', 'Git 状态')}
     >
       {/* Header with branch info */}
       <div className="flex items-center justify-between px-2 py-1.5 bg-muted/30">
         <div className="flex items-center gap-1.5 text-xs">
           <GitBranch className="h-3.5 w-3.5 text-muted-foreground" />
           <span className="font-medium" data-testid="git-branch-name">
-            {branchInfo?.name || 'Loading...'}
+            {branchInfo?.name || tr('Loading...', '加载中...')}
           </span>
           {branchInfo && branchInfo.tracking && (
             <span
@@ -473,7 +481,7 @@ export function GitStatusPanel({
               {branchInfo.ahead > 0 && (
                 <span
                   className="flex items-center gap-0.5"
-                  title={`${branchInfo.ahead} commit(s) ahead`}
+                  title={tr(`${branchInfo.ahead} commit(s) ahead`, `领先 ${branchInfo.ahead} 个提交`)}
                 >
                   <ArrowUp className="h-3 w-3" />
                   {branchInfo.ahead}
@@ -482,7 +490,7 @@ export function GitStatusPanel({
               {branchInfo.behind > 0 && (
                 <span
                   className="flex items-center gap-0.5"
-                  title={`${branchInfo.behind} commit(s) behind`}
+                  title={tr(`${branchInfo.behind} commit(s) behind`, `落后 ${branchInfo.behind} 个提交`)}
                 >
                   <ArrowDown className="h-3 w-3" />
                   {branchInfo.behind}
@@ -501,7 +509,10 @@ export function GitStatusPanel({
                     size="sm"
                     className="h-5 px-1.5 text-[10px] font-bold text-orange-500 hover:text-orange-400 hover:bg-orange-500/10"
                     disabled={isFixingConflicts}
-                    title={`${conflictedFiles.length} file(s) with merge conflicts — click to fix with AI`}
+                    title={tr(
+                      `${conflictedFiles.length} file(s) with merge conflicts — click to fix with AI`,
+                      `${conflictedFiles.length} 个文件存在合并冲突——点击使用 AI 修复`
+                    )}
                     data-testid="git-merge-conflicts-button"
                   >
                     {isFixingConflicts ? (
@@ -509,18 +520,18 @@ export function GitStatusPanel({
                     ) : (
                       <AlertTriangle className="h-3 w-3 mr-0.5" />
                     )}
-                    CONFLICTS
+                    {tr('CONFLICTS', '冲突')}
                     {!isFixingConflicts && <ChevronDown className="h-3 w-3 ml-0.5" />}
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem onClick={() => handleFixConflicts('build')}>
                     <Hammer className="h-4 w-4 mr-2" />
-                    Fix in Build mode
+                    {tr('Fix in Build mode', '在 Build 模式中修复')}
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => handleFixConflicts('plan')}>
                     <Map className="h-4 w-4 mr-2" />
-                    Fix in Plan mode
+                    {tr('Fix in Plan mode', '在 Plan 模式中修复')}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -531,7 +542,10 @@ export function GitStatusPanel({
                 className="h-5 px-1.5 text-[10px] font-bold text-orange-500 hover:text-orange-400 hover:bg-orange-500/10"
                 onClick={() => handleFixConflicts()}
                 disabled={isFixingConflicts}
-                title={`${conflictedFiles.length} file(s) with merge conflicts — click to fix with AI`}
+                title={tr(
+                  `${conflictedFiles.length} file(s) with merge conflicts — click to fix with AI`,
+                  `${conflictedFiles.length} 个文件存在合并冲突——点击使用 AI 修复`
+                )}
                 data-testid="git-merge-conflicts-button"
               >
                 {isFixingConflicts ? (
@@ -539,7 +553,7 @@ export function GitStatusPanel({
                 ) : (
                   <AlertTriangle className="h-3 w-3 mr-0.5" />
                 )}
-                CONFLICTS
+                {tr('CONFLICTS', '冲突')}
               </Button>
             )
           )}
@@ -549,7 +563,7 @@ export function GitStatusPanel({
             className={cn('h-5 w-5', (isLoading || isRefreshing) && 'animate-spin')}
             onClick={handleRefresh}
             disabled={isLoading || isRefreshing}
-            title="Refresh git status"
+            title={tr('Refresh git status', '刷新 Git 状态')}
             data-testid="git-refresh-button"
           >
             <RefreshCw className="h-3 w-3" />
@@ -558,7 +572,7 @@ export function GitStatusPanel({
       </div>
 
       {!hasChanges ? (
-        <div className="px-2 py-3 text-xs text-muted-foreground text-center">No changes</div>
+        <div className="px-2 py-3 text-xs text-muted-foreground text-center">{tr('No changes', '没有变更')}</div>
       ) : (
         <div ref={scrollRef} className="max-h-[200px] overflow-y-auto">
           <div

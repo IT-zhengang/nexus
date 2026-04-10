@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import { Check, Loader2 } from 'lucide-react'
 import { isMac, isLinux } from '@/lib/platform'
+import { useI18n } from '@/i18n'
 
 interface DetectedEditor {
   id: string
@@ -22,6 +23,7 @@ const EDITOR_OPTIONS: { id: EditorOption; label: string }[] = [
 ]
 
 export function SettingsEditor(): React.JSX.Element {
+  const { tr } = useI18n()
   const { defaultEditor, customEditorCommand, updateSetting } = useSettingsStore()
   const [detectedEditors, setDetectedEditors] = useState<DetectedEditor[]>([])
   const [isDetecting, setIsDetecting] = useState(true)
@@ -57,16 +59,16 @@ export function SettingsEditor(): React.JSX.Element {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-base font-medium mb-1">Editor</h3>
+        <h3 className="text-base font-medium mb-1">{tr('Editor', '编辑器')}</h3>
         <p className="text-sm text-muted-foreground">
-          Choose which editor to use for &quot;Open in Editor&quot; actions
+          {tr('Choose which editor to use for "Open in Editor" actions', '选择“在编辑器中打开”操作使用的编辑器')}
         </p>
       </div>
 
       {isDetecting ? (
         <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
           <Loader2 className="h-4 w-4 animate-spin" />
-          Detecting installed editors...
+          {tr('Detecting installed editors...', '正在检测已安装的编辑器...')}
         </div>
       ) : (
         <div className="space-y-1">
@@ -89,7 +91,7 @@ export function SettingsEditor(): React.JSX.Element {
                 <div className="flex items-center gap-2">
                   <span>{opt.label}</span>
                   {!available && opt.id !== 'custom' && (
-                    <span className="text-xs text-muted-foreground">(not found)</span>
+                    <span className="text-xs text-muted-foreground">{tr('(not found)', '（未找到）')}</span>
                   )}
                 </div>
                 {defaultEditor === opt.id && <Check className="h-4 w-4 text-primary" />}
@@ -102,7 +104,7 @@ export function SettingsEditor(): React.JSX.Element {
       {/* Custom command input */}
       {defaultEditor === 'custom' && (
         <div className="space-y-2">
-          <label className="text-sm font-medium">Custom Editor Command</label>
+          <label className="text-sm font-medium">{tr('Custom Editor Command', '自定义编辑器命令')}</label>
           <Input
             value={customEditorCommand}
             onChange={(e) => updateSetting('customEditorCommand', e.target.value)}
@@ -111,7 +113,7 @@ export function SettingsEditor(): React.JSX.Element {
             data-testid="custom-editor-command"
           />
           <p className="text-xs text-muted-foreground">
-            The command will be called with the worktree path as an argument.
+            {tr('The command will be called with the worktree path as an argument.', '调用该命令时会将工作树路径作为参数传入。')}
           </p>
         </div>
       )}

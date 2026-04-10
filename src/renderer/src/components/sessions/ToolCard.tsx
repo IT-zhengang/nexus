@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { useState, useMemo, memo } from 'react'
 import {
   FileText,
@@ -39,6 +40,7 @@ import { FileChangeToolView } from './tools/FileChangeToolView'
 import { ToolCallContextMenu } from './ToolCallContextMenu'
 import { extractCommandText } from '@/lib/tool-input-utils'
 import { useSessionStore } from '@/stores/useSessionStore'
+import { useI18n } from '@/i18n/useI18n'
 
 export type ToolStatus = 'pending' | 'running' | 'success' | 'error'
 
@@ -369,6 +371,7 @@ function CollapsedContent({
   toolUse: ToolUseInfo
   cwd?: string | null
 }): React.JSX.Element {
+  const { tr } = useI18n()
   const { name, input, output } = toolUse
   const lowerName = name.toLowerCase()
 
@@ -381,7 +384,7 @@ function CollapsedContent({
         <span className="text-muted-foreground shrink-0">
           <Terminal className="h-3.5 w-3.5" />
         </span>
-        <span className="font-medium text-foreground shrink-0">Bash</span>
+        <span className="font-medium text-foreground shrink-0">{tr('Bash', '命令')}</span>
         <span className="font-mono text-muted-foreground truncate min-w-0">
           <span className="text-green-500">$</span> {truncCmd}
         </span>
@@ -399,13 +402,13 @@ function CollapsedContent({
         <span className="text-muted-foreground shrink-0">
           <ListTodo className="h-3.5 w-3.5" />
         </span>
-        <span className="font-medium text-foreground shrink-0">Tasks</span>
+        <span className="font-medium text-foreground shrink-0">{tr('Tasks', '任务')}</span>
         <span className="text-muted-foreground truncate min-w-0">
-          {completed}/{todos.length} completed
+          {completed}/{todos.length} {tr('completed', '已完成')}
         </span>
         {inProgress > 0 && (
           <span className="text-[10px] bg-blue-500/15 text-blue-500 dark:text-blue-400 rounded px-1 py-0.5 font-medium shrink-0">
-            {inProgress} active
+            {inProgress} {tr('active', '进行中')}
           </span>
         )}
       </>
@@ -421,12 +424,12 @@ function CollapsedContent({
         <span className="text-muted-foreground shrink-0">
           <FileText className="h-3.5 w-3.5" />
         </span>
-        <span className="font-medium text-foreground shrink-0">Read</span>
+        <span className="font-medium text-foreground shrink-0">{tr('Read', '读取')}</span>
         <span className="font-mono text-muted-foreground truncate min-w-0">
           {shortenPath(filePath, cwd)}
         </span>
         {lineCount !== null && (
-          <span className="text-muted-foreground/60 shrink-0 text-[10px]">{lineCount} lines</span>
+          <span className="text-muted-foreground/60 shrink-0 text-[10px]">{lineCount} {tr('lines', '行')}</span>
         )}
       </>
     )
@@ -442,12 +445,12 @@ function CollapsedContent({
         <span className="text-muted-foreground shrink-0">
           <FilePlus className="h-3.5 w-3.5" />
         </span>
-        <span className="font-medium text-foreground shrink-0">Write</span>
+        <span className="font-medium text-foreground shrink-0">{tr('Write', '写入')}</span>
         <span className="font-mono text-muted-foreground truncate min-w-0">
           {shortenPath(filePath, cwd)}
         </span>
         {lineCount !== null && (
-          <span className="text-muted-foreground/60 shrink-0 text-[10px]">{lineCount} lines</span>
+          <span className="text-muted-foreground/60 shrink-0 text-[10px]">{lineCount} {tr('lines', '行')}</span>
         )}
       </>
     )
@@ -465,13 +468,13 @@ function CollapsedContent({
         <span className="text-muted-foreground shrink-0">
           <Pencil className="h-3.5 w-3.5" />
         </span>
-        <span className="font-medium text-foreground shrink-0">Edit</span>
+        <span className="font-medium text-foreground shrink-0">{tr('Edit', '编辑')}</span>
         <span className="font-mono text-muted-foreground truncate min-w-0">
           {shortenPath(firstPath, cwd)}
         </span>
         {changeCount > 1 && (
           <span className="text-[10px] bg-blue-500/15 text-blue-500 dark:text-blue-400 rounded px-1 py-0.5 font-medium shrink-0">
-            +{changeCount - 1} more
+            +{changeCount - 1} {tr('more', '更多')}
           </span>
         )}
       </>
@@ -490,7 +493,7 @@ function CollapsedContent({
         <span className="text-muted-foreground shrink-0">
           <Pencil className="h-3.5 w-3.5" />
         </span>
-        <span className="font-medium text-foreground shrink-0">Edit</span>
+        <span className="font-medium text-foreground shrink-0">{tr('Edit', '编辑')}</span>
         <span className="font-mono text-muted-foreground truncate min-w-0">
           {shortenPath(filePath, cwd)}
         </span>
@@ -512,9 +515,9 @@ function CollapsedContent({
     return (
       <>
         <Search className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-        <span className="text-muted-foreground">Search</span>
+        <span className="text-muted-foreground">{tr('Search', '搜索')}</span>
         <span className="truncate">&quot;{pattern}&quot;</span>
-        {searchPath && <span className="text-muted-foreground truncate">in {searchPath}</span>}
+        {searchPath && <span className="text-muted-foreground truncate">{tr('in', '在')} {searchPath}</span>}
         {matchCount !== null && matchCount > 0 && (
           <span className="text-muted-foreground">({matchCount})</span>
         )}
@@ -529,7 +532,7 @@ function CollapsedContent({
     return (
       <>
         <Search className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-        <span className="text-muted-foreground">Find files</span>
+        <span className="text-muted-foreground">{tr('Find files', '查找文件')}</span>
         <span className="truncate">{pattern}</span>
         {fileCount !== null && fileCount > 0 && (
           <span className="text-muted-foreground">({fileCount})</span>
@@ -540,11 +543,11 @@ function CollapsedContent({
 
   // Skill — Skill tool uses `skill` param, not `name`
   if (lowerName === 'skill' || lowerName === 'mcp_skill' || lowerName.includes('skill')) {
-    const skillName = (input.skill as string) || (input.name as string) || 'unknown'
+    const skillName = (input.skill as string) || (input.name as string) || tr('unknown', '未知')
     return (
       <>
         <Zap className="h-3.5 w-3.5 text-amber-400 shrink-0" />
-        <span className="font-medium text-foreground shrink-0">Skill</span>
+        <span className="font-medium text-foreground shrink-0">{tr('Skill', '技能')}</span>
         <span className="text-muted-foreground truncate min-w-0">{skillName}</span>
       </>
     )
@@ -556,15 +559,15 @@ function CollapsedContent({
       ? (input.questions as Array<{ header: string; question: string }>)
       : []
     const questionCount = questions.length
-    const firstHeader = questions[0]?.header || 'Question'
+    const firstHeader = questions[0]?.header || tr('Question', '问题')
     return (
       <>
         <span className="text-muted-foreground shrink-0">
           <MessageCircleQuestion className="h-3.5 w-3.5" />
         </span>
-        <span className="font-medium text-foreground shrink-0">Question</span>
+        <span className="font-medium text-foreground shrink-0">{tr('Question', '问题')}</span>
         <span className="text-muted-foreground truncate min-w-0">
-          {questionCount > 1 ? `${questionCount} questions` : firstHeader}
+          {questionCount > 1 ? `${questionCount} ${tr('questions', '个问题')}` : firstHeader}
         </span>
       </>
     )
@@ -579,7 +582,7 @@ function CollapsedContent({
         <span className="text-muted-foreground shrink-0">
           <Bot className="h-3.5 w-3.5" />
         </span>
-        <span className="font-medium text-foreground shrink-0">Agent</span>
+        <span className="font-medium text-foreground shrink-0">{tr('Agent', '代理')}</span>
         {subagentType && (
           <span className="text-[10px] bg-blue-500/15 text-blue-500 dark:text-blue-400 rounded px-1 py-0.5 font-medium shrink-0">
             {subagentType}
@@ -594,13 +597,13 @@ function CollapsedContent({
   if (lowerName === 'exitplanmode') {
     const isAccepted = toolUse.status === 'success'
     const isRejected = toolUse.status === 'error'
-    const badgeText = isAccepted ? 'accepted' : isRejected ? 'rejected' : 'review'
+    const badgeText = isAccepted ? tr('accepted', '已接受') : isRejected ? tr('rejected', '已拒绝') : tr('review', '待审阅')
     return (
       <>
         <span className={cn(isRejected ? 'text-red-500' : 'text-emerald-500', 'shrink-0')}>
           <ClipboardCheck className="h-3.5 w-3.5" />
         </span>
-        <span className="font-medium text-foreground shrink-0">Plan</span>
+        <span className="font-medium text-foreground shrink-0">{tr('Plan', '计划')}</span>
         <span
           className={cn(
             'text-[10px] rounded px-1 py-0.5 font-medium shrink-0',
@@ -627,7 +630,7 @@ function CollapsedContent({
     return (
       <>
         <Globe className="h-3.5 w-3.5 text-blue-400 shrink-0" />
-        <span className="font-medium text-foreground shrink-0">Fetch</span>
+        <span className="font-medium text-foreground shrink-0">{tr('Fetch', '抓取')}</span>
         <span className="font-mono text-muted-foreground truncate min-w-0">{hostname}</span>
       </>
     )
@@ -716,6 +719,7 @@ const CompactFileToolCard = memo(function CompactFileToolCard({
   toolUse: ToolUseInfo
   cwd?: string | null
 }): React.JSX.Element {
+  const { tr } = useI18n()
   const [isExpanded, setIsExpanded] = useState(false)
 
   const isSearch = isSearchOperation(toolUse.name)
@@ -727,9 +731,9 @@ const CompactFileToolCard = memo(function CompactFileToolCard({
     toolUse.input.path ||
     '') as string
   const shortPath = shortenPath(filePath, cwd)
-  const label = isSkill ? 'Skill' : getFileToolLabel(toolUse.name)
+  const label = isSkill ? tr('Skill', '技能') : tr(getFileToolLabel(toolUse.name), getFileToolLabel(toolUse.name) === 'Read' ? '读取' : getFileToolLabel(toolUse.name) === 'Write' ? '写入' : getFileToolLabel(toolUse.name) === 'Edit' ? '编辑' : getFileToolLabel(toolUse.name))
   const detail = isSkill
-    ? (toolUse.input.skill as string) || (toolUse.input.name as string) || 'unknown'
+    ? (toolUse.input.skill as string) || (toolUse.input.name as string) || tr('unknown', '未知')
     : shortPath
   const isRunning = toolUse.status === 'pending' || toolUse.status === 'running'
   const isError = toolUse.status === 'error'
@@ -829,6 +833,7 @@ export const ToolCard = memo(function ToolCard({
   cwd,
   compact = false
 }: ToolCardProps): React.JSX.Element {
+  const { tr } = useI18n()
   const [isExpanded, setIsExpanded] = useState(false)
 
   const duration = useMemo(() => {
@@ -1001,7 +1006,9 @@ export const ToolCard = memo(function ToolCard({
           {planAccepted && (
             <div className="flex justify-end px-6 py-4" data-testid="plan-accepted-message">
               <div className="max-w-[80%] rounded-2xl px-4 py-3 bg-primary/10 text-foreground">
-                <p className="text-sm whitespace-pre-wrap leading-relaxed">Implement the plan</p>
+                <p className="text-sm whitespace-pre-wrap leading-relaxed">
+                  {tr('Implement the plan', '执行该计划')}
+                </p>
               </div>
             </div>
           )}
@@ -1073,7 +1080,7 @@ export const ToolCard = memo(function ToolCard({
           {/* Expand/Collapse affordance */}
           {hasDetail && (
             <span className="ml-1 inline-flex items-center gap-1 rounded border border-border px-1.5 py-0.5 text-[10px] text-muted-foreground">
-              {isExpanded ? 'Hide' : 'View'}
+              {isExpanded ? tr('Hide', '隐藏') : tr('View', '查看')}
               <ChevronDown
                 className={cn(
                   'h-2.5 w-2.5 shrink-0 transition-transform duration-150',

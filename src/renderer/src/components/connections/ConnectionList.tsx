@@ -4,8 +4,10 @@ import { cn } from '@/lib/utils'
 import { useConnectionStore } from '@/stores'
 import { ConnectionItem } from './ConnectionItem'
 import { ManageConnectionWorktreesDialog } from './ManageConnectionWorktreesDialog'
+import { useI18n } from '@/i18n'
 
 export function ConnectionList(): React.JSX.Element | null {
+  const { tr } = useI18n()
   const connections = useConnectionStore((s) => s.connections)
   const loadConnections = useConnectionStore((s) => s.loadConnections)
   const [isCollapsed, setIsCollapsed] = useState(false)
@@ -41,7 +43,7 @@ export function ConnectionList(): React.JSX.Element | null {
       >
         <ChevronRight className={cn('h-3 w-3 transition-transform', !isCollapsed && 'rotate-90')} />
         <Link className="h-3 w-3" />
-        <span>Connections</span>
+        <span>{tr('Connections', '连接')}</span>
         <span className="ml-auto text-[10px] tabular-nums">{connections.length}</span>
       </button>
 

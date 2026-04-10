@@ -2,8 +2,10 @@ import { useState, useCallback } from 'react'
 import { ArrowDownUp, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useProjectStore } from '@/stores'
+import { useI18n } from '@/i18n'
 
 export function SortProjectsButton(): React.JSX.Element {
+  const { tr } = useI18n()
   const [isSorting, setIsSorting] = useState(false)
   const sortProjectsByLastMessage = useProjectStore((s) => s.sortProjectsByLastMessage)
 
@@ -22,7 +24,7 @@ export function SortProjectsButton(): React.JSX.Element {
       variant="ghost"
       size="icon"
       className="h-6 w-6"
-      title="Sort by last message"
+      title={tr('Sort by last message', '按最后消息排序')}
       onClick={handleSort}
       disabled={isSorting}
       data-testid="sort-projects-button"

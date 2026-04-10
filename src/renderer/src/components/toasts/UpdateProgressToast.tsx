@@ -1,4 +1,5 @@
 import { Download } from 'lucide-react'
+import { useI18n } from '@/i18n'
 
 interface UpdateProgressToastProps {
   version: string
@@ -9,6 +10,7 @@ export function UpdateProgressToast({
   version,
   percent
 }: UpdateProgressToastProps): React.JSX.Element {
+  const { tr } = useI18n()
   const rounded = Math.min(100, Math.max(0, Math.round(percent)))
 
   return (
@@ -16,7 +18,9 @@ export function UpdateProgressToast({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Download className="h-4 w-4 text-blue-500" />
-          <span className="text-sm font-medium text-foreground">Downloading v{version}...</span>
+          <span className="text-sm font-medium text-foreground">
+            {tr(`Downloading v${version}...`, `正在下载 v${version}...`)}
+          </span>
         </div>
         <span className="text-xs tabular-nums text-muted-foreground">{rounded}%</span>
       </div>

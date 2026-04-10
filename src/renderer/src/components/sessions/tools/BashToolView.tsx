@@ -3,6 +3,7 @@ import { Terminal, ChevronDown } from 'lucide-react'
 import { extractCommandText } from '@/lib/tool-input-utils'
 import { cn } from '@/lib/utils'
 import type { ToolViewProps } from './types'
+import { useI18n } from '@/i18n/useI18n'
 
 const MAX_PREVIEW_LINES = 20
 
@@ -13,6 +14,7 @@ function stripAnsi(text: string): string {
 }
 
 export function BashToolView({ input, output, error }: ToolViewProps) {
+  const { tr } = useI18n()
   const [showAll, setShowAll] = useState(false)
 
   const command = extractCommandText(input)
@@ -56,7 +58,9 @@ export function BashToolView({ input, output, error }: ToolViewProps) {
                       showAll && 'rotate-180'
                     )}
                   />
-                  {showAll ? 'Show less' : `Show all ${lines.length} lines`}
+                  {showAll
+                    ? tr('Show less', '收起')
+                    : tr(`Show all ${lines.length} lines`, `显示全部 ${lines.length} 行`)}
                 </button>
               )}
             </>

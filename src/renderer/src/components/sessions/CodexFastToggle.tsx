@@ -10,6 +10,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle
 } from '@/components/ui/alert-dialog'
+import { useI18n } from '@/i18n/useI18n'
 
 interface CodexFastToggleProps {
   enabled: boolean
@@ -24,6 +25,7 @@ export function CodexFastToggle({
   onToggle,
   onAccept
 }: CodexFastToggleProps): React.JSX.Element {
+  const { tr } = useI18n()
   const [showConfirm, setShowConfirm] = useState(false)
 
   const handleClick = (): void => {
@@ -50,19 +52,19 @@ export function CodexFastToggle({
             : 'bg-muted/50 border-border text-muted-foreground hover:bg-muted hover:text-foreground'
         )}
       >
-        Fast
+        {tr('Fast', '极速')}
       </button>
 
       <AlertDialog open={showConfirm} onOpenChange={(open) => !open && setShowConfirm(false)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Fast Mode</AlertDialogTitle>
+            <AlertDialogTitle>{tr('Fast Mode', '极速模式')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Fast mode consumes 2X the usage from your plan.
+              {tr('Fast mode consumes 2X the usage from your plan.', '极速模式会消耗你套餐 2 倍的用量。')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setShowConfirm(false)}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => setShowConfirm(false)}>{tr('Cancel', '取消')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
                 onAccept()
@@ -70,7 +72,7 @@ export function CodexFastToggle({
                 setShowConfirm(false)
               }}
             >
-              Accept
+              {tr('Accept', '接受')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

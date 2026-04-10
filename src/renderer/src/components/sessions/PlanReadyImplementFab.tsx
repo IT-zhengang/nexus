@@ -1,5 +1,6 @@
 import { cn } from '@/lib/utils'
 import { useSettingsStore } from '@/stores/useSettingsStore'
+import { useI18n } from '@/i18n/useI18n'
 
 function MnemonicLabel({ letter, label }: { letter: string; label: string }): React.JSX.Element {
   const index = label.toLowerCase().indexOf(letter.toLowerCase())
@@ -36,6 +37,7 @@ export function PlanReadyImplementFab({
   isConnectionSession,
   onSaveAsTicket
 }: PlanReadyImplementFabProps): React.JSX.Element {
+  const { tr } = useI18n()
   const vimModeEnabled = useSettingsStore((s) => s.vimModeEnabled)
 
   return (
@@ -58,10 +60,14 @@ export function PlanReadyImplementFab({
             'cursor-pointer',
             visible ? 'opacity-100' : 'opacity-0'
           )}
-          aria-label="Save plan as ticket"
+          aria-label={tr('Save plan as ticket', '将计划保存为工单')}
           data-testid="plan-ready-save-ticket-fab"
         >
-          {vimModeEnabled ? <MnemonicLabel letter="s" label="Save as ticket" /> : 'Save as ticket'}
+          {vimModeEnabled ? (
+            <MnemonicLabel letter="s" label={tr('Save as ticket', '保存为工单')} />
+          ) : (
+            tr('Save as ticket', '保存为工单')
+          )}
         </button>
       )}
       <button
@@ -74,10 +80,14 @@ export function PlanReadyImplementFab({
           'cursor-pointer',
           visible ? 'opacity-100' : 'opacity-0'
         )}
-        aria-label="Handoff plan"
+        aria-label={tr('Handoff plan', '交接计划')}
         data-testid="plan-ready-handoff-fab"
       >
-        {vimModeEnabled ? <MnemonicLabel letter="a" label="Handoff" /> : 'Handoff'}
+        {vimModeEnabled ? (
+          <MnemonicLabel letter="a" label={tr('Handoff', '交接')} />
+        ) : (
+          tr('Handoff', '交接')
+        )}
       </button>
       {superpowersAvailable && !isConnectionSession && onSuperpowersLocal && (
         <button
@@ -90,13 +100,13 @@ export function PlanReadyImplementFab({
             'cursor-pointer',
             visible ? 'opacity-100' : 'opacity-0'
           )}
-          aria-label="Supercharge plan locally"
+          aria-label={tr('Supercharge plan locally', '在本地增强执行计划')}
           data-testid="plan-ready-supercharge-local-fab"
         >
           {vimModeEnabled ? (
-            <MnemonicLabel letter="o" label="Supercharge locally" />
+            <MnemonicLabel letter="o" label={tr('Supercharge locally', '本地增强执行')} />
           ) : (
-            'Supercharge locally'
+            tr('Supercharge locally', '本地增强执行')
           )}
         </button>
       )}
@@ -111,10 +121,14 @@ export function PlanReadyImplementFab({
             'cursor-pointer',
             visible ? 'opacity-100' : 'opacity-0'
           )}
-          aria-label="Supercharge plan"
+          aria-label={tr('Supercharge plan', '增强执行计划')}
           data-testid="plan-ready-supercharge-fab"
         >
-          {vimModeEnabled ? <MnemonicLabel letter="u" label="Supercharge" /> : 'Supercharge'}
+          {vimModeEnabled ? (
+            <MnemonicLabel letter="u" label={tr('Supercharge', '增强执行')} />
+          ) : (
+            tr('Supercharge', '增强执行')
+          )}
         </button>
       )}
       <button
@@ -127,10 +141,14 @@ export function PlanReadyImplementFab({
           'cursor-pointer',
           visible ? 'opacity-100' : 'opacity-0 pointer-events-none'
         )}
-        aria-label="Implement plan"
+        aria-label={tr('Implement plan', '执行计划')}
         data-testid="plan-ready-implement-fab"
       >
-        {vimModeEnabled ? <MnemonicLabel letter="m" label="Implement" /> : 'Implement'}
+        {vimModeEnabled ? (
+          <MnemonicLabel letter="m" label={tr('Implement', '执行')} />
+        ) : (
+          tr('Implement', '执行')
+        )}
       </button>
     </div>
   )

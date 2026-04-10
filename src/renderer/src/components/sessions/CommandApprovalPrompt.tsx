@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button'
 import { useSettingsStore } from '@/stores/useSettingsStore'
 import { patternMatches, splitBashCommand } from '@/lib/permissionUtils'
 import { useKeyboardShortcut } from '@/hooks/useKeyboardShortcut'
+import { useI18n } from '@/i18n/useI18n'
 import type {
   CommandApprovalRequest,
   SubCommandSuggestions
@@ -230,6 +231,7 @@ function buildDefaultSubPatterns(groups: SubCommandSuggestions[]): Record<number
 }
 
 export function CommandApprovalPrompt({ request, sessionId, onReply }: CommandApprovalPromptProps) {
+  const { tr } = useI18n()
   const [sending, setSending] = useState(false)
   const [patternPickerMode, setPatternPickerMode] = useState<'allow' | 'block' | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -276,6 +278,26 @@ export function CommandApprovalPrompt({ request, sessionId, onReply }: CommandAp
   }, [uniqueSubCommandPatterns, commandFilter.allowlist])
 
   const { icon: Icon, label, color } = getToolDisplay(request.toolName)
+  const translatedLabel =
+    label === 'Execute Command'
+      ? tr('Execute Command', '执行命令')
+      : label === 'Edit File'
+        ? tr('Edit File', '编辑文件')
+        : label === 'Write File'
+          ? tr('Write File', '写入文件')
+          : label === 'Read File'
+            ? tr('Read File', '读取文件')
+            : label === 'Search Files'
+              ? tr('Search Files', '搜索文件')
+              : label === 'Web Access'
+                ? tr('Web Access', '网页访问')
+                : label === 'Run Sub-task'
+                  ? tr('Run Sub-task', '运行子任务')
+                  : label === 'Execute Skill'
+                    ? tr('Execute Skill', '执行技能')
+                    : label === 'Edit Notebook'
+                      ? tr('Edit Notebook', '编辑笔记本')
+                      : label
 
   const handleAllow = useCallback(() => {
     if (sending) return
@@ -314,6 +336,7 @@ export function CommandApprovalPrompt({ request, sessionId, onReply }: CommandAp
     selectedSubPatterns,
     selectedFlatPattern,
     approvedSubCommands,
+    uniqueSubCommandPatterns,
     onReply
   ])
 
@@ -378,17 +401,19 @@ export function CommandApprovalPrompt({ request, sessionId, onReply }: CommandAp
       {/* Header */}
       <div className="flex items-center gap-2 px-3 py-2 border-b border-border bg-muted/30">
         <Shield className={cn('h-4 w-4 shrink-0', color)} />
-        <span className="text-xs font-medium text-foreground">Command Approval Required</span>
+        <span className="text-xs font-medium text-foreground">
+          {tr('Command Approval Required', '需要命令审批')}
+        </span>
         <span className="text-xs text-muted-foreground">—</span>
         <Icon className={cn('h-3.5 w-3.5 shrink-0', color)} />
-        <span className="text-xs text-muted-foreground">{label}</span>
+        <span className="text-xs text-muted-foreground">{translatedLabel}</span>
       </div>
 
       <div className="px-3 py-2.5">
         {/* Command display — bash && chains split into rows */}
         <div className="mb-3">
           <div className="text-xs font-semibold mb-1 text-muted-foreground">
-            Tool: {request.toolName}
+            {tr('Tool', '工具')}: {request.toolName}
           </div>
           <CommandDisplay commandStr={request.commandStr} />
         </div>
@@ -399,9 +424,9 @@ export function CommandApprovalPrompt({ request, sessionId, onReply }: CommandAp
             <div className="text-xs font-medium mb-2 text-foreground">
               {patternPickerMode === 'allow'
                 ? hasSubCommands
-                  ? 'Choose patterns to always allow (one per command):'
-                  : 'Choose pattern to always allow:'
-                : 'Choose pattern to always block:'}
+                  ? tr('Choose patterns to always allow (one per command):', '选择要始终允许的模式（每条命令一个）：')
+                  : tr('Choose pattern to always allow:', '选择要始终允许的模式：')
+                : tr('Choose pattern to always block:', '选择要始终阻止的模式：')}
             </div>
 
             {/* Scrollable pattern list */}
@@ -436,10 +461,10 @@ export function CommandApprovalPrompt({ request, sessionId, onReply }: CommandAp
                 data-testid="confirm-pattern"
               >
                 {sending
-                  ? 'Saving...'
+                  ? tr('Saving...', '保存中...')
                   : patternPickerMode === 'allow'
-                    ? 'Allow always'
-                    : 'Block always'}
+                    ? tr('Allow always', '始终允许')
+                    : tr('Block always', '始终阻止')}
               </Button>
               <Button
                 size="sm"
@@ -448,7 +473,7 @@ export function CommandApprovalPrompt({ request, sessionId, onReply }: CommandAp
                 disabled={sending}
                 data-testid="cancel-pattern"
               >
-                Cancel
+                {tr('Cancel', '取消')}
               </Button>
             </div>
           </div>
@@ -463,17 +488,17 @@ export function CommandApprovalPrompt({ request, sessionId, onReply }: CommandAp
               disabled={sending}
               data-testid="command-approve-once"
             >
-              {sending ? 'Sending...' : 'Allow once'}
+              {sending ? tr('Sending...', '发送中...') : tr('Allow once', '允许一次')}
             </Button>
             <Button
               size="sm"
               variant="outline"
               onClick={handleAllowAlways}
               disabled={sending}
-              title="Always allow this command pattern"
+              title={tr('Always allow this command pattern', '始终允许此命令模式')}
               data-testid="command-approve-always"
             >
-              Allow always
+              {tr('Allow always', '始终允许')}
               <ChevronDown className="h-3 w-3 ml-1" />
             </Button>
             <Button
@@ -482,10 +507,10 @@ export function CommandApprovalPrompt({ request, sessionId, onReply }: CommandAp
               onClick={handleBlockAlways}
               disabled={sending}
               className="text-destructive hover:text-destructive"
-              title="Always block this command pattern"
+              title={tr('Always block this command pattern', '始终阻止此命令模式')}
               data-testid="command-block-always"
             >
-              Block always
+              {tr('Block always', '始终阻止')}
               {flatSuggestions.length > 1 && <ChevronDown className="h-3 w-3 ml-1" />}
             </Button>
             <Button
@@ -496,7 +521,7 @@ export function CommandApprovalPrompt({ request, sessionId, onReply }: CommandAp
               className="text-destructive hover:text-destructive"
               data-testid="command-deny"
             >
-              Deny
+              {tr('Deny', '拒绝')}
             </Button>
           </div>
         )}

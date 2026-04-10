@@ -1,6 +1,7 @@
 import { X, KanbanSquare } from 'lucide-react'
 import { useKanbanStore } from '@/stores/useKanbanStore'
 import type { Attachment } from './AttachmentPreview'
+import { useI18n } from '@/i18n/useI18n'
 
 // ── Column labels for ticket attachment cards ───────────────────────
 const COLUMN_LABELS: Record<string, string> = {
@@ -19,6 +20,7 @@ export function TicketAttachments({
   attachments,
   onRemove
 }: TicketAttachmentsProps): React.JSX.Element | null {
+  const { tr } = useI18n()
   const ticketAttachments = attachments.filter(
     (a): a is Extract<Attachment, { kind: 'ticket' }> => a.kind === 'ticket'
   )
@@ -33,7 +35,16 @@ export function TicketAttachments({
         for (const tickets of allTickets.values()) {
           const found = tickets.find((kt) => kt.id === t.ticketId)
           if (found) {
-            columnLabel = COLUMN_LABELS[found.column] ?? found.column
+            columnLabel =
+              found.column === 'todo'
+                ? tr('To Do', '待办')
+                : found.column === 'in_progress'
+                  ? tr('In Progress', '进行中')
+                  : found.column === 'review'
+                    ? tr('Review', '评审')
+                    : found.column === 'done'
+                      ? tr('Done', '已完成')
+                      : COLUMN_LABELS[found.column] ?? found.column
             break
           }
         }

@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useProjectStore, useWorktreeStore, useConnectionStore } from '@/stores'
+import { useI18n } from '@/i18n'
 
 interface ManageConnectionWorktreesDialogProps {
   connectionId: string
@@ -39,6 +40,7 @@ export function ManageConnectionWorktreesDialog({
   open,
   onOpenChange
 }: ManageConnectionWorktreesDialogProps): React.JSX.Element {
+  const { tr } = useI18n()
   const projects = useProjectStore((s) => s.projects)
   const worktreesByProject = useWorktreeStore((s) => s.worktreesByProject)
   const connections = useConnectionStore((s) => s.connections)
@@ -158,16 +160,18 @@ export function ManageConnectionWorktreesDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Settings2 className="h-4 w-4" />
-            Connection Worktrees
+            {tr('Connection Worktrees', '连接工作树')}
           </DialogTitle>
-          <DialogDescription>Manage which worktrees are part of this connection.</DialogDescription>
+          <DialogDescription>
+            {tr('Manage which worktrees are part of this connection.', '管理哪些工作树属于这个连接。')}
+          </DialogDescription>
         </DialogHeader>
 
         {/* Search/Filter */}
         <div className="relative">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Filter worktrees..."
+            placeholder={tr('Filter worktrees...', '筛选工作树...')}
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
             className="pl-9"
@@ -182,11 +186,11 @@ export function ManageConnectionWorktreesDialog({
         >
           {totalWorktrees === 0 ? (
             <div className="px-4 py-8 text-center text-sm text-muted-foreground">
-              No active worktrees found.
+              {tr('No active worktrees found.', '未找到活动中的工作树。')}
             </div>
           ) : filteredGroups.length === 0 ? (
             <div className="px-4 py-8 text-center text-sm text-muted-foreground">
-              No worktrees match your filter
+              {tr('No worktrees match your filter', '没有工作树匹配当前筛选')}
             </div>
           ) : (
             <div className="py-1">
@@ -231,8 +235,11 @@ export function ManageConnectionWorktreesDialog({
         <DialogFooter className="flex items-center sm:justify-between">
           <p className="text-xs text-muted-foreground">
             {selectedIds.size === 0
-              ? 'Select at least 1 worktree'
-              : `${selectedIds.size} worktree${selectedIds.size !== 1 ? 's' : ''} selected`}
+              ? tr('Select at least 1 worktree', '至少选择 1 个工作树')
+              : `${selectedIds.size} ${tr(
+                  selectedIds.size !== 1 ? 'worktrees selected' : 'worktree selected',
+                  selectedIds.size !== 1 ? '个工作树已选择' : '个工作树已选择'
+                )}`}
           </p>
           <Button
             onClick={handleSave}
@@ -242,10 +249,10 @@ export function ManageConnectionWorktreesDialog({
             {isSubmitting ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Saving...
+                {tr('Saving...', '保存中...')}
               </>
             ) : (
-              'Save'
+              tr('Save', '保存')
             )}
           </Button>
         </DialogFooter>

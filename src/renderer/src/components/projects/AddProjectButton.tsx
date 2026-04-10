@@ -6,8 +6,10 @@ import { useProjectStore } from '@/stores'
 import { useIsWebMode } from '@/hooks/useIsWebMode'
 import { projectToast, toast } from '@/lib/toast'
 import { GitInitDialog } from './GitInitDialog'
+import { useI18n } from '@/i18n'
 
 export function AddProjectButton(): React.JSX.Element {
+  const { tr } = useI18n()
   const isWebMode = useIsWebMode()
   const [isAdding, setIsAdding] = useState(false)
   const [gitInitPath, setGitInitPath] = useState<string | null>(null)
@@ -36,18 +38,18 @@ export function AddProjectButton(): React.JSX.Element {
         return
       }
 
-      toast.error(result.error || 'Failed to add project')
+      toast.error(result.error || tr('Failed to add project', '添加项目失败'))
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to add project')
+      toast.error(error instanceof Error ? error.message : tr('Failed to add project', '添加项目失败'))
     } finally {
       setIsAdding(false)
     }
-  }, [addProject])
+  }, [addProject, tr])
 
   const handleAddProject = useCallback(async (): Promise<void> => {
     if (isAdding) return
 
-    if (isWebMode) {
+    if (isWebMode && !window.projectOps?.openDirectoryDialog) {
       setShowPathInput(true)
       return
     }
@@ -76,17 +78,17 @@ export function AddProjectButton(): React.JSX.Element {
         return
       }
 
-      toast.error(result.error || 'Failed to add project', {
+      toast.error(result.error || tr('Failed to add project', '添加项目失败'), {
         retry: () => handleAddProject()
       })
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to add project', {
+      toast.error(error instanceof Error ? error.message : tr('Failed to add project', '添加项目失败'), {
         retry: () => handleAddProject()
       })
     } finally {
       setIsAdding(false)
     }
-  }, [isAdding, isWebMode, addProject])
+  }, [isAdding, isWebMode, addProject, tr])
 
   useEffect(() => {
     const handler = (): void => {
@@ -101,22 +103,22 @@ export function AddProjectButton(): React.JSX.Element {
 
     const initResult = await window.projectOps.initRepository(gitInitPath)
     if (!initResult.success) {
-      toast.error(initResult.error || 'Failed to initialize repository')
+      toast.error(initResult.error || tr('Failed to initialize repository', '初始化仓库失败'))
       setGitInitPath(null)
       return
     }
 
-    toast.success('Git repository initialized')
+    toast.success(tr('Git repository initialized', 'Git 仓库已初始化'))
 
     // Retry adding the project
     const addResult = await addProject(gitInitPath)
     if (!addResult.success) {
-      toast.error(addResult.error || 'Failed to add project')
+      toast.error(addResult.error || tr('Failed to add project', '添加项目失败'))
     } else {
       projectToast.added(gitInitPath.split('/').pop() || gitInitPath)
     }
     setGitInitPath(null)
-  }, [gitInitPath, addProject])
+  }, [gitInitPath, addProject, tr])
 
   return (
     <>
@@ -132,7 +134,7 @@ export function AddProjectButton(): React.JSX.Element {
                 setManualPath('')
               }
             }}
-            placeholder="/path/to/project"
+            placeholder={tr('/path/to/project', '/项目/路径')}
             className="h-6 text-xs font-mono w-48"
             autoFocus
             data-testid="add-project-path-input"
@@ -152,7 +154,7 @@ export function AddProjectButton(): React.JSX.Element {
           variant="ghost"
           size="icon"
           className="h-6 w-6"
-          title="Add Project"
+          title={tr('Add Project', '添加项目')}
           onClick={handleAddProject}
           disabled={isAdding}
           data-testid="add-project-button"

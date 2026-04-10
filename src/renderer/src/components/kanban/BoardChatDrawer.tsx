@@ -36,6 +36,7 @@ import { BOARD_ASSISTANT_SESSION_NAME_PREFIX } from '@/stores/useSessionStore'
 import type { StreamingPart } from '@/components/sessions/SessionView'
 import type { QuestionRequest } from '@/stores/useQuestionStore'
 import type { CommandApprovalRequest } from '@/stores/useCommandApprovalStore'
+import { useI18n } from '@/i18n'
 
 interface BoardChatDrawerProps {
   projectId?: string
@@ -368,6 +369,7 @@ function BoardChatHeader({
   onMinimize: () => void
   onClose: () => void
 }): React.JSX.Element {
+  const { tr } = useI18n()
   const selectedTargetProject =
     scope.kind === 'connection'
       ? scope.availableProjects.find((project) => project.id === selectedTargetProjectId)
@@ -381,7 +383,7 @@ function BoardChatHeader({
             <Bot className="h-4 w-4" />
           </div>
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-foreground">Board Assistant</p>
+            <p className="truncate text-sm font-semibold text-foreground">{tr('Board Assistant', '看板助手')}</p>
             <p className="text-xs text-muted-foreground">{getStatusLabel(status)}</p>
           </div>
         </div>
@@ -410,7 +412,7 @@ function BoardChatHeader({
             </select>
             {selectedTargetProject && (
               <span className="text-xs text-muted-foreground">
-                Targeting {selectedTargetProject.name}
+                {tr(`Targeting ${selectedTargetProject.name}`, `目标项目：${selectedTargetProject.name}`)}
               </span>
             )}
           </div>
@@ -451,20 +453,20 @@ function BoardChatHeader({
               onClick={onResetModel}
               className="text-xs text-muted-foreground transition-colors hover:text-foreground"
             >
-              Use Default
+              {tr('Use Default', '使用默认值')}
             </button>
           )}
         </div>
       </div>
 
       <div className="flex items-center gap-1">
-        <Button type="button" variant="ghost" size="icon" onClick={onClear} aria-label="Clear chat">
+        <Button type="button" variant="ghost" size="icon" onClick={onClear} aria-label={tr('Clear chat', '清空聊天')}>
           <Trash2 className="h-4 w-4" />
         </Button>
-        <Button type="button" variant="ghost" size="icon" onClick={onMinimize} aria-label="Minimize assistant">
+        <Button type="button" variant="ghost" size="icon" onClick={onMinimize} aria-label={tr('Minimize assistant', '最小化助手')}>
           <Minimize2 className="h-4 w-4" />
         </Button>
-        <Button type="button" variant="ghost" size="icon" onClick={onClose} aria-label="Close assistant">
+        <Button type="button" variant="ghost" size="icon" onClick={onClose} aria-label={tr('Close assistant', '关闭助手')}>
           <X className="h-4 w-4" />
         </Button>
       </div>
@@ -701,8 +703,11 @@ function BoardChatComposer({
           disabled={disabled}
           placeholder={
             disabled
-              ? 'Select a target project to start.'
-              : 'Can create local tickets. Ask for breakdowns, revisions, or smaller tasks.'
+              ? tr('Select a target project to start.', '请选择目标项目后开始。')
+              : tr(
+                  'Can create local tickets. Ask for breakdowns, revisions, or smaller tasks.',
+                  '可创建本地工单。你可以要求拆分、修订或生成更小的任务。'
+                )
           }
           className="min-h-[84px] resize-none border-0 bg-transparent p-2 shadow-none focus-visible:ring-0"
           onChange={(event) => onChange(event.target.value)}
@@ -714,10 +719,10 @@ function BoardChatComposer({
           }}
         />
         <div className="flex items-center justify-between gap-3 px-2 pb-1">
-          <span className="text-xs text-muted-foreground">Enter to send. Shift+Enter for a new line.</span>
+          <span className="text-xs text-muted-foreground">{tr('Enter to send. Shift+Enter for a new line.', 'Enter 发送，Shift+Enter 换行。')}</span>
           <Button type="button" size="sm" onClick={onSend} disabled={!canSend}>
             {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-            Send
+            {tr('Send', '发送')}
           </Button>
         </div>
       </div>
@@ -731,6 +736,7 @@ export function BoardChatDrawer({
   connectionId,
   isPinnedMode = false
 }: BoardChatDrawerProps): React.JSX.Element | null {
+  const { tr } = useI18n()
   const projects = useProjectStore((state) => state.projects)
   const connections = useConnectionStore((state) => state.connections)
   const scope = useMemo<BoardChatScope | null>(() => {
@@ -918,7 +924,9 @@ export function BoardChatDrawer({
     if (!targetProjectId) return
 
     const projectName =
-      projects.find((project) => project.id === targetProjectId)?.name ?? 'Unknown project'
+      projects.find((project) => project.id === targetProjectId)?.name ??
+      tr('Unknown project', '未知项目')
+      
 
     setDrafts(
       latestDraftResult.drafts.map((draft) => ({
@@ -932,7 +940,7 @@ export function BoardChatDrawer({
       })),
       latestDraftResult.messageId
     )
-  }, [draftSourceMessageId, latestDraftResult, projects, scope, selectedTargetProjectId, setDrafts])
+  }, [draftSourceMessageId, latestDraftResult, projects, scope, selectedTargetProjectId, setDrafts, tr])
 
   useEffect(() => {
     if (error) {
@@ -1045,13 +1053,16 @@ export function BoardChatDrawer({
         throw new Error(result.error || 'The assistant could not send your message.')
       }
     } catch (sendError) {
-      const message = sendError instanceof Error ? sendError.message : 'Failed to send assistant message.'
+      const message =
+        sendError instanceof Error
+          ? sendError.message
+          : tr('Failed to send assistant message.', '发送助手消息失败。')
       setError(message)
       setStatus('error')
       addLocalSystemMessage(message)
       toast.error(message)
     }
-  }, [addLocalSystemMessage, addLocalUserMessage, composerValue, scope, selectedTargetProjectId, sessionId, setComposerValue, setError, setStatus])
+  }, [addLocalSystemMessage, addLocalUserMessage, composerValue, scope, selectedTargetProjectId, sessionId, setComposerValue, setError, setStatus, tr])
 
   const handleCreateDrafts = useCallback(async (onlySelected: boolean) => {
     const draftsToCreate = drafts.filter(
@@ -1078,19 +1089,22 @@ export function BoardChatDrawer({
         `Created ${draftsToCreate.length} ticket${draftsToCreate.length === 1 ? '' : 's'} in ${draftsToCreate[0].projectName}.`
       )
       toast.success(
-        `Created ${draftsToCreate.length} ticket${draftsToCreate.length === 1 ? '' : 's'}.`
+        tr(
+          `Created ${draftsToCreate.length} ticket${draftsToCreate.length === 1 ? '' : 's'}.`,
+          `已创建 ${draftsToCreate.length} 个工单。`
+        )
       )
     } catch {
-      toast.error('Failed to create one or more tickets.')
+      toast.error(tr('Failed to create one or more tickets.', '创建一个或多个工单失败。'))
     }
-  }, [addLocalSystemMessage, drafts, markDraftsCreated])
+  }, [addLocalSystemMessage, drafts, markDraftsCreated, tr])
 
   const handleClear = useCallback(async () => {
     await handleDiscardConversation({ preserveOpen: true })
     if (storedScope && storedScope.kind !== 'pinned') {
-      addLocalSystemMessage('Conversation cleared.')
+      addLocalSystemMessage(tr('Conversation cleared.', '对话已清空。'))
     }
-  }, [addLocalSystemMessage, handleDiscardConversation, storedScope])
+  }, [addLocalSystemMessage, handleDiscardConversation, storedScope, tr])
 
   const handleClose = useCallback(async () => {
     await handleDiscardConversation()
@@ -1102,8 +1116,13 @@ export function BoardChatDrawer({
       preserveOpen: true,
       nextSelectedModelOverride: model
     })
-    addLocalSystemMessage(`Board assistant model changed to ${model.providerID}/${model.modelID}.`)
-  }, [addLocalSystemMessage, handleDiscardConversation, setSelectedModelOverride])
+    addLocalSystemMessage(
+      tr(
+        `Board assistant model changed to ${model.providerID}/${model.modelID}.`,
+        `看板助手模型已切换为 ${model.providerID}/${model.modelID}。`
+      )
+    )
+  }, [addLocalSystemMessage, handleDiscardConversation, setSelectedModelOverride, tr])
 
   const handleResetModel = useCallback(async () => {
     setSelectedModelOverride(null)
@@ -1111,8 +1130,8 @@ export function BoardChatDrawer({
       preserveOpen: true,
       nextSelectedModelOverride: null
     })
-    addLocalSystemMessage('Board assistant model reset to the app default.')
-  }, [addLocalSystemMessage, handleDiscardConversation, setSelectedModelOverride])
+    addLocalSystemMessage(tr('Board assistant model reset to the app default.', '看板助手模型已重置为应用默认值。'))
+  }, [addLocalSystemMessage, handleDiscardConversation, setSelectedModelOverride, tr])
 
   const handleSelectAgentSdk = useCallback(async (nextAgentSdk: 'opencode' | 'claude-code' | 'codex') => {
     const nextOverride = nextAgentSdk === defaultBoardAgentSdk ? null : nextAgentSdk
@@ -1123,25 +1142,39 @@ export function BoardChatDrawer({
       nextSelectedAgentSdkOverride: nextOverride,
       nextSelectedModelOverride: null
     })
-    addLocalSystemMessage(`Board assistant provider changed to ${getAgentSdkLabel(nextAgentSdk)}.`)
-  }, [addLocalSystemMessage, defaultBoardAgentSdk, handleDiscardConversation, setSelectedAgentSdkOverride, setSelectedModelOverride])
+    addLocalSystemMessage(
+      tr(
+        `Board assistant provider changed to ${getAgentSdkLabel(nextAgentSdk)}.`,
+        `看板助手提供方已切换为 ${getAgentSdkLabel(nextAgentSdk)}。`
+      )
+    )
+  }, [addLocalSystemMessage, defaultBoardAgentSdk, handleDiscardConversation, setSelectedAgentSdkOverride, setSelectedModelOverride, tr])
 
   const handleRevise = useCallback(() => {
-    setComposerValue('Revise the current draft tickets. Keep them small, specific, and implementation-ready.')
+    setComposerValue(
+      tr(
+        'Revise the current draft tickets. Keep them small, specific, and implementation-ready.',
+        '请修订当前草稿工单，使其更小、更具体、并且可直接实现。'
+      )
+    )
     composerFocusRef.current?.focus()
-  }, [setComposerValue])
+  }, [setComposerValue, tr])
 
   const handleCancelDrafts = useCallback(() => {
     clearDrafts()
-    addLocalSystemMessage('Draft proposals discarded.')
-  }, [addLocalSystemMessage, clearDrafts])
+    addLocalSystemMessage(tr('Draft proposals discarded.', '草稿提案已丢弃。'))
+  }, [addLocalSystemMessage, clearDrafts, tr])
 
   const handleSelectTargetProject = useCallback(async (nextProjectId: string) => {
     await setSelectedTargetProjectId(nextProjectId)
     await handleDiscardConversation({ preserveOpen: true, nextTargetProjectId: nextProjectId })
-    const projectName = projects.find((project) => project.id === nextProjectId)?.name ?? 'the selected project'
-    addLocalSystemMessage(`Target project changed to ${projectName}.`)
-  }, [addLocalSystemMessage, handleDiscardConversation, projects, setSelectedTargetProjectId])
+    const projectName =
+      projects.find((project) => project.id === nextProjectId)?.name ??
+      tr('the selected project', '所选项目')
+    addLocalSystemMessage(
+      tr(`Target project changed to ${projectName}.`, `目标项目已切换为 ${projectName}。`)
+    )
+  }, [addLocalSystemMessage, handleDiscardConversation, projects, setSelectedTargetProjectId, tr])
 
   const handleQuestionReply = useCallback(
     async (requestId: string, answers: QuestionAnswer[]) => {
@@ -1151,10 +1184,10 @@ export function BoardChatDrawer({
           useQuestionStore.getState().removeQuestion(sessionId, requestId)
         }
       } catch {
-        toast.error('Failed to answer assistant question.')
+        toast.error(tr('Failed to answer assistant question.', '回答助手问题失败。'))
       }
     },
-    [runtimePath, sessionId]
+    [runtimePath, sessionId, tr]
   )
 
   const handleQuestionReject = useCallback(
@@ -1165,10 +1198,10 @@ export function BoardChatDrawer({
           useQuestionStore.getState().removeQuestion(sessionId, requestId)
         }
       } catch {
-        toast.error('Failed to dismiss assistant question.')
+        toast.error(tr('Failed to dismiss assistant question.', '忽略助手问题失败。'))
       }
     },
-    [runtimePath, sessionId]
+    [runtimePath, sessionId, tr]
   )
 
   const handlePermissionReply = useCallback(
@@ -1179,10 +1212,10 @@ export function BoardChatDrawer({
           usePermissionStore.getState().removePermission(sessionId, requestId)
         }
       } catch {
-        toast.error('Failed to respond to permission request.')
+        toast.error(tr('Failed to respond to permission request.', '响应权限请求失败。'))
       }
     },
-    [runtimePath, sessionId]
+    [runtimePath, sessionId, tr]
   )
 
   const handleCommandApprovalReply = useCallback(
@@ -1206,10 +1239,10 @@ export function BoardChatDrawer({
           useCommandApprovalStore.getState().removeApproval(sessionId, requestId)
         }
       } catch {
-        toast.error('Failed to respond to command approval request.')
+        toast.error(tr('Failed to respond to command approval request.', '响应命令审批请求失败。'))
       }
     },
-    [runtimePath, sessionId]
+    [runtimePath, sessionId, tr]
   )
 
   if (!scope) return null
@@ -1229,7 +1262,7 @@ export function BoardChatDrawer({
               <Bot className="h-4 w-4" />
             </div>
             <div className="text-left">
-              <p className="text-sm font-semibold text-foreground">Board Assistant</p>
+              <p className="text-sm font-semibold text-foreground">{tr('Board Assistant', '看板助手')}</p>
               <p className="text-xs text-muted-foreground">{getStatusLabel(status)}</p>
             </div>
           </div>

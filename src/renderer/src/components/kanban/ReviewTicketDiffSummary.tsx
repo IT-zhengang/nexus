@@ -1,4 +1,5 @@
 import type { JSX } from 'react'
+import { useI18n } from '@/i18n/useI18n'
 
 export interface ReviewTicketDiffFile {
   relativePath: string
@@ -21,6 +22,7 @@ export function ReviewTicketDiffSummary({
   loading,
   error
 }: ReviewTicketDiffSummaryProps): JSX.Element | null {
+  const { tr } = useI18n()
   if (!baseBranch && !loading && !error) return null
 
   return (
@@ -31,11 +33,11 @@ export function ReviewTicketDiffSummary({
       <div className="flex items-center justify-between gap-2">
         <div>
           <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-            Changed Files
+            {tr('Changed Files', '已更改文件')}
           </h3>
           {baseBranch && (
             <p className="text-[11px] text-muted-foreground">
-              Against <span className="font-mono text-foreground">{baseBranch}</span>
+              {tr('Against', '对比')} <span className="font-mono text-foreground">{baseBranch}</span>
             </p>
           )}
         </div>
@@ -50,14 +52,17 @@ export function ReviewTicketDiffSummary({
       </div>
 
       {loading ? (
-        <p className="text-xs text-muted-foreground">Loading changed files...</p>
+        <p className="text-xs text-muted-foreground">
+          {tr('Loading changed files...', '正在加载已更改文件...')}
+        </p>
       ) : error ? (
         <p className="text-xs text-destructive" data-testid="review-diff-summary-error">
           {error}
         </p>
       ) : files.length === 0 ? (
         <p className="text-xs text-muted-foreground">
-          No changes against <span className="font-mono">{baseBranch ?? 'base branch'}</span>.
+          {tr('No changes against', '相对于以下分支没有变更')}{' '}
+          <span className="font-mono">{baseBranch ?? tr('base branch', '基础分支')}</span>.
         </p>
       ) : (
         <div

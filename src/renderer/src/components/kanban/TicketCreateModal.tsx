@@ -25,6 +25,7 @@ import { usePinnedStore } from '@/stores/usePinnedStore'
 import { parseAttachmentUrl } from '@/lib/attachment-utils'
 import type { AttachmentInfo } from '@/lib/attachment-utils'
 import { toast } from '@/lib/toast'
+import { useI18n } from '@/i18n/useI18n'
 
 // ── Types ───────────────────────────────────────────────────────────
 interface TicketAttachment extends AttachmentInfo {
@@ -41,6 +42,7 @@ interface TicketCreateModalProps {
 
 // ── Component ───────────────────────────────────────────────────────
 export function TicketCreateModal({ open, onOpenChange, projectId, connectionId, isPinnedMode }: TicketCreateModalProps) {
+  const { tr } = useI18n()
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [showPreview, setShowPreview] = useState(false)
@@ -165,14 +167,14 @@ export function TicketCreateModal({ open, onOpenChange, projectId, connectionId,
         attachments: attachments.map((a) => ({ type: a.type, url: a.url, label: a.label })),
         column: 'todo'
       })
-      toast.success('Ticket created')
+      toast.success(tr('Ticket created', '工单已创建'))
       onOpenChange(false)
     } catch {
-      toast.error('Failed to create ticket')
+      toast.error(tr('Failed to create ticket', '创建工单失败'))
     } finally {
       setIsCreating(false)
     }
-  }, [title, description, attachments, isCreating, createTicket, projectId, selectedProjectId, isMultiProjectMode, onOpenChange])
+  }, [title, description, attachments, isCreating, createTicket, projectId, selectedProjectId, isMultiProjectMode, onOpenChange, tr])
 
   const handleCancel = useCallback(() => {
     onOpenChange(false)
@@ -197,8 +199,8 @@ export function TicketCreateModal({ open, onOpenChange, projectId, connectionId,
         onKeyDown={handleKeyDown}
       >
         <DialogHeader>
-          <DialogTitle>Create Ticket</DialogTitle>
-          <DialogDescription>Add a new ticket to the To Do column.</DialogDescription>
+          <DialogTitle>{tr('Create Ticket', '创建工单')}</DialogTitle>
+          <DialogDescription>{tr('Add a new ticket to the To Do column.', '向待办列添加新工单。')}</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -206,7 +208,7 @@ export function TicketCreateModal({ open, onOpenChange, projectId, connectionId,
           {isMultiProjectMode && availableProjects.length > 0 && (
             <div className="space-y-1.5">
               <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                Project
+                {tr('Project', '项目')}
               </label>
               <select
                 value={selectedProjectId}
@@ -223,13 +225,13 @@ export function TicketCreateModal({ open, onOpenChange, projectId, connectionId,
           {/* Title */}
           <div className="space-y-1.5">
             <label htmlFor="ticket-title" className="text-sm font-medium text-foreground">
-              Title <span className="text-destructive">*</span>
+              {tr('Title', '标题')} <span className="text-destructive">*</span>
             </label>
             <Input
               id="ticket-title"
               ref={titleInputRef}
               data-testid="ticket-title-input"
-              placeholder="What needs to be done?"
+              placeholder={tr('What needs to be done?', '需要完成什么？')}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               autoFocus
@@ -240,7 +242,7 @@ export function TicketCreateModal({ open, onOpenChange, projectId, connectionId,
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <label htmlFor="ticket-description" className="text-sm font-medium text-foreground">
-                Description
+                {tr('Description', '描述')}
               </label>
               <Button
                 type="button"
@@ -253,11 +255,11 @@ export function TicketCreateModal({ open, onOpenChange, projectId, connectionId,
               >
                 {showPreview ? (
                   <>
-                    <EyeOff className="h-3.5 w-3.5" /> Edit
+                    <EyeOff className="h-3.5 w-3.5" /> {tr('Edit', '编辑')}
                   </>
                 ) : (
                   <>
-                    <Eye className="h-3.5 w-3.5" /> Preview
+                    <Eye className="h-3.5 w-3.5" /> {tr('Preview', '预览')}
                   </>
                 )}
               </Button>
@@ -271,14 +273,14 @@ export function TicketCreateModal({ open, onOpenChange, projectId, connectionId,
                 {description.trim() ? (
                   <ReactMarkdown remarkPlugins={[remarkGfm]}>{description}</ReactMarkdown>
                 ) : (
-                  <p className="text-muted-foreground/60 italic">No description</p>
+                  <p className="text-muted-foreground/60 italic">{tr('No description', '暂无描述')}</p>
                 )}
               </div>
             ) : (
               <Textarea
                 id="ticket-description"
                 data-testid="ticket-description-input"
-                placeholder="Describe the ticket (supports markdown)..."
+                placeholder={tr('Describe the ticket (supports markdown)...', '描述工单内容（支持 Markdown）...')}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 rows={5}
@@ -333,7 +335,7 @@ export function TicketCreateModal({ open, onOpenChange, projectId, connectionId,
                       className="gap-1 text-xs"
                     >
                       <Plus className="h-3.5 w-3.5" />
-                      Add attachment
+                      {tr('Add attachment', '添加附件')}
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="start">
@@ -355,7 +357,7 @@ export function TicketCreateModal({ open, onOpenChange, projectId, connectionId,
               <div className="flex items-center gap-2">
                 <Input
                   data-testid="ticket-attachment-url-input"
-                  placeholder="Paste a Jira or Figma URL"
+                  placeholder={tr('Paste a Jira or Figma URL', '粘贴 Jira 或 Figma 链接')}
                   value={attachUrl}
                   onChange={(e) => setAttachUrl(e.target.value)}
                   onKeyDown={(e) => {
@@ -378,7 +380,7 @@ export function TicketCreateModal({ open, onOpenChange, projectId, connectionId,
                   disabled={!detectedAttachment}
                   onClick={handleAddAttachment}
                 >
-                  Add
+                  {tr('Add', '添加')}
                 </Button>
                 <Button
                   type="button"
@@ -403,7 +405,7 @@ export function TicketCreateModal({ open, onOpenChange, projectId, connectionId,
             data-testid="ticket-cancel-btn"
             onClick={handleCancel}
           >
-            Cancel
+            {tr('Cancel', '取消')}
           </Button>
           <Button
             type="button"
@@ -411,7 +413,7 @@ export function TicketCreateModal({ open, onOpenChange, projectId, connectionId,
             disabled={isTitleEmpty || isCreating}
             onClick={handleCreate}
           >
-            {isCreating ? 'Creating...' : 'Create'}
+            {isCreating ? tr('Creating...', '创建中...') : tr('Create', '创建')}
           </Button>
         </DialogFooter>
       </DialogContent>

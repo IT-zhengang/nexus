@@ -7,6 +7,7 @@ import { FileTreeHeader } from './FileTreeHeader'
 import { FileTreeFilter } from './FileTreeFilter'
 import { VirtualFileTreeNode } from './FileTreeNode'
 import { cn } from '@/lib/utils'
+import { useI18n } from '@/i18n/useI18n'
 
 // File tree node structure
 interface FileTreeNode {
@@ -97,6 +98,9 @@ function flattenTree(
 }
 
 const ROW_HEIGHT = 24
+const EMPTY_TREE: FileTreeNode[] = []
+const EMPTY_EXPANDED_PATHS = new Set<string>()
+const EMPTY_GIT_STATUSES: GitFileStatus[] = []
 
 export function FileTree({
   worktreePath,
@@ -108,6 +112,7 @@ export function FileTree({
   hideGitIndicators,
   hideGitContextActions
 }: FileTreeProps): React.JSX.Element {
+  const { tr } = useI18n()
   const {
     isLoading,
     error,
@@ -157,10 +162,19 @@ export function FileTree({
     }
   }, [stopWatching])
 
-  const tree = worktreePath ? getFileTree(worktreePath) : []
-  const expandedPaths = worktreePath ? getExpandedPaths(worktreePath) : new Set<string>()
-  const filter = worktreePath ? getFilter(worktreePath) : ''
-  const gitStatuses = worktreePath ? getFileStatuses(worktreePath) : []
+  const tree = useMemo(
+    () => (worktreePath ? getFileTree(worktreePath) : EMPTY_TREE),
+    [worktreePath, getFileTree]
+  )
+  const expandedPaths = useMemo(
+    () => (worktreePath ? getExpandedPaths(worktreePath) : EMPTY_EXPANDED_PATHS),
+    [worktreePath, getExpandedPaths]
+  )
+  const filter = useMemo(() => (worktreePath ? getFilter(worktreePath) : ''), [worktreePath, getFilter])
+  const gitStatuses = useMemo(
+    () => (worktreePath ? getFileStatuses(worktreePath) : EMPTY_GIT_STATUSES),
+    [worktreePath, getFileStatuses]
+  )
 
   // Build a Map for fast git status lookup
   const gitStatusMap = useMemo(() => {
@@ -252,8 +266,8 @@ export function FileTree({
         <div className="flex-1 flex items-center justify-center p-4">
           <div className="text-center text-muted-foreground">
             <FolderOpen className="h-10 w-10 mx-auto mb-3 opacity-50" />
-            <p className="text-sm">Select a worktree</p>
-            <p className="text-xs mt-1 opacity-75">to view its files</p>
+            <p className="text-sm">{tr('Select a worktree', '选择一个工作树')}</p>
+            <p className="text-xs mt-1 opacity-75">{tr('to view its files', '以查看其中的文件')}</p>
           </div>
         </div>
       </div>
@@ -267,7 +281,7 @@ export function FileTree({
         {headerElement}
         <div className="flex-1 flex items-center justify-center p-4">
           <div className="text-center text-destructive">
-            <p className="text-sm font-medium">Error loading files</p>
+            <p className="text-sm font-medium">{tr('Error loading files', '加载文件时出错')}</p>
             <p className="text-xs mt-1 opacity-75">{error}</p>
           </div>
         </div>
@@ -284,9 +298,9 @@ export function FileTree({
           <div className="text-center text-muted-foreground">
             <div
               className="h-6 w-6 mx-auto mb-3 border-2 border-current border-t-transparent rounded-full animate-spin"
-              aria-label="Loading files"
+              aria-label={tr('Loading files', '正在加载文件')}
             />
-            <p className="text-sm">Loading files...</p>
+            <p className="text-sm">{tr('Loading files...', '正在加载文件...')}</p>
           </div>
         </div>
       </div>
@@ -301,7 +315,7 @@ export function FileTree({
         <div className="flex-1 flex items-center justify-center p-4">
           <div className="text-center text-muted-foreground">
             <FolderOpen className="h-10 w-10 mx-auto mb-3 opacity-50" />
-            <p className="text-sm">No files found</p>
+            <p className="text-sm">{tr('No files found', '未找到文件')}</p>
           </div>
         </div>
       </div>
@@ -322,7 +336,7 @@ export function FileTree({
         />
         <div className="flex-1 flex items-center justify-center p-4">
           <div className="text-center text-destructive">
-            <p className="text-sm font-medium">Error loading files</p>
+            <p className="text-sm font-medium">{tr('Error loading files', '加载文件出错')}</p>
             <p className="text-xs mt-1 opacity-75">{error}</p>
           </div>
         </div>
@@ -346,9 +360,9 @@ export function FileTree({
           <div className="text-center text-muted-foreground">
             <div
               className="h-6 w-6 mx-auto mb-3 border-2 border-current border-t-transparent rounded-full animate-spin"
-              aria-label="Loading files"
+              aria-label={tr('Loading files', '正在加载文件')}
             />
-            <p className="text-sm">Loading files...</p>
+            <p className="text-sm">{tr('Loading files...', '正在加载文件...')}</p>
           </div>
         </div>
       </div>
@@ -370,7 +384,7 @@ export function FileTree({
         <div className="flex-1 flex items-center justify-center p-4">
           <div className="text-center text-muted-foreground">
             <FolderOpen className="h-10 w-10 mx-auto mb-3 opacity-50" />
-            <p className="text-sm">No files found</p>
+            <p className="text-sm">{tr('No files found', '未找到文件')}</p>
           </div>
         </div>
       </div>
@@ -386,7 +400,7 @@ export function FileTree({
         ref={parentRef}
         className="flex-1 overflow-auto py-1"
         role="tree"
-        aria-label="File tree"
+        aria-label={tr('File tree', '文件树')}
         data-testid="file-tree-content"
       >
         <div

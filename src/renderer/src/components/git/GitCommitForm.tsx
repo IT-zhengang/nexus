@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { useGitStore } from '@/stores/useGitStore'
 import { useWorktreeStore } from '@/stores/useWorktreeStore'
 import { cn } from '@/lib/utils'
+import { useI18n } from '@/i18n'
 
 interface GitCommitFormProps {
   worktreePath: string | null
@@ -22,6 +23,7 @@ export function GitCommitForm({
   hasConflicts,
   className
 }: GitCommitFormProps): React.JSX.Element | null {
+  const { tr } = useI18n()
   const [summary, setSummary] = useState('')
   const [description, setDescription] = useState('')
   const summaryInputRef = useRef<HTMLInputElement>(null)
@@ -70,7 +72,7 @@ export function GitCommitForm({
       hasPrePopulated.current = true
       setSummary(worktreeName)
     }
-  }, [sessionTitles, worktreeName]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [sessionTitles, worktreeName, summary])
 
   // Subscribe to store state for staged files count
   const fileStatusesByWorktree = useGitStore((state) => state.fileStatusesByWorktree)
@@ -105,18 +107,20 @@ export function GitCommitForm({
     const result = await commit(worktreePath, message)
 
     if (result.success) {
-      toast.success('Changes committed successfully', {
-        description: result.commitHash ? `Commit: ${result.commitHash.slice(0, 7)}` : undefined
+      toast.success(tr('Changes committed successfully', '更改提交成功'), {
+        description: result.commitHash
+          ? tr(`Commit: ${result.commitHash.slice(0, 7)}`, `提交：${result.commitHash.slice(0, 7)}`)
+          : undefined
       })
       // Clear form
       setSummary('')
       setDescription('')
     } else {
-      toast.error('Failed to commit', {
+      toast.error(tr('Failed to commit', '提交失败'), {
         description: result.error
       })
     }
-  }, [worktreePath, canCommit, summary, description, commit])
+  }, [worktreePath, canCommit, summary, description, commit, tr])
 
   // Keyboard shortcut: Cmd/Ctrl+Enter to commit
   useEffect(() => {
@@ -155,7 +159,7 @@ export function GitCommitForm({
           ref={summaryInputRef}
           value={summary}
           onChange={(e) => setSummary(e.target.value)}
-          placeholder="Commit summary"
+          placeholder={tr('Commit summary', '提交摘要')}
           className={cn(
             'text-xs h-7 pr-12',
             summaryStatus === 'error' && 'border-red-500 focus-visible:ring-red-500',
@@ -181,7 +185,7 @@ export function GitCommitForm({
       <Textarea
         value={description}
         onChange={(e) => setDescription(e.target.value)}
-        placeholder="Extended description (optional)"
+        placeholder={tr('Extended description (optional)', '扩展描述（可选）')}
         className="text-xs min-h-[40px] resize-none"
         rows={2}
         disabled={isCommitting}
@@ -199,14 +203,17 @@ export function GitCommitForm({
         {isCommitting ? (
           <>
             <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-            Committing...
+            {tr('Committing...', '正在提交...')}
           </>
         ) : (
           <>
-            Commit
+            {tr('Commit', '提交')}
             {hasStaged && (
               <span className="ml-1 text-[10px] opacity-75">
-                ({stagedFilesCount} file{stagedFilesCount !== 1 ? 's' : ''})
+                {tr(
+                  `(${stagedFilesCount} file${stagedFilesCount !== 1 ? 's' : ''})`,
+                  `（${stagedFilesCount} 个文件）`
+                )}
               </span>
             )}
           </>
@@ -219,13 +226,16 @@ export function GitCommitForm({
           className="text-[10px] text-red-500 text-center font-medium"
           data-testid="commit-conflict-warning"
         >
-          Resolve merge conflicts before committing
+          {tr('Resolve merge conflicts before committing', '请先解决合并冲突再提交')}
         </div>
       )}
 
       {/* Help text */}
       <div className="text-[10px] text-muted-foreground text-center">
-        {navigator.platform.includes('Mac') ? 'Cmd' : 'Ctrl'}+Enter to commit
+        {tr(
+          `${navigator.platform.includes('Mac') ? 'Cmd' : 'Ctrl'}+Enter to commit`,
+          `${navigator.platform.includes('Mac') ? 'Cmd' : 'Ctrl'}+Enter 提交`
+        )}
       </div>
     </div>
   )

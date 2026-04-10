@@ -9,6 +9,7 @@ import { MonacoDiffToolbar } from './MonacoDiffToolbar'
 import { HunkActionGutter } from './HunkActionGutter'
 import { PrCommentGutter } from './PrCommentGutter'
 import { usePRReviewStore } from '@/stores/usePRReviewStore'
+import { useI18n } from '@/i18n/useI18n'
 import type { PRReviewComment } from '@shared/types/git'
 import type { editor } from 'monaco-editor'
 
@@ -40,6 +41,7 @@ export default function MonacoDiffView({
   prReviewWorktreeId,
   onClose
 }: MonacoDiffViewProps): React.JSX.Element {
+  const { tr } = useI18n()
   const [originalContent, setOriginalContent] = useState<string | null>(null)
   const [modifiedContent, setModifiedContent] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -96,11 +98,11 @@ export default function MonacoDiffView({
         ])
 
         if (!origResult.success && !origResult.error?.includes('does not exist')) {
-          setError(origResult.error || 'Failed to load HEAD version')
+          setError(origResult.error || tr('Failed to load HEAD version', '加载 HEAD 版本失败'))
           return
         }
         if (!modResult.success) {
-          setError(modResult.error || 'Failed to load staged version')
+          setError(modResult.error || tr('Failed to load staged version', '加载暂存版本失败'))
           return
         }
 
@@ -116,11 +118,11 @@ export default function MonacoDiffView({
         ])
 
         if (!origResult.success && !origResult.error?.includes('does not exist')) {
-          setError(origResult.error || 'Failed to load original version')
+          setError(origResult.error || tr('Failed to load original version', '加载原始版本失败'))
           return
         }
         if (!modResult.success) {
-          setError(modResult.error || 'Failed to load file content')
+          setError(modResult.error || tr('Failed to load file content', '加载文件内容失败'))
           return
         }
 
@@ -128,12 +130,12 @@ export default function MonacoDiffView({
         setModifiedContent(modResult.content ?? '')
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load diff content')
+      setError(err instanceof Error ? err.message : tr('Failed to load diff content', '加载差异内容失败'))
     } finally {
       setIsLoading(false)
       isInitialLoad.current = false
     }
-  }, [worktreePath, filePath, staged, compareBranch])
+  }, [worktreePath, filePath, staged, compareBranch, tr])
 
   // Fetch on mount and when refresh is triggered
   useEffect(() => {

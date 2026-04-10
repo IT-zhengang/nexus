@@ -47,6 +47,7 @@ import {
 import { useWorktreeStatusStore } from '@/stores/useWorktreeStatusStore'
 import { HintBadge } from '@/components/ui/HintBadge'
 import { toast, clipboardToast } from '@/lib/toast'
+import { useI18n } from '@/i18n'
 
 interface ConnectionMemberEnriched {
   id: string
@@ -82,6 +83,7 @@ export function ConnectionItem({
   connection,
   onManageWorktrees
 }: ConnectionItemProps): React.JSX.Element {
+  const { tr } = useI18n()
   const selectedConnectionId = useConnectionStore((s) => s.selectedConnectionId)
   const selectConnection = useConnectionStore((s) => s.selectConnection)
   const deleteConnection = useConnectionStore((s) => s.deleteConnection)
@@ -117,20 +119,20 @@ export function ConnectionItem({
   // Derive display status text + color
   const { displayStatus, statusClass } =
     connectionStatus === 'answering'
-      ? { displayStatus: 'Answer questions', statusClass: 'font-semibold text-amber-500' }
+      ? { displayStatus: tr('Answer questions', '回答问题'), statusClass: 'font-semibold text-amber-500' }
       : connectionStatus === 'command_approval'
-        ? { displayStatus: 'Approve command', statusClass: 'font-semibold text-orange-500' }
+        ? { displayStatus: tr('Approve command', '批准命令'), statusClass: 'font-semibold text-orange-500' }
         : connectionStatus === 'permission'
-          ? { displayStatus: 'Permission', statusClass: 'font-semibold text-amber-500' }
+          ? { displayStatus: tr('Permission', '权限确认'), statusClass: 'font-semibold text-amber-500' }
           : connectionStatus === 'planning'
-            ? { displayStatus: 'Planning', statusClass: 'font-semibold text-blue-400' }
+            ? { displayStatus: tr('Planning', '规划中'), statusClass: 'font-semibold text-blue-400' }
             : connectionStatus === 'working'
-              ? { displayStatus: 'Working', statusClass: 'font-semibold text-primary' }
+              ? { displayStatus: tr('Working', '处理中'), statusClass: 'font-semibold text-primary' }
               : connectionStatus === 'plan_ready'
-                ? { displayStatus: 'Plan ready', statusClass: 'font-semibold text-blue-400' }
+                ? { displayStatus: tr('Plan ready', '计划已就绪'), statusClass: 'font-semibold text-blue-400' }
                 : connectionStatus === 'completed'
-                  ? { displayStatus: 'Ready', statusClass: 'font-semibold text-green-400' }
-                  : { displayStatus: 'Ready', statusClass: 'text-muted-foreground' }
+                  ? { displayStatus: tr('Ready', '就绪'), statusClass: 'font-semibold text-green-400' }
+                  : { displayStatus: tr('Ready', '就绪'), statusClass: 'text-muted-foreground' }
 
   // Marquee animation state for overflowing display name
   const containerRef = useRef<HTMLDivElement>(null)
@@ -233,20 +235,20 @@ export function ConnectionItem({
   const handleOpenInTerminal = useCallback(async (): Promise<void> => {
     const result = await window.connectionOps.openInTerminal(connection.path)
     if (result.success) {
-      toast.success('Opened in Terminal')
+      toast.success(tr('Opened in Terminal', '已在终端中打开'))
     } else {
-      toast.error(result.error || 'Failed to open in terminal')
+      toast.error(result.error || tr('Failed to open in terminal', '在终端中打开失败'))
     }
-  }, [connection.path])
+  }, [connection.path, tr])
 
   const handleOpenInEditor = useCallback(async (): Promise<void> => {
     const result = await window.connectionOps.openInEditor(connection.path)
     if (result.success) {
-      toast.success('Opened in Editor')
+      toast.success(tr('Opened in Editor', '已在编辑器中打开'))
     } else {
-      toast.error(result.error || 'Failed to open in editor')
+      toast.error(result.error || tr('Failed to open in editor', '在编辑器中打开失败'))
     }
-  }, [connection.path])
+  }, [connection.path, tr])
 
   const handleOpenInFinder = async (): Promise<void> => {
     await window.projectOps.showInFolder(connection.path)
@@ -254,7 +256,7 @@ export function ConnectionItem({
 
   const handleCopyPath = async (): Promise<void> => {
     await window.projectOps.copyToClipboard(connection.path)
-    clipboardToast.copied('Path')
+    clipboardToast.copied(tr('Path', '路径'))
   }
 
   const handleDelete = useCallback(async (): Promise<void> => {
@@ -280,30 +282,30 @@ export function ConnectionItem({
   const hasCustomName = !!connection.custom_name
   const displayName = hasCustomName
     ? connection.custom_name!
-    : projectNames || connection.name || 'Connection'
+    : projectNames || connection.name || tr('Connection', '连接')
 
   const menuItems = (
     <>
       <ContextMenuItem onClick={handleManageWorktrees}>
         <Settings2 className="h-4 w-4 mr-2" />
-        Connection Worktrees
+        {tr('Connection Worktrees', '连接工作树')}
       </ContextMenuItem>
       <ContextMenuItem onClick={handleStartRename}>
         <Pencil className="h-4 w-4 mr-2" />
-        Rename
+        {tr('Rename', '重命名')}
       </ContextMenuItem>
       <ContextMenuItem onClick={handleTogglePin}>
         {isPinned ? <PinOff className="h-4 w-4 mr-2" /> : <Pin className="h-4 w-4 mr-2" />}
-        {isPinned ? 'Unpin' : 'Pin'}
+        {isPinned ? tr('Unpin', '取消固定') : tr('Pin', '固定')}
       </ContextMenuItem>
       <ContextMenuSeparator />
       <ContextMenuItem onClick={handleOpenInTerminal}>
         <Terminal className="h-4 w-4 mr-2" />
-        Open in Terminal
+        {tr('Open in Terminal', '在终端中打开')}
       </ContextMenuItem>
       <ContextMenuItem onClick={handleOpenInEditor}>
         <Code className="h-4 w-4 mr-2" />
-        Open in Editor
+        {tr('Open in Editor', '在编辑器中打开')}
       </ContextMenuItem>
       <ContextMenuItem onClick={handleOpenInFinder}>
         <ExternalLink className="h-4 w-4 mr-2" />
@@ -311,7 +313,7 @@ export function ConnectionItem({
       </ContextMenuItem>
       <ContextMenuItem onClick={handleCopyPath}>
         <Copy className="h-4 w-4 mr-2" />
-        Copy Path
+        {tr('Copy Path', '复制路径')}
       </ContextMenuItem>
       <ContextMenuSeparator />
       <ContextMenuItem
@@ -319,7 +321,7 @@ export function ConnectionItem({
         className="text-destructive focus:text-destructive focus:bg-destructive/10"
       >
         <Trash2 className="h-4 w-4 mr-2" />
-        Delete
+        {tr('Delete', '删除')}
       </ContextMenuItem>
     </>
   )
@@ -399,7 +401,7 @@ export function ConnectionItem({
                 }}
                 onClick={(e) => e.stopPropagation()}
                 className="bg-background border border-border rounded px-1.5 py-0.5 text-sm w-full focus:outline-none focus:ring-1 focus:ring-ring"
-                placeholder={projectNames || 'Connection name'}
+                placeholder={projectNames || tr('Connection name', '连接名称')}
               />
             ) : (
               <>
@@ -468,24 +470,24 @@ export function ConnectionItem({
             <DropdownMenuContent className="w-52" align="end">
               <DropdownMenuItem onClick={handleManageWorktrees}>
                 <Settings2 className="h-4 w-4 mr-2" />
-                Connection Worktrees
+                {tr('Connection Worktrees', '连接工作树')}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleStartRename}>
                 <Pencil className="h-4 w-4 mr-2" />
-                Rename
+                {tr('Rename', '重命名')}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleTogglePin}>
                 {isPinned ? <PinOff className="h-4 w-4 mr-2" /> : <Pin className="h-4 w-4 mr-2" />}
-                {isPinned ? 'Unpin' : 'Pin'}
+                {isPinned ? tr('Unpin', '取消固定') : tr('Pin', '固定')}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleOpenInTerminal}>
                 <Terminal className="h-4 w-4 mr-2" />
-                Open in Terminal
+                {tr('Open in Terminal', '在终端中打开')}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleOpenInEditor}>
                 <Code className="h-4 w-4 mr-2" />
-                Open in Editor
+                {tr('Open in Editor', '在编辑器中打开')}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleOpenInFinder}>
                 <ExternalLink className="h-4 w-4 mr-2" />
@@ -493,7 +495,7 @@ export function ConnectionItem({
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleCopyPath}>
                 <Copy className="h-4 w-4 mr-2" />
-                Copy Path
+                {tr('Copy Path', '复制路径')}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
@@ -501,7 +503,7 @@ export function ConnectionItem({
                 className="text-destructive focus:text-destructive focus:bg-destructive/10"
               >
                 <Trash2 className="h-4 w-4 mr-2" />
-                Delete
+                {tr('Delete', '删除')}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

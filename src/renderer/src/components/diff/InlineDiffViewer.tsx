@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button'
 import { DiffViewer, type DiffViewMode } from './DiffViewer'
 import { cn } from '@/lib/utils'
 import { getPrismLanguage } from '@/lib/language-map'
+import { useI18n } from '@/i18n'
 
 interface InlineDiffViewerProps {
   worktreePath: string
@@ -36,6 +37,7 @@ export function InlineDiffViewer({
   isNewFile,
   onClose
 }: InlineDiffViewerProps): React.JSX.Element {
+  const { tr } = useI18n()
   const [diff, setDiff] = useState<string>('')
   const [fileContent, setFileContent] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -54,14 +56,14 @@ export function InlineDiffViewer({
       if (result.success && result.content !== null) {
         setFileContent(result.content)
       } else {
-        setError(result.error || 'Failed to load file content')
+        setError(result.error || tr('Failed to load file content', '加载文件内容失败'))
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load file content')
+      setError(err instanceof Error ? err.message : tr('Failed to load file content', '加载文件内容失败'))
     } finally {
       setIsLoading(false)
     }
-  }, [worktreePath, filePath])
+  }, [worktreePath, filePath, tr])
 
   // Fetch diff
   const fetchDiff = useCallback(
@@ -73,15 +75,15 @@ export function InlineDiffViewer({
         if (result.success && result.diff) {
           setDiff(result.diff)
         } else {
-          setError(result.error || 'Failed to load diff')
+          setError(result.error || tr('Failed to load diff', '加载 diff 失败'))
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load diff')
+        setError(err instanceof Error ? err.message : tr('Failed to load diff', '加载 diff 失败'))
       } finally {
         setIsLoading(false)
       }
     },
-    [worktreePath, filePath, staged, isUntracked]
+    [worktreePath, filePath, staged, isUntracked, tr]
   )
 
   // Load on mount and when contextLines changes
@@ -129,9 +131,13 @@ export function InlineDiffViewer({
     const content = isNewFile ? fileContent : diff
     if (content) {
       await window.projectOps.copyToClipboard(content)
-      toast.success(isNewFile ? 'File content copied to clipboard' : 'Diff copied to clipboard')
+      toast.success(
+        isNewFile
+          ? tr('File content copied to clipboard', '文件内容已复制到剪贴板')
+          : tr('Diff copied to clipboard', 'Diff 已复制到剪贴板')
+      )
     }
-  }, [diff, fileContent, isNewFile])
+  }, [diff, fileContent, isNewFile, tr])
 
   // Toggle view mode
   const toggleViewMode = useCallback(() => {
@@ -157,12 +163,12 @@ export function InlineDiffViewer({
   }, [goToNextHunk, goToPrevHunk, onClose])
 
   const statusLabel = isNewFile
-    ? 'New file'
+    ? tr('New file', '新文件')
     : staged
-      ? 'Staged'
+      ? tr('Staged', '已暂存')
       : isUntracked
-        ? 'New file'
-        : 'Unstaged'
+        ? tr('New file', '新文件')
+        : tr('Unstaged', '未暂存')
 
   return (
     <div className="flex-1 flex flex-col min-h-0" data-testid="inline-diff-viewer">
@@ -181,7 +187,7 @@ export function InlineDiffViewer({
             size="icon"
             className="h-6 w-6"
             onClick={goToPrevHunk}
-            title="Previous hunk (Alt+Up)"
+            title={tr('Previous hunk (Alt+Up)', '上一个区块（Alt+上）')}
             data-testid="diff-prev-hunk"
           >
             <ChevronUp className="h-3.5 w-3.5" />
@@ -191,7 +197,7 @@ export function InlineDiffViewer({
             size="icon"
             className="h-6 w-6"
             onClick={goToNextHunk}
-            title="Next hunk (Alt+Down)"
+            title={tr('Next hunk (Alt+Down)', '下一个区块（Alt+下）')}
             data-testid="diff-next-hunk"
           >
             <ChevronDown className="h-3.5 w-3.5" />
@@ -205,24 +211,28 @@ export function InlineDiffViewer({
             size="sm"
             className="h-6 px-2 text-xs"
             onClick={handleExpandContext}
-            title="Show more context"
+            title={tr('Show more context', '显示更多上下文')}
             data-testid="diff-expand-context"
           >
             <ChevronsUpDown className="h-3.5 w-3.5 mr-1" />
-            More context
+            {tr('More context', '更多上下文')}
           </Button>
 
           <div className="w-px h-4 bg-border mx-1" />
 
           {/* View mode toggle */}
           <Button
-            variant="ghost"
-            size="icon"
-            className="h-6 w-6"
-            onClick={toggleViewMode}
-            title={viewMode === 'unified' ? 'Switch to split view' : 'Switch to unified view'}
-            data-testid="diff-view-toggle"
-          >
+          variant="ghost"
+          size="icon"
+          className="h-6 w-6"
+          onClick={toggleViewMode}
+          title={
+            viewMode === 'unified'
+              ? tr('Switch to split view', '切换为分栏视图')
+              : tr('Switch to unified view', '切换为统一视图')
+          }
+          data-testid="diff-view-toggle"
+        >
             {viewMode === 'unified' ? (
               <Columns2 className="h-3.5 w-3.5" />
             ) : (
@@ -234,12 +244,12 @@ export function InlineDiffViewer({
           <Button
             variant="ghost"
             size="icon"
-            className="h-6 w-6"
-            onClick={handleCopyDiff}
-            disabled={isNewFile ? !fileContent : !diff}
-            title="Copy diff to clipboard"
-            data-testid="diff-copy-button"
-          >
+          className="h-6 w-6"
+          onClick={handleCopyDiff}
+          disabled={isNewFile ? !fileContent : !diff}
+          title={tr('Copy diff to clipboard', '复制 diff 到剪贴板')}
+          data-testid="diff-copy-button"
+        >
             <Copy className="h-3.5 w-3.5" />
           </Button>
 
@@ -247,13 +257,13 @@ export function InlineDiffViewer({
 
           {/* Close */}
           <Button
-            variant="ghost"
-            size="icon"
-            className="h-6 w-6"
-            onClick={onClose}
-            title="Close diff (Esc)"
-            data-testid="diff-close-button"
-          >
+          variant="ghost"
+          size="icon"
+          className="h-6 w-6"
+          onClick={onClose}
+          title={tr('Close diff (Esc)', '关闭 diff（Esc）')}
+          data-testid="diff-close-button"
+        >
             <X className="h-3.5 w-3.5" />
           </Button>
         </div>

@@ -6,6 +6,7 @@ import { dispatchHintAction } from '@/lib/hint-utils'
 import { parseFilterInput } from '@/lib/colon-command-parser'
 import { ColonCommandPopover, type ColonCommandItem } from './ColonCommandPopover'
 import { LanguageIcon } from './LanguageIcon'
+import { useI18n } from '@/i18n'
 
 interface ProjectFilterProps {
   value: string
@@ -13,6 +14,7 @@ interface ProjectFilterProps {
 }
 
 export function ProjectFilter({ value, onChange }: ProjectFilterProps): React.JSX.Element {
+  const { tr } = useI18n()
   const inputRef = useRef<HTMLInputElement>(null)
 
   // Popover state
@@ -241,7 +243,7 @@ export function ProjectFilter({ value, onChange }: ProjectFilterProps): React.JS
         onKeyDown={handleKeyDown}
         onFocus={handleFocus}
         onBlur={handleBlur}
-        placeholder="Filter projects..."
+        placeholder={tr('Filter projects...', '筛选项目...')}
         className="h-8 w-full text-sm px-2 pl-8 pr-12 rounded-md border border-input bg-transparent placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
         data-testid="project-filter-input"
       />
@@ -269,7 +271,9 @@ export function ProjectFilter({ value, onChange }: ProjectFilterProps): React.JS
         onSelect={handlePopoverSelect}
         onClose={handlePopoverClose}
         emptyMessage={
-          popoverMode === 'command' ? 'No matching commands' : 'No matching languages'
+          popoverMode === 'command'
+            ? tr('No matching commands', '没有匹配的命令')
+            : tr('No matching languages', '没有匹配的语言')
         }
       />
     </div>

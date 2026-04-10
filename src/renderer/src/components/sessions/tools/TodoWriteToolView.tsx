@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { ToolViewProps } from './types'
+import { useI18n } from '@/i18n/useI18n'
 
 interface TodoItem {
   id: string
@@ -50,6 +51,7 @@ function PriorityBadge({ priority }: { priority: TodoItem['priority'] }) {
 }
 
 export function TodoWriteToolView({ input, error }: ToolViewProps) {
+  const { tr } = useI18n()
   const todoInput = input as unknown as TodoInput
   const todos = useMemo(
     () => (Array.isArray(todoInput?.todos) ? todoInput.todos : []),
@@ -58,8 +60,8 @@ export function TodoWriteToolView({ input, error }: ToolViewProps) {
 
   if (todos.length === 0) {
     return (
-      <div data-testid="todowrite-tool-view" className="text-xs text-muted-foreground">
-        No tasks
+        <div data-testid="todowrite-tool-view" className="text-xs text-muted-foreground">
+        {tr('No tasks', '暂无任务')}
       </div>
     )
   }

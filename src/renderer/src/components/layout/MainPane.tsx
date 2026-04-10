@@ -17,6 +17,7 @@ import { useSettingsStore } from '@/stores/useSettingsStore'
 import { KanbanBoard } from '@/components/kanban/KanbanBoard'
 import { KanbanIcon } from '@/components/kanban/KanbanIcon'
 import { PRNotificationStack } from '@/components/pr/PRNotificationStack'
+import { useI18n } from '@/i18n'
 
 const MonacoDiffView = lazy(() => import('@/components/diff/MonacoDiffView'))
 const WorktreeContextEditor = lazy(() =>
@@ -29,6 +30,7 @@ interface MainPaneProps {
 }
 
 export function MainPane({ children }: MainPaneProps): React.JSX.Element {
+  const { tr } = useI18n()
   const selectedWorktreeId = useWorktreeStore((state) => state.selectedWorktreeId)
   const selectedConnectionId = useConnectionStore((state) => state.selectedConnectionId)
   const activeSessionId = useSessionStore((state) => state.activeSessionId)
@@ -192,7 +194,7 @@ export function MainPane({ children }: MainPaneProps): React.JSX.Element {
         <div className="flex-1 flex items-center justify-center text-muted-foreground">
           <div className="text-center">
             <KanbanIcon className="h-8 w-8 mx-auto mb-3 opacity-50" />
-            <p className="text-sm">Select a project to view its board</p>
+            <p className="text-sm">{tr('Select a project to view its board', '选择一个项目以查看其看板')}</p>
           </div>
         </div>
       )
@@ -225,7 +227,7 @@ export function MainPane({ children }: MainPaneProps): React.JSX.Element {
         <div className="flex-1 flex items-center justify-center text-muted-foreground">
           <div className="text-center">
             <KanbanIcon className="h-8 w-8 mx-auto mb-3 opacity-50" />
-            <p className="text-sm">Select a project to view its board</p>
+            <p className="text-sm">{tr('Select a project to view its board', '选择一个项目以查看其看板')}</p>
           </div>
         </div>
       )
@@ -236,8 +238,10 @@ export function MainPane({ children }: MainPaneProps): React.JSX.Element {
       return (
         <div className="flex-1 flex items-center justify-center text-muted-foreground">
           <div className="text-center">
-            <p className="text-lg font-medium">Welcome to Hive</p>
-            <p className="text-sm mt-2">Select a project or worktree to get started.</p>
+            <p className="text-lg font-medium">{tr('Welcome to Hive', '欢迎使用 Hive')}</p>
+            <p className="text-sm mt-2">
+              {tr('Select a project or worktree to get started.', '选择一个项目或工作树以开始使用。')}
+            </p>
           </div>
         </div>
       )
@@ -249,7 +253,9 @@ export function MainPane({ children }: MainPaneProps): React.JSX.Element {
         <div className="flex-1 flex items-center justify-center" data-testid="session-loading">
           <div className="text-center">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground mx-auto" />
-            <p className="text-sm text-muted-foreground mt-2">Loading sessions...</p>
+            <p className="text-sm text-muted-foreground mt-2">
+              {tr('Loading sessions...', '正在加载会话...')}
+            </p>
           </div>
         </div>
       )
@@ -348,8 +354,10 @@ export function MainPane({ children }: MainPaneProps): React.JSX.Element {
       return (
         <div className="flex-1 flex items-center justify-center text-muted-foreground">
           <div className="text-center">
-            <p className="text-lg font-medium">No active session</p>
-            <p className="text-sm mt-2">Click the + button above to create a new session.</p>
+            <p className="text-lg font-medium">{tr('No active session', '当前没有活动会话')}</p>
+            <p className="text-sm mt-2">
+              {tr('Click the + button above to create a new session.', '点击上方的 + 按钮来创建新会话。')}
+            </p>
           </div>
         </div>
       )

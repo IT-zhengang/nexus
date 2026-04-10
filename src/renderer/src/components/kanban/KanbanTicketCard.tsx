@@ -41,6 +41,7 @@ import { useSessionTimer } from '@/hooks/useSessionTimer'
 import { useSessionTokenDelta } from '@/hooks/useSessionTokenDelta'
 import { formatTokenCount } from '@/lib/format-utils'
 import type { KanbanTicket } from '../../../../main/db/types'
+import { useI18n } from '@/i18n'
 
 // ── Project tag color palette ──────────────────────────────────────
 const PROJECT_TAG_COLORS = [
@@ -80,6 +81,7 @@ export const KanbanTicketCard = memo(function KanbanTicketCard({
   connectionId,
   isPinnedMode
 }: KanbanTicketCardProps) {
+  const { tr } = useI18n()
   const isMultiProjectMode = !!connectionId || !!isPinnedMode
 
   const [isDragging, setIsDragging] = useState(false)
@@ -154,7 +156,10 @@ export const KanbanTicketCard = memo(function KanbanTicketCard({
     )
   )
 
-  const connectionSession = connectionSessionId ? { connectionId: connectionSessionId } : null
+  const connectionSession = useMemo(
+    () => (connectionSessionId ? { connectionId: connectionSessionId } : null),
+    [connectionSessionId]
+  )
 
   // ── Lookup connection name for project board badge ─────────────
   const connectionName = useConnectionStore(
@@ -264,7 +269,6 @@ export const KanbanTicketCard = memo(function KanbanTicketCard({
     )
   )
 
-  const isActive = sessionStatus === 'active'
   const isError = sessionStatus === 'error'
   const hasAttachments = ticket.attachments.length > 0
 
@@ -353,30 +357,30 @@ export const KanbanTicketCard = memo(function KanbanTicketCard({
   const handleDelete = useCallback(async () => {
     try {
       await useKanbanStore.getState().deleteTicket(ticket.id, ticket.project_id)
-      toast.success('Ticket deleted')
+      toast.success(tr('Ticket deleted', '工单已删除'))
     } catch {
-      toast.error('Failed to delete ticket')
+      toast.error(tr('Failed to delete ticket', '删除工单失败'))
     }
     setShowDeleteConfirm(false)
-  }, [ticket.id, ticket.project_id])
+  }, [ticket.id, ticket.project_id, tr])
 
   const handleArchive = useCallback(async () => {
     try {
       await useKanbanStore.getState().archiveTicket(ticket.id, ticket.project_id)
-      toast.success('Ticket archived')
+      toast.success(tr('Ticket archived', '工单已归档'))
     } catch {
-      toast.error('Failed to archive ticket')
+      toast.error(tr('Failed to archive ticket', '归档工单失败'))
     }
-  }, [ticket.id, ticket.project_id])
+  }, [ticket.id, ticket.project_id, tr])
 
   const handleUnarchive = useCallback(async () => {
     try {
       await useKanbanStore.getState().unarchiveTicket(ticket.id, ticket.project_id)
-      toast.success('Ticket unarchived')
+      toast.success(tr('Ticket unarchived', '工单已取消归档'))
     } catch {
-      toast.error('Failed to unarchive ticket')
+      toast.error(tr('Failed to unarchive ticket', '取消归档工单失败'))
     }
-  }, [ticket.id, ticket.project_id])
+  }, [ticket.id, ticket.project_id, tr])
 
   const handleJumpToSession = useCallback(() => {
     if (!ticket.current_session_id) return
@@ -419,11 +423,11 @@ export const KanbanTicketCard = memo(function KanbanTicketCard({
       await useKanbanStore.getState().updateTicket(ticket.id, ticket.project_id, {
         worktree_id: null
       })
-      toast.success('Worktree unassigned')
+      toast.success(tr('Worktree unassigned', '工作树已取消分配'))
     } catch {
-      toast.error('Failed to unassign worktree')
+      toast.error(tr('Failed to unassign worktree', '取消分配工作树失败'))
     }
-  }, [ticket.id, ticket.project_id])
+  }, [ticket.id, ticket.project_id, tr])
 
   const handleTogglePin = useCallback(async () => {
     if (!ticket.worktree_id) return
@@ -740,20 +744,22 @@ export const KanbanTicketCard = memo(function KanbanTicketCard({
         <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
           <AlertDialogContent data-testid="ctx-delete-confirm-dialog">
             <AlertDialogHeader>
-              <AlertDialogTitle>Delete ticket</AlertDialogTitle>
+              <AlertDialogTitle>{tr('Delete ticket', '删除工单')}</AlertDialogTitle>
               <AlertDialogDescription>
-                Are you sure you want to delete &ldquo;{ticket.title}&rdquo;? This action cannot be
-                undone.
+                {tr(
+                  `Are you sure you want to delete "${ticket.title}"? This action cannot be undone.`,
+                  `确定要删除“${ticket.title}”吗？此操作无法撤销。`
+                )}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel data-testid="ctx-delete-cancel-btn">Cancel</AlertDialogCancel>
+              <AlertDialogCancel data-testid="ctx-delete-cancel-btn">{tr('Cancel', '取消')}</AlertDialogCancel>
               <AlertDialogAction
                 data-testid="ctx-delete-confirm-btn"
                 variant="destructive"
                 onClick={handleDelete}
               >
-                Delete
+                {tr('Delete', '删除')}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

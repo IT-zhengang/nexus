@@ -11,12 +11,13 @@ import { useFileViewerStore } from '@/stores/useFileViewerStore'
 import { useWorktreeStore } from '@/stores/useWorktreeStore'
 import { useGitStore } from '@/stores/useGitStore'
 import { isBinaryImageFile, isSvgFile, getImageMimeType } from '@shared/types/file-utils'
+import { useI18n } from '@/i18n'
 
 // Time window after a save during which file watcher events are suppressed
 // to avoid treating our own writes as external changes.
 const OWN_SAVE_SUPPRESSION_MS = 500
 
-export function isMarkdownFile(filePath: string): boolean {
+function isMarkdownFile(filePath: string): boolean {
   const ext = filePath.substring(filePath.lastIndexOf('.')).toLowerCase()
   return ext === '.md' || ext === '.mdx'
 }
@@ -26,6 +27,7 @@ interface FileViewerProps {
 }
 
 export function FileViewer({ filePath }: FileViewerProps): React.JSX.Element {
+  const { tr } = useI18n()
   const [content, setContent] = useState<string | null>(null)
   const [imageDataUri, setImageDataUri] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -54,7 +56,7 @@ export function FileViewer({ filePath }: FileViewerProps): React.JSX.Element {
         if (result.success && result.data) {
           setImageDataUri(`data:${mimeType};base64,${result.data}`)
         } else {
-          setError(result.error || 'Failed to read image')
+          setError(result.error || tr('Failed to read image', '读取图片失败'))
         }
         setIsLoading(false)
       })
@@ -70,7 +72,7 @@ export function FileViewer({ filePath }: FileViewerProps): React.JSX.Element {
             )
           }
         } else {
-          setError(result.error || 'Failed to read file')
+          setError(result.error || tr('Failed to read file', '读取文件失败'))
         }
         setIsLoading(false)
       })
@@ -79,7 +81,7 @@ export function FileViewer({ filePath }: FileViewerProps): React.JSX.Element {
     return () => {
       cancelled = true
     }
-  }, [filePath, isBinaryImage, isSvg])
+  }, [filePath, isBinaryImage, isSvg, tr])
 
   const [reloadKey, setReloadKey] = useState(0)
   const lastSaveTimestampRef = useRef<number>(0)
@@ -96,7 +98,7 @@ export function FileViewer({ filePath }: FileViewerProps): React.JSX.Element {
       lastSaveTimestampRef.current = Date.now()
       const result = await window.fileOps.writeFile(filePath, newContent)
       if (result.success) {
-        toast.success('File saved')
+        toast.success(tr('File saved', '文件已保存'))
         const store = useFileViewerStore.getState()
         store.markClean(filePath)
         store.setOriginalContent(filePath, newContent)
@@ -110,10 +112,10 @@ export function FileViewer({ filePath }: FileViewerProps): React.JSX.Element {
           }
         }
       } else {
-        toast.error('Failed to save: ' + result.error)
+        toast.error(`${tr('Failed to save:', '保存失败：')} ${result.error}`)
       }
     },
-    [filePath]
+    [filePath, tr]
   )
 
   const handleContentChange = useCallback(
@@ -134,7 +136,7 @@ export function FileViewer({ filePath }: FileViewerProps): React.JSX.Element {
       lastSaveTimestampRef.current = Date.now()
       const result = await window.fileOps.writeFile(pendingClose, latestContentRef.current)
       if (result.success) {
-        toast.success('File saved')
+        toast.success(tr('File saved', '文件已保存'))
         const tab = useFileViewerStore.getState().openFiles.get(pendingClose)
         if (tab && tab.type === 'file') {
           const worktree = useWorktreeStore
@@ -145,12 +147,12 @@ export function FileViewer({ filePath }: FileViewerProps): React.JSX.Element {
           }
         }
       } else {
-        toast.error('Failed to save: ' + result.error)
+        toast.error(`${tr('Failed to save:', '保存失败：')} ${result.error}`)
         return
       }
       useFileViewerStore.getState().confirmCloseFile(pendingClose)
     }
-  }, [pendingClose])
+  }, [pendingClose, tr])
 
   const handleDialogDontSave = useCallback(() => {
     if (pendingClose) {
@@ -249,7 +251,7 @@ export function FileViewer({ filePath }: FileViewerProps): React.JSX.Element {
       <div className="flex-1 flex items-center justify-center" data-testid="file-viewer-loading">
         <div className="text-center">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground mx-auto" />
-          <p className="text-sm text-muted-foreground mt-2">Loading file...</p>
+          <p className="text-sm text-muted-foreground mt-2">{tr('Loading file...', '正在加载文件...')}</p>
         </div>
       </div>
     )
@@ -259,7 +261,7 @@ export function FileViewer({ filePath }: FileViewerProps): React.JSX.Element {
     return (
       <div className="flex-1 flex items-center justify-center" data-testid="file-viewer-error">
         <div className="text-center text-destructive">
-          <p className="text-sm font-medium">Error loading file</p>
+          <p className="text-sm font-medium">{tr('Error loading file', '加载文件出错')}</p>
           <p className="text-xs mt-1 opacity-75">{error}</p>
         </div>
       </div>
@@ -269,7 +271,7 @@ export function FileViewer({ filePath }: FileViewerProps): React.JSX.Element {
   if (content === null && !imageDataUri) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <p className="text-sm text-muted-foreground">No content</p>
+        <p className="text-sm text-muted-foreground">{tr('No content', '无内容')}</p>
       </div>
     )
   }
@@ -291,7 +293,7 @@ export function FileViewer({ filePath }: FileViewerProps): React.JSX.Element {
               )}
               data-testid="source-toggle"
             >
-              Source
+              {tr('Source', '源码')}
             </button>
             <button
               onClick={() => setViewMode('preview')}
@@ -301,7 +303,7 @@ export function FileViewer({ filePath }: FileViewerProps): React.JSX.Element {
               )}
               data-testid="preview-toggle"
             >
-              Preview
+              {tr('Preview', '预览')}
             </button>
           </div>
         )}

@@ -2,10 +2,12 @@ import { useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { ToolViewProps } from './types'
+import { useI18n } from '@/i18n/useI18n'
 
 const MAX_PREVIEW_LINES = 20
 
 export function EditToolView({ input, error }: ToolViewProps) {
+  const { tr } = useI18n()
   const [showAll, setShowAll] = useState(false)
 
   const oldString = (input.oldString || input.old_string || '') as string
@@ -88,7 +90,10 @@ export function EditToolView({ input, error }: ToolViewProps) {
           ))}
           {needsTruncation && !showAll && displayedNew.length < newLines.length && (
             <div className="px-3 py-0.5 text-zinc-600 text-[10px]">
-              ... {newLines.length - displayedNew.length} more added
+              {tr(
+                `... ${newLines.length - displayedNew.length} more added`,
+                `……还有 ${newLines.length - displayedNew.length} 行新增内容`
+              )}
             </div>
           )}
         </div>
@@ -96,7 +101,7 @@ export function EditToolView({ input, error }: ToolViewProps) {
 
       {/* Empty diff */}
       {oldLines.length === 0 && newLines.length === 0 && (
-        <div className="text-muted-foreground text-xs italic">No changes</div>
+        <div className="text-muted-foreground text-xs italic">{tr('No changes', '没有变更')}</div>
       )}
 
       {/* Show all button */}
@@ -109,7 +114,9 @@ export function EditToolView({ input, error }: ToolViewProps) {
           <ChevronDown
             className={cn('h-3 w-3 transition-transform duration-150', showAll && 'rotate-180')}
           />
-          {showAll ? 'Show less' : `Show all ${totalLines} lines`}
+          {showAll
+            ? tr('Show less', '收起')
+            : tr(`Show all ${totalLines} lines`, `显示全部 ${totalLines} 行`)}
         </button>
       )}
     </div>

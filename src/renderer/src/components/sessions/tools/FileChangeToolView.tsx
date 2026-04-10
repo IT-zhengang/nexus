@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { ToolViewProps } from './types'
+import { useI18n } from '@/i18n/useI18n'
 
 const MAX_PREVIEW_LINES = 20
 
@@ -11,24 +12,24 @@ interface FileChange {
   diff?: string
 }
 
-function kindBadge(kind: FileChange['kind']) {
+function kindBadge(kind: FileChange['kind'], tr: (en: string, zh: string) => string) {
   switch (kind.type) {
     case 'add':
       return (
         <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-green-500/20 text-green-400">
-          Add
+          {tr('Add', '新增')}
         </span>
       )
     case 'delete':
       return (
         <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-red-500/20 text-red-400">
-          Delete
+          {tr('Delete', '删除')}
         </span>
       )
     case 'update':
       return (
         <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400">
-          Update
+          {tr('Update', '更新')}
         </span>
       )
     default:
@@ -93,6 +94,7 @@ function parseDiffLines(diff: string, kind: FileChange['kind']['type']): string[
 }
 
 function FileDiffSection({ change }: { change: FileChange }) {
+  const { tr } = useI18n()
   const [showAll, setShowAll] = useState(false)
 
   const allLines = change.diff ? parseDiffLines(change.diff, change.kind.type) : []
@@ -106,7 +108,7 @@ function FileDiffSection({ change }: { change: FileChange }) {
       {/* File header */}
       <div className="flex items-center gap-2 flex-wrap">
         <span className="font-mono text-xs text-zinc-200 break-all">{change.path}</span>
-        {kindBadge(change.kind)}
+        {kindBadge(change.kind, tr)}
         {change.kind.type === 'update' && change.kind.move_path && (
           <span className="text-[10px] text-zinc-400">
             &rarr; <span className="font-mono">{change.kind.move_path}</span>
@@ -144,13 +146,15 @@ function FileDiffSection({ change }: { change: FileChange }) {
             })}
             {needsTruncation && !showAll && hiddenCount > 0 && (
               <div className="px-3 py-0.5 text-zinc-600 text-[10px]">
-                ... {hiddenCount} more lines
+                {tr(`... ${hiddenCount} more lines`, `……还有 ${hiddenCount} 行`)}
               </div>
             )}
           </div>
         </div>
       ) : (
-        <div className="text-muted-foreground text-xs italic">No diff content</div>
+        <div className="text-muted-foreground text-xs italic">
+          {tr('No diff content', '没有差异内容')}
+        </div>
       )}
 
       {/* Show all toggle */}
@@ -163,7 +167,9 @@ function FileDiffSection({ change }: { change: FileChange }) {
           <ChevronDown
             className={cn('h-3 w-3 transition-transform duration-150', showAll && 'rotate-180')}
           />
-          {showAll ? 'Show less' : `Show all ${allLines.length} lines`}
+          {showAll
+            ? tr('Show less', '收起')
+            : tr(`Show all ${allLines.length} lines`, `显示全部 ${allLines.length} 行`)}
         </button>
       )}
     </div>
@@ -171,6 +177,7 @@ function FileDiffSection({ change }: { change: FileChange }) {
 }
 
 export function FileChangeToolView({ input, error }: ToolViewProps) {
+  const { tr } = useI18n()
   if (error) {
     return (
       <div className="text-red-400 font-mono text-xs whitespace-pre-wrap break-all">{error}</div>
@@ -182,7 +189,7 @@ export function FileChangeToolView({ input, error }: ToolViewProps) {
   if (!Array.isArray(changes) || changes.length === 0) {
     return (
       <div data-testid="file-change-tool-view" className="text-muted-foreground text-xs italic">
-        No file changes
+        {tr('No file changes', '没有文件变更')}
       </div>
     )
   }

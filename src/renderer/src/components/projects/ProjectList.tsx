@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo, useCallback } from 'react'
+import { useRef } from 'react'
 import { Loader2, FolderPlus } from 'lucide-react'
 import {
   useProjectStore,
@@ -18,6 +19,7 @@ import {
   buildPinnedAndConnectionTargets,
   type HintTarget
 } from '@/lib/hint-utils'
+import { useI18n } from '@/i18n'
 
 interface ProjectListProps {
   onAddProject: () => void
@@ -27,12 +29,12 @@ interface ProjectListProps {
 
 export function ProjectList({
   onAddProject,
-  filterQuery,
+  filterQuery = '',
   activeLanguages = []
 }: ProjectListProps): React.JSX.Element {
+  const { tr } = useI18n()
   const { projects, isLoading, error, loadProjects, reorderProjects } = useProjectStore()
   const worktreesByProject = useWorktreeStore((s) => s.worktreesByProject)
-  const { setHints, clearHints, setFilterActive } = useHintStore()
   const vimMode = useVimModeStore((s) => s.mode)
   const vimModeEnabled = useSettingsStore((s) => s.vimModeEnabled)
   const pinnedWorktreeIds = usePinnedStore((s) => s.pinnedWorktreeIds)
@@ -42,6 +44,7 @@ export function ProjectList({
   // Drag state for project reordering
   const [draggedProjectId, setDraggedProjectId] = useState<string | null>(null)
   const [dragOverProjectId, setDragOverProjectId] = useState<string | null>(null)
+  const filterActiveRef = useRef<boolean | null>(null)
 
   const handleDragStart = useCallback((e: React.DragEvent, projectId: string) => {
     setDraggedProjectId(projectId)
@@ -190,17 +193,24 @@ export function ProjectList({
   // Immediately set filterActive when filter text or language filters change — this drives
   // project expansion independently of worktree loading (breaking the circular dependency)
   useEffect(() => {
-    setFilterActive(!!filterQuery.trim() || activeLanguages.length > 0)
-    return () => {
-      setFilterActive(false)
+    const nextActive = !!filterQuery.trim() || activeLanguages.length > 0
+    if (filterActiveRef.current !== nextActive) {
+      filterActiveRef.current = nextActive
+      useHintStore.getState().setFilterActive(nextActive)
     }
-  }, [filterQuery, activeLanguages, setFilterActive])
+    return () => {
+      if (filterActiveRef.current !== false) {
+        filterActiveRef.current = false
+        useHintStore.getState().setFilterActive(false)
+      }
+    }
+  }, [filterQuery, activeLanguages])
 
   useEffect(() => {
     if (filterQuery.trim() || (vimModeEnabled && vimMode === 'normal')) {
-      setHints(computedHintMap, computedHintTargetMap)
+      useHintStore.getState().setHints(computedHintMap, computedHintTargetMap)
     } else {
-      clearHints()
+      useHintStore.getState().clearHints()
     }
     // No cleanup here: when computedHintMap changes (worktrees loading), setHints
     // immediately overwrites — running clearHints() in cleanup would reset mode:'idle'
@@ -211,8 +221,6 @@ export function ProjectList({
     filterQuery,
     vimModeEnabled,
     vimMode,
-    setHints,
-    clearHints
   ])
 
   // Clear all hint state on unmount only
@@ -235,7 +243,7 @@ export function ProjectList({
   if (error) {
     return (
       <div className="text-sm text-destructive text-center py-8 px-2">
-        <p>Failed to load projects</p>
+        <p>{tr('Failed to load projects', '加载项目失败')}</p>
         <p className="text-xs text-muted-foreground mt-1">{error}</p>
       </div>
     )
@@ -250,8 +258,12 @@ export function ProjectList({
         data-testid="empty-projects-state"
       >
         <FolderPlus className="h-8 w-8 text-muted-foreground mb-2" />
-        <p className="text-sm text-muted-foreground">No projects added yet.</p>
-        <p className="text-xs text-muted-foreground mt-1">Click + to add a project.</p>
+        <p className="text-sm text-muted-foreground">
+          {tr('No projects added yet.', '还没有添加任何项目。')}
+        </p>
+        <p className="text-xs text-muted-foreground mt-1">
+          {tr('Click + to add a project.', '点击 + 添加项目。')}
+        </p>
       </div>
     )
   }
@@ -268,8 +280,12 @@ export function ProjectList({
         className="flex flex-col items-center justify-center py-8 px-2 text-center"
         data-testid="empty-space-state"
       >
-        <p className="text-sm text-muted-foreground">No projects in this space.</p>
-        <p className="text-xs text-muted-foreground mt-1">Right-click a project to assign it.</p>
+        <p className="text-sm text-muted-foreground">
+          {tr('No projects in this space.', '这个空间中还没有项目。')}
+        </p>
+        <p className="text-xs text-muted-foreground mt-1">
+          {tr('Right-click a project to assign it.', '右键点击项目即可分配到该空间。')}
+        </p>
       </div>
     )
   }
@@ -300,7 +316,9 @@ export function ProjectList({
         ))}
       </div>
       {(filterQuery || activeLanguages.length > 0) && filteredProjects.length === 0 && (
-        <div className="text-xs text-muted-foreground text-center py-4">No matching projects</div>
+        <div className="text-xs text-muted-foreground text-center py-4">
+          {tr('No matching projects', '没有匹配的项目')}
+        </div>
       )}
     </div>
   )

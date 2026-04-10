@@ -8,6 +8,7 @@ import { useProjectStore } from '@/stores/useProjectStore'
 import { useConnectionStore } from '@/stores/useConnectionStore'
 import { DEFAULT_SHORTCUTS, formatBinding, shortcutCategoryOrder } from '@/lib/keyboard-shortcuts'
 import { cn } from '@/lib/utils'
+import { useI18n } from '@/i18n/useI18n'
 
 // ---------------------------------------------------------------------------
 // Mnemonic highlighting helper
@@ -75,6 +76,7 @@ function ShortcutRow({
 // ---------------------------------------------------------------------------
 
 export function HelpOverlay(): React.JSX.Element | null {
+  const { tr } = useI18n()
   const vimModeEnabled = useSettingsStore((s) => s.vimModeEnabled)
   const helpOverlayOpen = useVimModeStore((s) => s.helpOverlayOpen)
   const mode = useVimModeStore((s) => s.mode)
@@ -119,11 +121,11 @@ export function HelpOverlay(): React.JSX.Element | null {
     const map = new Map<string, string>()
     for (const conn of connections) {
       const projectNames = [...new Set(conn.members?.map((m) => m.project_name) || [])].join(' + ')
-      const name = conn.custom_name || projectNames || conn.name || 'Connection'
+      const name = conn.custom_name || projectNames || conn.name || tr('Connection', '连接')
       map.set(conn.id, name)
     }
     return map
-  }, [connections])
+  }, [connections, tr])
 
   // Build sidebar hint entries for display
   const sidebarHintEntries = useMemo(() => {
@@ -140,17 +142,17 @@ export function HelpOverlay(): React.JSX.Element | null {
         entries.push({ code, label: name })
       } else if (target.kind === 'pinned-worktree' && target.worktreeId) {
         const name = worktreeNameMap.get(target.worktreeId) ?? target.worktreeId
-        entries.push({ code, label: `[pin] ${name}` })
+        entries.push({ code, label: `[${tr('pin', '固定')}] ${name}` })
       } else if (target.kind === 'pinned-connection' && target.connectionId) {
         const name = connectionNameMap.get(target.connectionId) ?? target.connectionId
-        entries.push({ code, label: `[pin] ${name}` })
+        entries.push({ code, label: `[${tr('pin', '固定')}] ${name}` })
       } else if (target.kind === 'connection' && target.connectionId) {
         const name = connectionNameMap.get(target.connectionId) ?? target.connectionId
         entries.push({ code, label: name })
       }
     }
     return entries.sort((a, b) => a.code.localeCompare(b.code))
-  }, [hintMap, hintTargetMap, worktreeNameMap, projectNameMap, connectionNameMap])
+  }, [hintMap, hintTargetMap, worktreeNameMap, projectNameMap, connectionNameMap, tr])
 
   // Build session hint entries for display
   const sessionHintEntries = useMemo(() => {
@@ -164,15 +166,58 @@ export function HelpOverlay(): React.JSX.Element | null {
 
   // Group system shortcuts by category
   const groupedShortcuts = useMemo(() => {
+    const translateShortcutLabel = (label: string) => {
+      switch (label) {
+        case 'New Session':
+          return tr('New Session', '新建会话')
+        case 'Close Session':
+          return tr('Close Session', '关闭会话')
+        case 'Toggle Build/Plan Mode':
+          return tr('Toggle Build/Plan Mode', '切换构建/计划模式')
+        case 'Run Project':
+          return tr('Run Project', '运行项目')
+        case 'Cycle Model Variant':
+          return tr('Cycle Model Variant', '切换模型变体')
+        case 'Search Files':
+          return tr('Search Files', '搜索文件')
+        case 'Open Command Palette':
+          return tr('Open Command Palette', '打开命令面板')
+        case 'Open Session History':
+          return tr('Open Session History', '打开会话历史')
+        case 'New Worktree':
+          return tr('New Worktree', '新建工作树')
+        case 'Focus Commit Form':
+          return tr('Focus Commit Form', '聚焦提交表单')
+        case 'Push to Remote':
+          return tr('Push to Remote', '推送到远程')
+        case 'Pull from Remote':
+          return tr('Pull from Remote', '从远程拉取')
+        case 'Filter Projects':
+          return tr('Filter Projects', '筛选项目')
+        case 'Toggle Left Sidebar':
+          return tr('Toggle Left Sidebar', '切换左侧边栏')
+        case 'Toggle Right Sidebar':
+          return tr('Toggle Right Sidebar', '切换右侧边栏')
+        case 'Focus Left Sidebar':
+          return tr('Focus Left Sidebar', '聚焦左侧边栏')
+        case 'Focus Main Pane':
+          return tr('Focus Main Pane', '聚焦主面板')
+        case 'Open Settings':
+          return tr('Open Settings', '打开设置')
+        default:
+          return label
+      }
+    }
+
     const groups = new Map<string, Array<{ label: string; binding: string }>>()
     for (const shortcut of DEFAULT_SHORTCUTS) {
       const binding = formatBinding(shortcut.defaultBinding)
       const group = groups.get(shortcut.category) ?? []
-      group.push({ label: shortcut.label, binding })
+      group.push({ label: translateShortcutLabel(shortcut.label), binding })
       groups.set(shortcut.category, group)
     }
     return groups
-  }, [])
+  }, [tr])
 
   if (!vimModeEnabled || !helpOverlayOpen) return null
 
@@ -193,7 +238,9 @@ export function HelpOverlay(): React.JSX.Element | null {
         <div className="pointer-events-auto w-[640px] max-h-[80vh] overflow-y-auto rounded-lg border border-border bg-background shadow-2xl p-5">
           {/* Header with mode pill */}
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-foreground">Keyboard Shortcuts</h2>
+            <h2 className="text-sm font-semibold text-foreground">
+              {tr('Keyboard Shortcuts', '键盘快捷键')}
+            </h2>
             <span
               className={cn(
                 'text-[10px] font-mono px-1.5 py-0.5 rounded border select-none',
@@ -202,14 +249,14 @@ export function HelpOverlay(): React.JSX.Element | null {
                   : 'text-primary bg-primary/10 border-primary/30'
               )}
             >
-              {mode === 'normal' ? 'NORMAL' : 'INSERT'}
+              {mode === 'normal' ? tr('NORMAL', '普通') : tr('INSERT', '插入')}
             </span>
           </div>
 
           <div className="grid grid-cols-2 gap-x-6 gap-y-4">
             {/* ---- Vim Navigation ---- */}
             <div>
-              <SectionTitle>Vim Navigation</SectionTitle>
+              <SectionTitle>{tr('Vim Navigation', 'Vim 导航')}</SectionTitle>
               <ShortcutRow
                 keyContent={
                   <span className="flex gap-1">
@@ -217,7 +264,7 @@ export function HelpOverlay(): React.JSX.Element | null {
                     <KeyBadge>k</KeyBadge>
                   </span>
                 }
-                label="Navigate worktrees"
+                label={tr('Navigate worktrees', '切换工作树')}
               />
               <ShortcutRow
                 keyContent={
@@ -226,46 +273,52 @@ export function HelpOverlay(): React.JSX.Element | null {
                     <KeyBadge>l</KeyBadge>
                   </span>
                 }
-                label="Navigate session tabs"
+                label={tr('Navigate session tabs', '切换会话标签')}
               />
               <ShortcutRow
                 keyContent={<KeyBadge>I</KeyBadge>}
-                label="Filter projects (insert mode)"
+                label={tr('Filter projects (insert mode)', '筛选项目（插入模式）')}
               />
-              <ShortcutRow keyContent={<KeyBadge>Esc</KeyBadge>} label="Return to normal mode" />
-              <ShortcutRow keyContent={<KeyBadge>?</KeyBadge>} label="Toggle this help" />
+              <ShortcutRow
+                keyContent={<KeyBadge>Esc</KeyBadge>}
+                label={tr('Return to normal mode', '返回普通模式')}
+              />
+              <ShortcutRow
+                keyContent={<KeyBadge>?</KeyBadge>}
+                label={tr('Toggle this help', '切换此帮助')}
+              />
             </div>
 
             {/* ---- Panel Shortcuts ---- */}
             <div>
-              <SectionTitle>Panel Shortcuts</SectionTitle>
+              <SectionTitle>{tr('Panel Shortcuts', '面板快捷键')}</SectionTitle>
 
               {/* Right sidebar tabs */}
               <ShortcutRow
                 keyContent={<KeyBadge>c</KeyBadge>}
-                label={<MnemonicLabel letter="c" label="Changes" />}
+                label={<MnemonicLabel letter="c" label={tr('Changes', '更改')} />}
               />
               <ShortcutRow
                 keyContent={<KeyBadge>f</KeyBadge>}
-                label={<MnemonicLabel letter="f" label="Files" />}
+                label={<MnemonicLabel letter="f" label={tr('Files', '文件')} />}
               />
               <ShortcutRow
                 keyContent={<KeyBadge>d</KeyBadge>}
-                label={<MnemonicLabel letter="d" label="Diffs" />}
+                label={<MnemonicLabel letter="d" label={tr('Diffs', '差异')} />}
               />
 
               {/* Bottom panel tabs */}
               <ShortcutRow
                 keyContent={<KeyBadge>s</KeyBadge>}
-                label={<MnemonicLabel letter="s" label="Setup" />}
+                label={<MnemonicLabel letter="s" label={tr('Setup', '设置')} />}
               />
               <ShortcutRow
                 keyContent={<KeyBadge>u</KeyBadge>}
-                label={<MnemonicLabel letter="u" label="Run" />}
+                label={<MnemonicLabel letter="u" label={tr('Run', '运行')} />}
               />
               <ShortcutRow
                 keyContent={<KeyBadge>t</KeyBadge>}
-                label={<MnemonicLabel letter="t" label="Terminal" />}
+                label={<MnemonicLabel letter="t" label={tr('Terminal', '终端')} />}
               />
 
               {/* File tab cycling */}
@@ -276,16 +329,16 @@ export function HelpOverlay(): React.JSX.Element | null {
                     <KeyBadge>]</KeyBadge>
                   </span>
                 }
-                label="Prev / Next file tab"
+                label={tr('Prev / Next file tab', '上一个 / 下一个文件标签')}
               />
             </div>
 
             {/* ---- Action Shortcuts ---- */}
             <div>
-              <SectionTitle>Action Shortcuts</SectionTitle>
+              <SectionTitle>{tr('Action Shortcuts', '操作快捷键')}</SectionTitle>
               <ShortcutRow
                 keyContent={<KeyBadge>r</KeyBadge>}
-                label={<MnemonicLabel letter="r" label="Review" />}
+                label={<MnemonicLabel letter="r" label={tr('Review', '评审')} />}
               />
               <ShortcutRow
                 keyContent={<KeyBadge>p</KeyBadge>}
@@ -293,18 +346,18 @@ export function HelpOverlay(): React.JSX.Element | null {
               />
               <ShortcutRow
                 keyContent={<KeyBadge>m</KeyBadge>}
-                label={<MnemonicLabel letter="m" label="Merge PR" />}
+                label={<MnemonicLabel letter="m" label={tr('Merge PR', '合并 PR')} />}
               />
               <ShortcutRow
                 keyContent={<KeyBadge>a</KeyBadge>}
-                label={<MnemonicLabel letter="a" label="Archive" />}
+                label={<MnemonicLabel letter="a" label={tr('Archive', '归档')} />}
               />
             </div>
 
             {/* ---- Dynamic Sidebar Hints ---- */}
             {sidebarHintEntries.length > 0 && (
               <div>
-                <SectionTitle>Sidebar Hints</SectionTitle>
+                <SectionTitle>{tr('Sidebar Hints', '侧边栏提示')}</SectionTitle>
                 <div className="grid grid-cols-2 gap-x-3 gap-y-0.5">
                   {sidebarHintEntries.map(({ code, label }) => (
                     <ShortcutRow
@@ -320,7 +373,7 @@ export function HelpOverlay(): React.JSX.Element | null {
             {/* ---- Dynamic Session Hints ---- */}
             {sessionHintEntries.length > 0 && (
               <div>
-                <SectionTitle>Session Hints</SectionTitle>
+                <SectionTitle>{tr('Session Hints', '会话提示')}</SectionTitle>
                 <div className="grid grid-cols-2 gap-x-3 gap-y-0.5">
                   {sessionHintEntries.map(({ code, label }) => (
                     <ShortcutRow
@@ -335,7 +388,7 @@ export function HelpOverlay(): React.JSX.Element | null {
 
             {/* ---- System Shortcuts ---- */}
             <div className="col-span-2 border-t border-border/50 pt-3 mt-1">
-              <SectionTitle>System Shortcuts</SectionTitle>
+              <SectionTitle>{tr('System Shortcuts', '系统快捷键')}</SectionTitle>
               <div className="grid grid-cols-3 gap-x-4 gap-y-0.5">
                 {shortcutCategoryOrder.map((category) => {
                   const shortcuts = groupedShortcuts.get(category)

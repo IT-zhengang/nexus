@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { getModelLimitKey, useContextStore } from '@/stores/useContextStore'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
+import { useI18n } from '@/i18n/useI18n'
 
 interface ContextIndicatorProps {
   sessionId: string
@@ -25,6 +26,7 @@ export function ContextIndicator({
   modelId,
   providerId
 }: ContextIndicatorProps): React.JSX.Element | null {
+  const { tr } = useI18n()
   const tokenInfo = useContextStore((state) => state.tokensBySession[sessionId])
   const sessionModel = useContextStore((state) => state.modelBySession[sessionId])
   const modelLimits = useContextStore((state) => state.modelLimits)
@@ -76,29 +78,29 @@ export function ContextIndicator({
       </TooltipTrigger>
       <TooltipContent side="top" sideOffset={8} className="max-w-[260px]">
         <div className="space-y-1.5">
-          <div className="font-medium">Context Window</div>
+          <div className="font-medium">{tr('Context Window', '上下文窗口')}</div>
           {typeof limit === 'number' ? (
             <div>
-              {formatNumber(used)} / {formatNumber(limit)} tokens ({percent ?? 0}%)
+              {formatNumber(used)} / {formatNumber(limit)} {tr('tokens', '令牌')} ({percent ?? 0}%)
             </div>
           ) : (
-            <div>{formatNumber(used)} tokens (limit unavailable)</div>
+            <div>{formatNumber(used)} {tr('tokens (limit unavailable)', '令牌（上限不可用）')}</div>
           )}
           <div className="border-t border-border pt-1.5 space-y-0.5 text-[10px] text-muted-foreground">
-            <div>Input: {formatNumber(tokens.input)}</div>
-            <div>Cache read: {formatNumber(tokens.cacheRead)}</div>
-            <div>Cache write: {formatNumber(tokens.cacheWrite)}</div>
+            <div>{tr('Input', '输入')}: {formatNumber(tokens.input)}</div>
+            <div>{tr('Cache read', '缓存读取')}: {formatNumber(tokens.cacheRead)}</div>
+            <div>{tr('Cache write', '缓存写入')}: {formatNumber(tokens.cacheWrite)}</div>
           </div>
           {(tokens.output > 0 || tokens.reasoning > 0) && (
             <div className="border-t border-border pt-1.5 space-y-0.5 text-[10px] text-muted-foreground">
-              <div className="text-[10px]">Generated (not in context)</div>
-              {tokens.output > 0 && <div>Output: {formatNumber(tokens.output)}</div>}
-              {tokens.reasoning > 0 && <div>Reasoning: {formatNumber(tokens.reasoning)}</div>}
+              <div className="text-[10px]">{tr('Generated (not in context)', '已生成（不计入上下文）')}</div>
+              {tokens.output > 0 && <div>{tr('Output', '输出')}: {formatNumber(tokens.output)}</div>}
+              {tokens.reasoning > 0 && <div>{tr('Reasoning', '推理')}: {formatNumber(tokens.reasoning)}</div>}
             </div>
           )}
           {cost > 0 && (
             <div className="border-t border-border pt-1.5">
-              <div>Session cost: ${cost.toFixed(4)}</div>
+              <div>{tr('Session cost', '会话成本')}: ${cost.toFixed(4)}</div>
             </div>
           )}
         </div>

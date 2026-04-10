@@ -4,6 +4,7 @@ import { Trash2, Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { toast } from '@/lib/toast'
+import { useI18n } from '@/i18n'
 
 const POSIX_KEY_REGEX = /^[A-Za-z_][A-Za-z0-9_]*$/
 
@@ -17,6 +18,7 @@ function validateKey(key: string, allKeys: string[], currentIndex: number): stri
 }
 
 export function SettingsAdvanced(): React.JSX.Element {
+  const { tr } = useI18n()
   // Local state for tracking validation errors per row
   const [errors, setErrors] = useState<Record<number, string | null>>({})
 
@@ -26,7 +28,7 @@ export function SettingsAdvanced(): React.JSX.Element {
 
   const handleAdd = () => {
     updateSetting('environmentVariables', [...envVars, { key: '', value: '' }])
-    toast.success('Variable added')
+    toast.success(tr('Variable added', '变量已添加'))
   }
 
   const handleRemove = (index: number) => {
@@ -40,7 +42,7 @@ export function SettingsAdvanced(): React.JSX.Element {
       else if (i > index) newErrors[i - 1] = v
     }
     setErrors(newErrors)
-    toast.success('Variable removed')
+    toast.success(tr('Variable removed', '变量已移除'))
   }
 
   const handleChange = (index: number, field: 'key' | 'value', val: string) => {
@@ -50,11 +52,21 @@ export function SettingsAdvanced(): React.JSX.Element {
 
     // Validate key
     if (field === 'key') {
-      const error = validateKey(
+      const rawError = validateKey(
         val,
         updated.map((e) => e.key),
         index
       )
+      const error =
+        rawError ===
+        'Key must start with a letter or underscore and contain only letters, digits, and underscores'
+          ? tr(
+              'Key must start with a letter or underscore and contain only letters, digits, and underscores',
+              '变量名必须以字母或下划线开头，且只能包含字母、数字和下划线'
+            )
+          : rawError === 'Duplicate key'
+            ? tr('Duplicate key', '变量名重复')
+            : rawError
       setErrors((prev) => ({ ...prev, [index]: error }))
     }
 
@@ -65,16 +77,23 @@ export function SettingsAdvanced(): React.JSX.Element {
     <div className="space-y-6" style={{ overflow: 'hidden' }}>
       {/* Header */}
       <div>
-        <h3 className="text-base font-medium mb-1">Advanced</h3>
-        <p className="text-sm text-muted-foreground">Advanced configuration options</p>
+        <h3 className="text-base font-medium mb-1">{tr('Advanced', '高级')}</h3>
+        <p className="text-sm text-muted-foreground">
+          {tr('Advanced configuration options', '高级配置选项')}
+        </p>
       </div>
 
       {/* Environment Variables section */}
       <div className="space-y-3">
         <div>
-          <label className="text-sm font-medium">Environment Variables</label>
+          <label className="text-sm font-medium">
+            {tr('Environment Variables', '环境变量')}
+          </label>
           <p className="text-xs text-muted-foreground">
-            Define custom environment variables that will be injected into all new agent sessions.
+            {tr(
+              'Define custom environment variables that will be injected into all new agent sessions.',
+              '定义会注入到所有新代理会话中的自定义环境变量。'
+            )}
           </p>
         </div>
 
@@ -82,12 +101,14 @@ export function SettingsAdvanced(): React.JSX.Element {
         {envVars.length === 0 ? (
           <div className="rounded-md border border-dashed border-border p-6 text-center">
             <p className="text-sm text-muted-foreground mb-3">
-              No environment variables configured. Add variables to forward them to your agent
-              sessions.
+              {tr(
+                'No environment variables configured. Add variables to forward them to your agent sessions.',
+                '当前尚未配置环境变量。添加后会传递到代理会话中。'
+              )}
             </p>
             <Button size="sm" onClick={handleAdd} data-testid="add-env-var-empty">
               <Plus className="h-3.5 w-3.5 mr-1" />
-              Add Variable
+              {tr('Add Variable', '添加变量')}
             </Button>
           </div>
         ) : (
@@ -120,7 +141,7 @@ export function SettingsAdvanced(): React.JSX.Element {
                         type="text"
                         value={entry.key}
                         onChange={(e) => handleChange(index, 'key', e.target.value)}
-                        placeholder="VARIABLE_NAME"
+                        placeholder={tr('VARIABLE_NAME', '变量名')}
                         className={cn(
                           'px-3 py-1.5 text-sm rounded-md border bg-background font-mono',
                           error ? 'border-destructive' : 'border-border'
@@ -132,7 +153,7 @@ export function SettingsAdvanced(): React.JSX.Element {
                         type="text"
                         value={entry.value}
                         onChange={(e) => handleChange(index, 'value', e.target.value)}
-                        placeholder="value"
+                        placeholder={tr('value', '值')}
                         className="px-3 py-1.5 text-sm rounded-md border border-border bg-background"
                         style={{ flex: '1 1 0', minWidth: 0 }}
                         data-testid={`env-var-value-${index}`}
@@ -140,7 +161,7 @@ export function SettingsAdvanced(): React.JSX.Element {
                       <button
                         onClick={() => handleRemove(index)}
                         className="shrink-0 text-destructive hover:text-destructive/80 transition-colors p-1"
-                        title="Remove variable"
+                        title={tr('Remove variable', '移除变量')}
                         data-testid={`remove-env-var-${index}`}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
@@ -155,7 +176,7 @@ export function SettingsAdvanced(): React.JSX.Element {
             {/* Add button */}
             <Button size="sm" variant="outline" onClick={handleAdd} data-testid="add-env-var">
               <Plus className="h-3.5 w-3.5 mr-1" />
-              Add Variable
+              {tr('Add Variable', '添加变量')}
             </Button>
           </>
         )}

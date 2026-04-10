@@ -1,5 +1,6 @@
+/* eslint-disable react-refresh/only-export-components */
 import { useState, useRef, useEffect, useLayoutEffect, useCallback, useMemo } from 'react'
-import { Send, ListPlus, Loader2, AlertCircle, RefreshCw, Square, Archive, X, Github, Minimize2 } from 'lucide-react'
+import { Send, ListPlus, Loader2, AlertCircle, RefreshCw, Square, Archive, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { ProviderIcon } from '@/components/ui/provider-icon'
@@ -62,6 +63,7 @@ import {
   buildSdkPlanImplementationPrompt,
   looksLikeCodexProposedPlan
 } from '@/lib/proposedPlan'
+import { useI18n } from '@/i18n'
 
 // Stable empty array to avoid creating new references in selectors
 const EMPTY_FILE_INDEX: FlatFile[] = []
@@ -104,25 +106,25 @@ interface SlashCommandInfo {
 export const BUILT_IN_SLASH_COMMANDS: SlashCommandInfo[] = [
   {
     name: 'undo',
-    description: 'Undo the last message and file changes',
+    description: 'Undo the last message and file changes / 撤销上一条消息和文件更改',
     template: '/undo',
     builtIn: true
   },
   {
     name: 'redo',
-    description: 'Redo the last undone message and file changes',
+    description: 'Redo the last undone message and file changes / 重做上一条被撤销的消息和文件更改',
     template: '/redo',
     builtIn: true
   },
   {
     name: 'clear',
-    description: 'Close current tab and open a new one',
+    description: 'Close current tab and open a new one / 关闭当前标签并打开新标签',
     template: '/clear',
     builtIn: true
   },
   {
     name: 'ask',
-    description: 'Ask a question without making code changes',
+    description: 'Ask a question without making code changes / 提问但不进行代码更改',
     template: '/ask ',
     builtIn: true
   }
@@ -360,6 +362,7 @@ function writeTranscriptCache(sessionId: string, messages: OpenCodeMessage[]): v
 
 // Loading state component
 function LoadingState(): React.JSX.Element {
+  const { tr } = useI18n()
   return (
     <div
       className="flex-1 flex flex-col items-center justify-center gap-4"
@@ -367,8 +370,8 @@ function LoadingState(): React.JSX.Element {
     >
       <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       <div className="text-center">
-        <p className="text-sm font-medium">Connecting to session...</p>
-        <p className="text-xs text-muted-foreground mt-1">This may take a moment</p>
+        <p className="text-sm font-medium">{tr('Connecting to session...', '正在连接会话...')}</p>
+        <p className="text-xs text-muted-foreground mt-1">{tr('This may take a moment', '这可能需要一点时间')}</p>
       </div>
     </div>
   )
@@ -381,6 +384,7 @@ interface ErrorStateProps {
 }
 
 function ErrorState({ message, onRetry }: ErrorStateProps): React.JSX.Element {
+  const { tr } = useI18n()
   return (
     <div
       className="flex-1 flex flex-col items-center justify-center gap-4"
@@ -390,12 +394,12 @@ function ErrorState({ message, onRetry }: ErrorStateProps): React.JSX.Element {
         <AlertCircle className="h-6 w-6 text-destructive" />
       </div>
       <div className="text-center">
-        <p className="text-sm font-medium">Connection Error</p>
+        <p className="text-sm font-medium">{tr('Connection Error', '连接错误')}</p>
         <p className="text-xs text-muted-foreground mt-1 max-w-xs">{message}</p>
       </div>
       <Button variant="outline" onClick={onRetry} className="mt-2" data-testid="retry-button">
         <RefreshCw className="h-4 w-4 mr-2" />
-        Retry Connection
+        {tr('Retry Connection', '重试连接')}
       </Button>
     </div>
   )
@@ -446,6 +450,7 @@ function PrCommentAttachments(): React.JSX.Element | null {
 
 // Main SessionView component
 export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element {
+  const { tr } = useI18n()
   // State
   const [messages, setMessages] = useState<OpenCodeMessage[]>([])
   const [inputValue, setInputValue] = useState('')
@@ -470,18 +475,21 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
     setAttachments((prev) => {
       const remaining = MAX_ATTACHMENTS - prev.length
       if (remaining <= 0) {
-        toast.warning(`Maximum ${MAX_ATTACHMENTS} attachments reached`)
+        toast.warning(tr(`Maximum ${MAX_ATTACHMENTS} attachments reached`, `最多只能添加 ${MAX_ATTACHMENTS} 个附件`))
         return prev
       }
       if (items.length > remaining) {
         toast.warning(
-          `Only ${remaining} of ${items.length} files attached (maximum ${MAX_ATTACHMENTS})`
+          tr(
+            `Only ${remaining} of ${items.length} files attached (maximum ${MAX_ATTACHMENTS})`,
+            `仅附加了 ${items.length} 个文件中的 ${remaining} 个（最多 ${MAX_ATTACHMENTS} 个）`
+          )
         )
       }
       const toAdd = items.slice(0, remaining)
       return [...prev, ...toAdd.map((item) => ({ id: crypto.randomUUID(), ...item }))]
     })
-  }, [pendingDropFiles])
+  }, [pendingDropFiles, tr])
 
   const [slashCommands, setSlashCommands] = useState<SlashCommandInfo[]>([])
   const [showSlashCommands, setShowSlashCommands] = useState(false)
@@ -1196,7 +1204,7 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
         // Add new tool use part
         const newToolUse: ToolUseInfo = {
           id: toolId,
-          name: update.name || 'Unknown',
+          name: update.name || tr('Unknown', '未知'),
           input: update.input || {},
           status: update.status || ('pending' as ToolStatus),
           startTime: update.startTime || Date.now(),
@@ -1207,7 +1215,7 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
       // Immediate flush for tool updates — tool cards should appear instantly
       immediateFlush()
     },
-    [updateStreamingPartsRef, immediateFlush]
+    [updateStreamingPartsRef, immediateFlush, tr]
   )
 
   // Reset streaming state
@@ -1525,7 +1533,7 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
         }
       } catch (error) {
         console.error('Failed to refresh messages after stream completion:', error)
-        toast.error('Failed to refresh response')
+        toast.error(tr('Failed to refresh response', '刷新响应失败'))
       } finally {
         resetStreamingState()
         setIsSending(false)
@@ -2449,7 +2457,7 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
                   return true
                 },
                 onDispatchFailure: (message) => {
-                  toast.error('Failed to send follow-up prompt')
+                  toast.error(tr('Failed to send follow-up prompt', '发送后续提示失败'))
                   setIsStreaming(false)
                   setIsSending(false)
                   useWorktreeStatusStore.getState().clearSessionStatus(sessionId)
@@ -2852,13 +2860,13 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
             }
             if (!result.success) {
               console.error('Failed to send pending message:', result.error)
-              toast.error('Failed to send review prompt')
+              toast.error(tr('Failed to send review prompt', '发送审查提示失败'))
               restorePendingAfterFailure()
               setIsSending(false)
             }
           } catch (err) {
             console.error('Failed to send pending message:', err)
-            toast.error('Failed to send review prompt')
+            toast.error(tr('Failed to send review prompt', '发送审查提示失败'))
             restorePendingAfterFailure()
             setIsSending(false)
           }
@@ -3145,10 +3153,10 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
         await window.opencodeOps.questionReply(requestId, answers, worktreePath || undefined)
       } catch (err) {
         console.error('Failed to reply to question:', err)
-        toast.error('Failed to send answer')
+        toast.error(tr('Failed to send answer', '发送回答失败'))
       }
     },
-    [worktreePath]
+    [worktreePath, tr]
   )
 
   // Handle question reject/dismiss
@@ -3158,10 +3166,10 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
         await window.opencodeOps.questionReject(requestId, worktreePath || undefined)
       } catch (err) {
         console.error('Failed to reject question:', err)
-        toast.error('Failed to dismiss question')
+        toast.error(tr('Failed to dismiss question', '忽略问题失败'))
       }
     },
-    [worktreePath]
+    [worktreePath, tr]
   )
 
   // Handle permission reply (allow once, allow always, or reject)
@@ -3176,10 +3184,10 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
         )
       } catch (err) {
         console.error('Failed to reply to permission:', err)
-        toast.error('Failed to send permission reply')
+        toast.error(tr('Failed to send permission reply', '发送权限回复失败'))
       }
     },
-    [worktreePath]
+    [worktreePath, tr]
   )
 
   // Handle command approval reply (approve/deny with optional remember + pattern/patterns)
@@ -3204,10 +3212,10 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
         useCommandApprovalStore.getState().removeApproval(sessionId, requestId)
       } catch (err) {
         console.error('Failed to reply to command approval:', err)
-        toast.error('Failed to send command approval reply')
+        toast.error(tr('Failed to send command approval reply', '发送命令审批回复失败'))
       }
     },
-    [worktreePath, sessionId]
+    [worktreePath, sessionId, tr]
   )
 
   const refreshMessagesFromOpenCode = useCallback(async (): Promise<boolean> => {
@@ -3251,32 +3259,32 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
     )
     setMessages(loadedMessages)
     return true
-  }, [opencodeSessionId, sessionId, sessionRecord?.agent_sdk, worktreePath])
+  }, [isStreaming, opencodeSessionId, sessionId, sessionRecord?.agent_sdk, worktreePath])
 
   const handleForkFromAssistantMessage = useCallback(
     async (message: OpenCodeMessage) => {
       if (forkingMessageId) return
 
       if (!worktreePath || !opencodeSessionId) {
-        toast.error('Session is not ready to fork yet')
+        toast.error(tr('Session is not ready to fork yet', '会话尚未准备好进行分叉'))
         return
       }
 
       const sourceSession = sessionRecord ?? (await window.db.session.get(sessionId))
       if (!sourceSession) {
-        toast.error('Session is not ready to fork yet')
+        toast.error(tr('Session is not ready to fork yet', '会话尚未准备好进行分叉'))
         return
       }
 
       const targetWorktreeId = worktreeId ?? sourceSession.worktree_id
       if (!targetWorktreeId) {
-        toast.error('Session has no worktree to fork into')
+        toast.error(tr('Session has no worktree to fork into', '该会话没有可分叉到的工作树'))
         return
       }
 
       const messageIndex = messagesRef.current.findIndex((candidate) => candidate.id === message.id)
       if (messageIndex === -1) {
-        toast.error('Could not locate the selected message')
+        toast.error(tr('Could not locate the selected message', '无法定位所选消息'))
         return
       }
 
@@ -3294,7 +3302,7 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
         )
 
         if (!forkResult.success || !forkResult.sessionId) {
-          throw new Error(forkResult.error || 'Failed to fork session')
+          throw new Error(forkResult.error || tr('Failed to fork session', '分叉会话失败'))
         }
 
         const fallbackForkName = sourceSession.name ? `${sourceSession.name} (fork)` : null
@@ -3311,7 +3319,7 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
         await useSessionStore.getState().loadSessions(targetWorktreeId, sourceSession.project_id)
         useSessionStore.getState().setActiveSession(forkedSession.id)
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : 'Failed to fork session')
+        toast.error(error instanceof Error ? error.message : tr('Failed to fork session', '分叉会话失败'))
       } finally {
         setForkingMessageId(null)
       }
@@ -3322,7 +3330,8 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
       sessionId,
       sessionRecord,
       worktreeId,
-      worktreePath
+      worktreePath,
+      tr
     ]
   )
 
@@ -3342,7 +3351,7 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
 
         if (commandName === 'undo' || commandName === 'redo') {
           if (!worktreePath || !opencodeSessionId) {
-            toast.error('OpenCode is not connected')
+            toast.error(tr('OpenCode is not connected', 'OpenCode 未连接'))
             return
           }
 
@@ -3358,7 +3367,7 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
             if (commandName === 'undo') {
               const result = await window.opencodeOps.undo(worktreePath, opencodeSessionId)
               if (!result.success) {
-                toast.error(result.error || 'Nothing to undo')
+                toast.error(result.error || tr('Nothing to undo', '没有可撤销的内容'))
                 return
               }
 
@@ -3373,12 +3382,12 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
               inputValueRef.current = restoredPrompt
             } else {
               if (sessionCapabilities && !sessionCapabilities.supportsRedo) {
-                toast.error('Redo is not supported for this session type')
+                toast.error(tr('Redo is not supported for this session type', '此会话类型不支持重做'))
                 return
               }
               const result = await window.opencodeOps.redo(worktreePath, opencodeSessionId)
               if (!result.success) {
-                toast.error(result.error || 'Nothing to redo')
+                toast.error(result.error || tr('Nothing to redo', '没有可重做的内容'))
                 return
               }
 
@@ -3392,11 +3401,11 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
 
             const refreshed = await refreshMessagesFromOpenCode()
             if (!refreshed) {
-              toast.error('Undo/redo completed, but refresh failed')
+              toast.error(tr('Undo/redo completed, but refresh failed', '撤销/重做已完成，但刷新失败'))
             }
           } catch (error) {
             console.error('Built-in command failed:', error)
-            toast.error(commandName === 'undo' ? 'Undo failed' : 'Redo failed')
+            toast.error(commandName === 'undo' ? tr('Undo failed', '撤销失败') : tr('Redo failed', '重做失败'))
           }
 
           return
@@ -3431,12 +3440,12 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
           const question = trimmedValue.slice(5).trim() // Remove "/ask " prefix
 
           if (!question) {
-            toast.error('Please provide a question after /ask')
+            toast.error(tr('Please provide a question after /ask', '请在 /ask 后输入问题'))
             return
           }
 
           if (!worktreePath || !opencodeSessionId) {
-            toast.error('OpenCode is not connected')
+            toast.error(tr('OpenCode is not connected', 'OpenCode 未连接'))
             return
           }
 
@@ -3514,12 +3523,12 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
 
             if (!result.success) {
               console.error('Failed to send /ask question:', result.error)
-              toast.error('Failed to send question')
+              toast.error(tr('Failed to send question', '发送问题失败'))
               setIsSending(false)
             }
           } catch (error) {
             console.error('Error sending /ask question:', error)
-            toast.error('Failed to send question')
+            toast.error(tr('Failed to send question', '发送问题失败'))
             setIsSending(false)
           }
 
@@ -3713,7 +3722,7 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
               )
               if (!result.success) {
                 console.error('Failed to send command:', result.error)
-                toast.error('Failed to send command')
+                toast.error(tr('Failed to send command', '发送命令失败'))
                 setIsSending(false)
               }
             } else {
@@ -3748,7 +3757,7 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
               )
               if (!result.success) {
                 console.error('Failed to send prompt to OpenCode:', result.error)
-                toast.error('Failed to send message to AI')
+                toast.error(tr('Failed to send message to AI', '向 AI 发送消息失败'))
                 setIsSending(false)
               }
             }
@@ -3787,7 +3796,7 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
             )
             if (!result.success) {
               console.error('Failed to send prompt to OpenCode:', result.error)
-              toast.error('Failed to send message to AI')
+              toast.error(tr('Failed to send message to AI', '向 AI 发送消息失败'))
               setIsSending(false)
             }
           }
@@ -3799,14 +3808,17 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
           console.warn('No OpenCode connection, showing placeholder response')
           setTimeout(() => {
             const placeholderContent =
-              'OpenCode is not connected. Please ensure a worktree is selected and the connection is established.'
+              tr(
+                'OpenCode is not connected. Please ensure a worktree is selected and the connection is established.',
+                'OpenCode 未连接。请确认已选择工作树并建立连接。'
+              )
             setMessages((prev) => [...prev, createLocalMessage('assistant', placeholderContent)])
             setIsSending(false)
           }, 500)
         }
       } catch (error) {
         console.error('Failed to send message:', error)
-        toast.error('Failed to send message')
+        toast.error(tr('Failed to send message', '发送消息失败'))
         setIsSending(false)
       }
     },
@@ -3828,7 +3840,8 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
       getModelForRequests,
       fileMentions,
       resetAutoScrollState,
-      stripAtMentions
+      stripAtMentions,
+      tr
     ]
   )
 
@@ -3862,7 +3875,7 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
     // Claude Code sessions must resolve a real pending ExitPlanMode request.
     if (isClaudeCode) {
       if (!worktreePath || !pendingPlan) {
-        toast.error('No pending plan approval found')
+        toast.error(tr('No pending plan approval found', '未找到待审批的计划'))
         return
       }
 
@@ -3878,7 +3891,12 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
           pendingBeforeAction.requestId
         )
         if (!result.success) {
-          toast.error(`Plan approve failed: ${result.error ?? 'unknown'}`)
+          toast.error(
+            tr(
+              `Plan approve failed: ${result.error ?? 'unknown'}`,
+              `计划批准失败：${result.error ?? '未知错误'}`
+            )
+          )
           // Avoid stale FAB loops if backend no longer has a pending request.
           if (!(result.error ?? '').toLowerCase().includes('no pending plan')) {
             useSessionStore.getState().setPendingPlan(sessionId, pendingBeforeAction)
@@ -3908,7 +3926,12 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
         )
         immediateFlush()
       } catch (err) {
-        toast.error(`Plan approve error: ${err instanceof Error ? err.message : String(err)}`)
+        toast.error(
+          tr(
+            `Plan approve error: ${err instanceof Error ? err.message : String(err)}`,
+            `计划批准出错：${err instanceof Error ? err.message : String(err)}`
+          )
+        )
         useSessionStore.getState().setPendingPlan(sessionId, pendingBeforeAction)
         useWorktreeStatusStore.getState().setSessionStatus(sessionId, 'plan_ready')
       }
@@ -3926,8 +3949,10 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
     worktreePath,
     pendingPlan,
     isClaudeCode,
+    sessionRecord?.agent_sdk,
     updateStreamingPartsRef,
-    immediateFlush
+    immediateFlush,
+    tr
   ])
 
   const handlePlanReject = useCallback(
@@ -3972,7 +3997,12 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
           pendingBeforeAction.requestId
         )
         if (!result.success) {
-          toast.error(`Plan reject failed: ${result.error ?? 'unknown'}`)
+          toast.error(
+            tr(
+              `Plan reject failed: ${result.error ?? 'unknown'}`,
+              `计划拒绝失败：${result.error ?? '未知错误'}`
+            )
+          )
           if (!(result.error ?? '').toLowerCase().includes('no pending plan')) {
             useSessionStore.getState().setPendingPlan(sessionId, pendingBeforeAction)
             useWorktreeStatusStore.getState().setSessionStatus(sessionId, 'plan_ready')
@@ -3997,7 +4027,12 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
           .getState()
           .setSessionStatus(sessionId, isPlanLike(currentMode) ? 'planning' : 'working')
       } catch (err) {
-        toast.error(`Plan reject error: ${err instanceof Error ? err.message : String(err)}`)
+        toast.error(
+          tr(
+            `Plan reject error: ${err instanceof Error ? err.message : String(err)}`,
+            `计划拒绝出错：${err instanceof Error ? err.message : String(err)}`
+          )
+        )
         useSessionStore.getState().setPendingPlan(sessionId, pendingBeforeAction)
         useWorktreeStatusStore.getState().setSessionStatus(sessionId, 'plan_ready')
       }
@@ -4009,7 +4044,8 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
       isClaudeCode,
       updateStreamingPartsRef,
       immediateFlush,
-      handleSend
+      handleSend,
+      tr
     ]
   )
 
@@ -4019,7 +4055,7 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
       .find((message) => message.role === 'assistant' && message.content.trim().length > 0)
 
     if (!lastAssistantMessage) {
-      toast.error('No assistant plan message to hand off')
+      toast.error(tr('No assistant plan message to hand off', '没有可交接的助手计划消息'))
       return
     }
 
@@ -4037,7 +4073,7 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
       const sessionStore = useSessionStore.getState()
       const result = await sessionStore.createConnectionSession(connectionId)
       if (!result.success || !result.session) {
-        toast.error(result.error ?? 'Failed to create handoff session')
+        toast.error(result.error ?? tr('Failed to create handoff session', '创建交接会话失败'))
         return
       }
       const setModePromise = sessionStore.setSessionMode(result.session.id, 'build')
@@ -4051,7 +4087,7 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
     const currentWorktreeId = worktreeId
     const currentProjectId = sessionRecord?.project_id
     if (!currentWorktreeId || !currentProjectId) {
-      toast.error('Could not start handoff session')
+      toast.error(tr('Could not start handoff session', '无法启动交接会话'))
       return
     }
 
@@ -4060,7 +4096,7 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
     const sessionStore = useSessionStore.getState()
     const result = await sessionStore.createSession(currentWorktreeId, currentProjectId)
     if (!result.success || !result.session) {
-      toast.error(result.error ?? 'Failed to create handoff session')
+      toast.error(result.error ?? tr('Failed to create handoff session', '创建交接会话失败'))
       return
     }
 
@@ -4069,7 +4105,7 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
     notifyKanbanSessionSync(sessionId, { type: 'supercharge', newSessionId: result.session.id })
     sessionStore.setActiveSession(result.session.id)
     await setModePromise
-  }, [messages, worktreeId, sessionRecord?.project_id, connectionId, sessionId, worktreePath, opencodeSessionId])
+  }, [messages, worktreeId, sessionRecord?.project_id, connectionId, sessionId, worktreePath, opencodeSessionId, tr])
 
   const handlePlanReadySuperpowers = useCallback(async () => {
     // 1. Extract plan content
@@ -4078,7 +4114,7 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
       [...messages].reverse().find((m) => m.role === 'assistant' && m.content.trim().length > 0)
         ?.content
     if (!planContent) {
-      toast.error('No plan content found to supercharge')
+      toast.error(tr('No plan content found to supercharge', '未找到可用于增强执行的计划内容'))
       return
     }
 
@@ -4095,7 +4131,9 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
       const sessionStore = useSessionStore.getState()
       const sessionResult = await sessionStore.createConnectionSession(connectionId)
       if (!sessionResult.success || !sessionResult.session) {
-        toast.error(sessionResult.error ?? 'Failed to create supercharge session')
+        toast.error(
+          sessionResult.error ?? tr('Failed to create supercharge session', '创建增强执行会话失败')
+        )
         return
       }
       const newSessionId = sessionResult.session.id
@@ -4122,13 +4160,13 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
       if (worktree) break
     }
     if (!worktree) {
-      toast.error('Could not find current worktree')
+      toast.error(tr('Could not find current worktree', '找不到当前工作树'))
       return
     }
 
     const project = useProjectStore.getState().projects.find((p) => p.id === worktree!.project_id)
     if (!project) {
-      toast.error('Could not find project for worktree')
+      toast.error(tr('Could not find project for worktree', '找不到该工作树对应的项目'))
       return
     }
 
@@ -4141,7 +4179,7 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
       worktree.path
     )
     if (!dupResult.success || !dupResult.worktree) {
-      toast.error(dupResult.error ?? 'Failed to duplicate worktree')
+      toast.error(dupResult.error ?? tr('Failed to duplicate worktree', '复制工作树失败'))
       return
     }
 
@@ -4149,7 +4187,9 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
     const sessionStore = useSessionStore.getState()
     const sessionResult = await sessionStore.createSession(dupResult.worktree.id, project.id)
     if (!sessionResult.success || !sessionResult.session) {
-      toast.error(sessionResult.error ?? 'Failed to create supercharge session')
+      toast.error(
+        sessionResult.error ?? tr('Failed to create supercharge session', '创建增强执行会话失败')
+      )
       return
     }
 
@@ -4170,7 +4210,7 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
     // 6. Navigate to the new worktree
     worktreeStore.selectWorktree(dupResult.worktree.id)
     await setModePromise
-  }, [messages, worktreeId, pendingPlan, connectionId, sessionId, worktreePath, opencodeSessionId])
+  }, [messages, worktreeId, pendingPlan, connectionId, sessionId, worktreePath, opencodeSessionId, tr])
 
   const handlePlanReadySuperpowersLocal = useCallback(async () => {
     // 1. Extract plan content
@@ -4179,7 +4219,7 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
       [...messages].reverse().find((m) => m.role === 'assistant' && m.content.trim().length > 0)
         ?.content
     if (!planContent) {
-      toast.error('No plan content found to supercharge')
+      toast.error(tr('No plan content found to supercharge', '未找到可用于增强执行的计划内容'))
       return
     }
 
@@ -4196,14 +4236,17 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
     const currentWorktreeId = worktreeId
     const currentProjectId = sessionRecord?.project_id
     if (!currentWorktreeId || !currentProjectId) {
-      toast.error('Could not start local supercharge session')
+      toast.error(tr('Could not start local supercharge session', '无法启动本地增强执行会话'))
       return
     }
 
     const sessionStore = useSessionStore.getState()
     const sessionResult = await sessionStore.createSession(currentWorktreeId, currentProjectId)
     if (!sessionResult.success || !sessionResult.session) {
-      toast.error(sessionResult.error ?? 'Failed to create local supercharge session')
+      toast.error(
+        sessionResult.error ??
+          tr('Failed to create local supercharge session', '创建本地增强执行会话失败')
+      )
       return
     }
 
@@ -4224,12 +4267,12 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
     // 4. Navigate to the new session (same worktree)
     sessionStore.setActiveSession(newSessionId)
     await setModePromise
-  }, [messages, worktreeId, sessionRecord?.project_id, pendingPlan, sessionId, worktreePath, opencodeSessionId])
+  }, [messages, worktreeId, sessionRecord?.project_id, pendingPlan, sessionId, worktreePath, opencodeSessionId, tr])
 
   const handlePlanReadySaveAsTicket = useCallback(async () => {
     const projectId = sessionRecord?.project_id
     if (!projectId) {
-      toast.error('No project associated with this session')
+      toast.error(tr('No project associated with this session', '此会话未关联项目'))
       return
     }
 
@@ -4239,7 +4282,7 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
         ?.content
 
     if (!planContent) {
-      toast.error('No plan content found')
+      toast.error(tr('No plan content found', '未找到计划内容'))
       return
     }
 
@@ -4251,7 +4294,7 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
           .split('\n')
           .find((line: string) => line.trim().length > 0)
           ?.trim()
-          .slice(0, 100) ?? 'Plan ticket')
+          .slice(0, 100) ?? tr('Plan ticket', '计划工单'))
 
     try {
       await useKanbanStore.getState().createTicket(projectId, {
@@ -4261,11 +4304,11 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
         column: 'todo'
       })
       setPlanSavedAsTicket(true)
-      toast.success('Saved as ticket')
+      toast.success(tr('Saved as ticket', '已保存为工单'))
     } catch {
-      toast.error('Failed to save as ticket')
+      toast.error(tr('Failed to save as ticket', '保存为工单失败'))
     }
-  }, [messages, pendingPlan, sessionRecord?.project_id])
+  }, [messages, pendingPlan, sessionRecord?.project_id, tr])
 
   // Abort streaming
   const handleAbort = useCallback(async () => {
@@ -4416,7 +4459,7 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
       setAttachments((prev) => {
         const remaining = MAX_ATTACHMENTS - prev.length
         if (remaining <= 0) {
-          toast.warning(`Maximum ${MAX_ATTACHMENTS} attachments reached`)
+          toast.warning(tr(`Maximum ${MAX_ATTACHMENTS} attachments reached`, `最多只能添加 ${MAX_ATTACHMENTS} 个附件`))
           return prev
         }
         const toAdd = tickets.slice(0, remaining).map((t) => ({
@@ -4430,13 +4473,13 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
         }))
         if (tickets.length > remaining) {
           toast.warning(
-            `Only ${remaining} of ${tickets.length} tickets attached (${MAX_ATTACHMENTS} max)`
+            tr(`Only ${remaining} of ${tickets.length} tickets attached (${MAX_ATTACHMENTS} max)`, `仅附加了 ${tickets.length} 个工单中的 ${remaining} 个（最多 ${MAX_ATTACHMENTS} 个）`)
           )
         }
         return [...prev, ...toAdd]
       })
     },
-    []
+    [tr]
   )
 
   // Slash command handlers
@@ -4572,7 +4615,7 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
       try {
         const result = await window.opencodeOps.undo(worktreePath, opencodeSessionId)
         if (!result.success) {
-          toast.error(result.error || 'Nothing to undo')
+          toast.error(result.error || tr('Nothing to undo', '没有可撤销的内容'))
           return
         }
         setRevertMessageID(result.revertMessageID ?? null)
@@ -4585,7 +4628,7 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
         inputValueRef.current = restoredPrompt
         await refreshMessagesFromOpenCode()
       } catch {
-        toast.error('Undo failed')
+        toast.error(tr('Undo failed', '撤销失败'))
       }
     }
 
@@ -4593,13 +4636,13 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
       if (useSessionStore.getState().activeSessionId !== sessionId) return
       if (!worktreePath || !opencodeSessionId) return
       if (sessionCapabilitiesRef.current && !sessionCapabilitiesRef.current.supportsRedo) {
-        toast.error('Redo is not supported for this session type')
+        toast.error(tr('Redo is not supported for this session type', '此会话类型不支持重做'))
         return
       }
       try {
         const result = await window.opencodeOps.redo(worktreePath, opencodeSessionId)
         if (!result.success) {
-          toast.error(result.error || 'Nothing to redo')
+          toast.error(result.error || tr('Nothing to redo', '没有可重做的内容'))
           return
         }
         setRevertMessageID(result.revertMessageID ?? null)
@@ -4610,7 +4653,7 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
         }
         await refreshMessagesFromOpenCode()
       } catch {
-        toast.error('Redo failed')
+        toast.error(tr('Redo failed', '重做失败'))
       }
     }
 
@@ -4627,7 +4670,7 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
       window.removeEventListener('hive:undo-turn', onUndo)
       window.removeEventListener('hive:redo-turn', onRedo)
     }
-  }, [sessionId, worktreePath, opencodeSessionId, refreshMessagesFromOpenCode])
+  }, [sessionId, worktreePath, opencodeSessionId, refreshMessagesFromOpenCode, tr])
 
   // Determine if there's streaming content to show
   const visibleMessages = useMemo(() => {
@@ -4805,7 +4848,7 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
     return (
       <div className="flex-1 flex flex-col" data-testid="session-view" data-session-id={sessionId}>
         <ErrorState
-          message={viewState.errorMessage || 'Failed to connect to session'}
+          message={viewState.errorMessage || tr('Failed to connect to session', '连接会话失败')}
           onRetry={handleRetry}
         />
       </div>
@@ -4839,13 +4882,22 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
               <div className="flex items-start gap-2 text-amber-600 dark:text-amber-400">
                 <Archive className="mt-0.5 h-4 w-4 shrink-0" />
                 <div>
-                  <p className="text-sm font-medium">Read-Only Mode</p>
+                  <p className="text-sm font-medium">{tr('Read-Only Mode', '只读模式')}</p>
                   <p className="mt-0.5 text-sm opacity-90">
                     {sessionRecord?.connection_id
-                      ? 'This session is from a deleted connection. You can view the conversation history but cannot send new messages.'
+                      ? tr(
+                          'This session is from a deleted connection. You can view the conversation history but cannot send new messages.',
+                          '该会话来自已删除的连接。你可以查看历史对话，但无法发送新消息。'
+                        )
                       : sessionRecord?.worktree_id
-                        ? 'This session is from an archived worktree. You can view the conversation history but cannot send new messages.'
-                        : 'This session is no longer accessible. You can view the conversation history but cannot send new messages.'}
+                        ? tr(
+                            'This session is from an archived worktree. You can view the conversation history but cannot send new messages.',
+                            '该会话来自已归档的工作树。你可以查看历史对话，但无法发送新消息。'
+                          )
+                        : tr(
+                            'This session is no longer accessible. You can view the conversation history but cannot send new messages.',
+                            '该会话已无法访问。你可以查看历史对话，但无法发送新消息。'
+                          )}
                   </p>
                 </div>
               </div>
@@ -4854,13 +4906,13 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
           {visibleMessages.length === 0 && !hasStreamingContent ? (
             <div className="flex-1 flex items-center justify-center h-full text-muted-foreground">
               <div className="text-center">
-                <p className="text-lg font-medium">Start a conversation</p>
-                <p className="text-sm mt-1">Type a message below to begin</p>
+                <p className="text-lg font-medium">{tr('Start a conversation', '开始对话')}</p>
+                <p className="text-sm mt-1">{tr('Type a message below to begin', '在下方输入消息开始')}</p>
                 {!opencodeSessionId && worktreePath && (
-                  <p className="text-xs mt-2 text-yellow-500">Connecting to OpenCode...</p>
+                  <p className="text-xs mt-2 text-yellow-500">{tr('Connecting to OpenCode...', '正在连接 OpenCode...')}</p>
                 )}
                 {!worktreePath && (
-                  <p className="text-xs mt-2 text-yellow-500">No worktree selected</p>
+                  <p className="text-xs mt-2 text-yellow-500">{tr('No worktree selected', '未选择工作树')}</p>
                 )}
               </div>
             </div>
@@ -4953,7 +5005,7 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
         className="p-4 bg-background"
         data-testid="input-area"
         role="form"
-        aria-label="Message input"
+        aria-label={tr('Message input', '消息输入')}
       >
         <div className="max-w-4xl mx-auto relative">
           {/* Slash command popover — outside overflow-hidden so it can render above */}
@@ -5025,14 +5077,14 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
               disabled={!!activePermission || isOrphanedSession}
               placeholder={
                 isOrphanedSession
-                  ? 'Read-only mode - cannot send messages'
+                  ? tr('Read-only mode - cannot send messages', '只读模式 - 无法发送消息')
                   : activePermission
-                    ? 'Waiting for permission response...'
+                    ? tr('Waiting for permission response...', '正在等待权限响应...')
                     : pendingPlan
-                      ? 'Send feedback to revise the plan...'
-                      : 'Type your message...'
+                      ? tr('Send feedback to revise the plan...', '发送反馈以修改计划...')
+                      : tr('Type your message...', '输入你的消息...')
               }
-              aria-label="Message input"
+              aria-label={tr('Message input', '消息输入')}
               aria-haspopup="listbox"
               aria-expanded={fileMentions.isOpen && !showSlashCommands}
               className={cn(
@@ -5085,8 +5137,11 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
                 >
                   {elapsedTimerText ??
                     (pendingPlan
-                      ? 'Enter to send feedback to revise the plan'
-                      : <span className="hidden @min-[42rem]:inline">{`${navigator.platform.includes('Mac') ? '⌃' : 'Ctrl+'}T to change variant, Shift+Enter for new line`}</span>)}
+                      ? tr('Enter to send feedback to revise the plan', '按 Enter 发送反馈以修改计划')
+                      : <span className="hidden @min-[42rem]:inline">{tr(
+                          `${navigator.platform.includes('Mac') ? '⌃' : 'Ctrl+'}T to change variant, Shift+Enter for new line`,
+                          `${navigator.platform.includes('Mac') ? '⌃' : 'Ctrl+'}T 切换变体，Shift+Enter 换行`
+                        )}</span>)}
                 </span>
               </div>
               <div className="flex items-center gap-1.5">
@@ -5099,8 +5154,8 @@ export function SessionView({ sessionId }: SessionViewProps): React.JSX.Element 
                     size="sm"
                     variant="destructive"
                     className="h-7 w-7 p-0"
-                    aria-label="Stop streaming"
-                    title="Stop streaming"
+                    aria-label={tr('Stop streaming', '停止生成')}
+                    title={tr('Stop streaming', '停止生成')}
                     data-testid="stop-button"
                   >
                     <Square className="h-3 w-3" />

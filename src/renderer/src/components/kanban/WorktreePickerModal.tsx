@@ -1,5 +1,6 @@
+/* eslint-disable react-refresh/only-export-components */
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
-import { Hammer, Map, Sparkles, Plus, GitBranch, Send, ChevronDown, Loader2, Search } from 'lucide-react'
+import { Hammer, Map, Plus, GitBranch, Send, ChevronDown, Loader2, Search } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -28,6 +29,7 @@ import { PLAN_MODE_PREFIX, SUPER_PLAN_MODE_PREFIX, isPlanLike } from '@/lib/cons
 import { toast } from '@/lib/toast'
 import type { KanbanTicket } from '../../../../main/db/types'
 import { canonicalizeTicketTitle } from '@shared/types/branch-utils'
+import { useI18n } from '@/i18n/useI18n'
 
 // Stable empty array to avoid referential-inequality loops in Zustand selectors
 const EMPTY_ARRAY: readonly never[] = []
@@ -111,6 +113,7 @@ export function WorktreePickerModal({
   preAssignOnly = false,
   connectionId
 }: WorktreePickerModalProps) {
+  const { tr } = useI18n()
   const isConnectionMode = !!connectionId
   const [mode, setMode] = useState<PickerMode>('build')
   const [superArmed, setSuperArmed] = useState(false)
@@ -212,8 +215,7 @@ export function WorktreePickerModal({
         // IPC failure — branches stay empty, user sees "No branches found"
       })
       .finally(() => setBranchesLoading(false))
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isNewWorktree, project?.path])
+  }, [isNewWorktree, project?.path, branches.length, projectId])
 
   // ── Reset state when modal opens ────────────────────────────────
   useEffect(() => {
@@ -339,7 +341,7 @@ export function WorktreePickerModal({
         const sessionResult = await createConnectionSession(connectionId, agentSdk, mode)
 
         if (!sessionResult.success || !sessionResult.session) {
-          toast.error(sessionResult.error || 'Failed to create session')
+          toast.error(sessionResult.error || tr('Failed to create session', '创建会话失败'))
           setIsSending(false)
           return
         }
@@ -378,7 +380,7 @@ export function WorktreePickerModal({
         // Close modal
         onSendComplete?.()
         onOpenChange(false)
-        toast.success('Session started')
+        toast.success(tr('Session started', '会话已启动'))
 
         // Connect to opencode using connection path
         const connectionPath = useConnectionStore.getState().connections.find(c => c.id === connectionId)?.path
@@ -410,7 +412,7 @@ export function WorktreePickerModal({
         }
         return  // Done with connection path
       } catch {
-        toast.error('Failed to start session')
+        toast.error(tr('Failed to start session', '启动会话失败'))
       } finally {
         setIsSending(false)
       }
@@ -435,7 +437,7 @@ export function WorktreePickerModal({
             nameHint || undefined
           )
           if (!result.success || !result.worktree?.id) {
-            toast.error(result.error || 'Failed to create worktree')
+            toast.error(result.error || tr('Failed to create worktree', '创建工作树失败'))
             setIsSending(false)
             return
           }
@@ -443,14 +445,14 @@ export function WorktreePickerModal({
         }
 
         if (!worktreeId) {
-          toast.error('No worktree selected')
+          toast.error(tr('No worktree selected', '未选择工作树'))
           setIsSending(false)
           return
         }
 
         await updateTicket(ticket.id, projectId, { worktree_id: worktreeId })
         onOpenChange(false)
-        toast.success('Worktree assigned')
+        toast.success(tr('Worktree assigned', '工作树已分配'))
         return
       }
 
@@ -467,7 +469,7 @@ export function WorktreePickerModal({
           nameHint || undefined
         )
         if (!result.success || !result.worktree?.id) {
-          toast.error(result.error || 'Failed to create worktree')
+          toast.error(result.error || tr('Failed to create worktree', '创建工作树失败'))
           setIsSending(false)
           return
         }
@@ -475,7 +477,7 @@ export function WorktreePickerModal({
       }
 
       if (!worktreeId) {
-        toast.error('No worktree selected')
+        toast.error(tr('No worktree selected', '未选择工作树'))
         setIsSending(false)
         return
       }
@@ -484,7 +486,7 @@ export function WorktreePickerModal({
       const sessionResult = await createSession(worktreeId, projectId, agentSdk, mode)
 
       if (!sessionResult.success || !sessionResult.session) {
-        toast.error(sessionResult.error || 'Failed to create session')
+        toast.error(sessionResult.error || tr('Failed to create session', '创建会话失败'))
         setIsSending(false)
         return
       }
@@ -536,7 +538,7 @@ export function WorktreePickerModal({
       // Close modal immediately — session starts in background
       onSendComplete?.()
       onOpenChange(false)
-      toast.success('Session started')
+      toast.success(tr('Session started', '会话已启动'))
 
       // ── Start the OpenCode session in the background ──────────
       // Resolve worktree path from the store
@@ -578,7 +580,7 @@ export function WorktreePickerModal({
         ], effectiveModel, promptOptions)
       }
     } catch {
-      toast.error('Failed to start session')
+      toast.error(tr('Failed to start session', '启动会话失败'))
     } finally {
       setIsSending(false)
     }
@@ -606,12 +608,13 @@ export function WorktreePickerModal({
     autoResolvedModel,
     codexFastMode,
     isConnectionMode,
-    connectionId
+    connectionId,
+    tr
   ])
 
   // ── Mode toggle chip ────────────────────────────────────────────
   const ModeIcon = mode === 'build' ? Hammer : Map
-  const modeLabel = mode === 'build' ? 'Build' : 'Plan'
+  const modeLabel = mode === 'build' ? tr('Build', '构建') : tr('Plan', '计划')
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -622,10 +625,14 @@ export function WorktreePickerModal({
       >
         <DialogHeader className="space-y-2.5 pb-1">
           <DialogTitle className="text-base">
-            {preAssignOnly ? 'Assign Worktree' : 'Start Session'}
+            {preAssignOnly ? tr('Assign Worktree', '分配工作树') : tr('Start Session', '开始会话')}
           </DialogTitle>
           <DialogDescription>
-            {preAssignOnly ? 'Pre-assign a worktree to' : isConnectionMode ? 'Start a session for' : 'Pick a worktree for'}{' '}
+            {preAssignOnly
+              ? tr('Pre-assign a worktree to', '预先为以下工单分配工作树')
+              : isConnectionMode
+                ? tr('Start a session for', '为以下工单开始会话')
+                : tr('Pick a worktree for', '为以下工单选择工作树')}{' '}
             <span className="font-medium text-foreground">{ticket.title}</span>
           </DialogDescription>
           {/* Build/Plan chip toggle — below description to avoid overlapping the X close button */}
@@ -642,8 +649,8 @@ export function WorktreePickerModal({
                   ? 'bg-blue-500/10 border-blue-500/30 text-blue-500 hover:bg-blue-500/20'
                   : 'bg-violet-500/10 border-violet-500/30 text-violet-500 hover:bg-violet-500/20'
               )}
-              title={`${modeLabel} mode`}
-              aria-label={`Current mode: ${modeLabel}. Click to switch`}
+              title={tr(`${modeLabel} mode`, `${modeLabel} 模式`)}
+              aria-label={tr(`Current mode: ${modeLabel}. Click to switch`, `当前模式：${modeLabel}。点击切换`)}
             >
               <ModeIcon className="h-3.5 w-3.5" aria-hidden="true" />
               <span>{modeLabel}</span>
@@ -660,7 +667,11 @@ export function WorktreePickerModal({
                 type="button"
                 onClick={toggleSuper}
                 aria-pressed={mode === 'super-plan'}
-                aria-label={`Super mode ${mode === 'super-plan' ? 'enabled' : 'disabled'}`}
+                aria-label={
+                  mode === 'super-plan'
+                    ? tr('Super mode enabled', '超级模式已启用')
+                    : tr('Super mode disabled', '超级模式已禁用')
+                }
                 data-testid="wt-picker-super-toggle"
                 className={cn(
                   'flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium transition-colors',
@@ -680,7 +691,7 @@ export function WorktreePickerModal({
           {/* ── Worktree list (hidden in connection mode) ────── */}
           {!isConnectionMode && <div className="space-y-2">
             <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              Worktree
+              {tr('Worktree', '工作树')}
             </label>
             <div
               data-testid="worktree-list"
@@ -706,12 +717,12 @@ export function WorktreePickerModal({
                 >
                   <Plus className="h-3.5 w-3.5" />
                 </span>
-                <span className="font-medium text-foreground">New worktree</span>
+                <span className="font-medium text-foreground">{tr('New worktree', '新建工作树')}</span>
               </button>
 
               {isNewWorktree && (
                 <div className="flex items-center gap-2 px-3.5 py-2 border-b border-border/40 bg-muted/5">
-                  <span className="text-xs text-muted-foreground whitespace-nowrap">from</span>
+                  <span className="text-xs text-muted-foreground whitespace-nowrap">{tr('from', '来自')}</span>
                   <Popover open={branchPopoverOpen} onOpenChange={setBranchPopoverOpen}>
                     <PopoverTrigger asChild>
                       <button
@@ -731,7 +742,7 @@ export function WorktreePickerModal({
                         <div className="relative">
                           <Search className="absolute left-2 top-2 h-3.5 w-3.5 text-muted-foreground" />
                           <Input
-                            placeholder="Filter branches..."
+                            placeholder={tr('Filter branches...', '筛选分支...')}
                             value={branchFilter}
                             onChange={(e) => setBranchFilter(e.target.value)}
                             className="pl-7 h-8 text-xs"
@@ -746,7 +757,7 @@ export function WorktreePickerModal({
                           </div>
                         ) : filteredBranches.length === 0 ? (
                           <div className="px-3 py-4 text-center text-xs text-muted-foreground">
-                            No branches found
+                            {tr('No branches found', '未找到分支')}
                           </div>
                         ) : (
                           filteredBranches.map((branch) => (
@@ -765,10 +776,10 @@ export function WorktreePickerModal({
                               <GitBranch className="h-3 w-3 shrink-0 text-muted-foreground" />
                               <span className="flex-1 truncate">{branch.name}</span>
                               {branch.isRemote && (
-                                <span className="text-[10px] text-muted-foreground">remote</span>
+                                <span className="text-[10px] text-muted-foreground">{tr('remote', '远程')}</span>
                               )}
                               {branch.isCheckedOut && (
-                                <span className="text-[10px] text-primary">active</span>
+                                <span className="text-[10px] text-primary">{tr('active', '当前')}</span>
                               )}
                             </button>
                           ))
@@ -810,7 +821,7 @@ export function WorktreePickerModal({
                     </span>
                     {wt.is_default && (
                       <span className="rounded-full bg-muted/40 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
-                        default
+                        {tr('default', '默认')}
                       </span>
                     )}
                     {count > 0 && (
@@ -911,7 +922,7 @@ export function WorktreePickerModal({
                 htmlFor="wt-picker-prompt-input"
                 className="text-xs font-medium uppercase tracking-wider text-muted-foreground"
               >
-                Prompt
+                {tr('Prompt', '提示词')}
               </label>
               <Textarea
                 id="wt-picker-prompt-input"
@@ -921,7 +932,7 @@ export function WorktreePickerModal({
                 onChange={(e) => setPromptText(e.target.value)}
                 rows={6}
                 className="resize-y font-mono text-xs leading-relaxed"
-                placeholder="Enter prompt for the session..."
+                placeholder={tr('Enter prompt for the session...', '输入会话提示词...')}
               />
             </div>
           )}
@@ -934,7 +945,7 @@ export function WorktreePickerModal({
             onClick={() => onOpenChange(false)}
             data-testid="wt-picker-cancel-btn"
           >
-            Cancel
+            {tr('Cancel', '取消')}
           </Button>
           <Button
             type="button"
@@ -953,12 +964,12 @@ export function WorktreePickerModal({
             {preAssignOnly ? (
               <>
                 <GitBranch className="h-3.5 w-3.5" />
-                {isSending ? 'Assigning...' : 'Assign'}
+                {isSending ? tr('Assigning...', '分配中...') : tr('Assign', '分配')}
               </>
             ) : (
               <>
                 <Send className="h-3.5 w-3.5" />
-                {isSending ? 'Starting...' : 'Send'}
+                {isSending ? tr('Starting...', '启动中...') : tr('Send', '发送')}
               </>
             )}
           </Button>
