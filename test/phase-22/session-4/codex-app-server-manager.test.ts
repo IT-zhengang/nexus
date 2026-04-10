@@ -4,6 +4,16 @@ import { EventEmitter } from 'node:events'
 import { spawn } from 'node:child_process'
 import { PassThrough } from 'node:stream'
 
+vi.mock('electron', () => ({
+  app: {
+    getPath: vi.fn(() => '/tmp')
+  }
+}))
+
+vi.mock('../../../src/main/db', () => ({
+  getDatabase: vi.fn(() => null)
+}))
+
 // Mock logger
 vi.mock('../../../src/main/services/logger', () => ({
   createLogger: () => ({

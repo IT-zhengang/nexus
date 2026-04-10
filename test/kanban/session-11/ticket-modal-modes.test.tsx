@@ -1664,7 +1664,7 @@ describe('Session 11: Kanban Ticket Modal Modes', () => {
       render(<KanbanTicketModal />)
 
       // Wait for the DB fallback to resolve and the review mode to appear
-      const input = await waitFor(() => {
+      await waitFor(() => {
         return screen.getByTestId('review-followup-input') as HTMLTextAreaElement
       })
 

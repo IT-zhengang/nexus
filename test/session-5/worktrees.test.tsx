@@ -11,6 +11,16 @@ interface MockWorktree {
   branch_name: string
   path: string
   status: 'active' | 'archived'
+  is_default: boolean
+  branch_renamed: number
+  last_message_at: number | null
+  session_titles: string
+  last_model_provider_id: string | null
+  last_model_id: string | null
+  last_model_variant: string | null
+  attachments: string
+  github_pr_number: number | null
+  github_pr_url: string | null
   created_at: string
   last_accessed_at: string
 }
@@ -43,18 +53,45 @@ const mockProjectOps = {
   copyToClipboard: vi.fn(),
   readFromClipboard: vi.fn(),
   openPath: vi.fn(),
-  isGitRepository: vi.fn()
+  isGitRepository: vi.fn(),
+  loadLanguageIcons: vi.fn(),
+  getProjectIconPath: vi.fn(),
+  getAbsoluteIconDataUrl: vi.fn()
 }
 
 const mockWorktreeOps = {
   create: vi.fn(),
+  createFromBranch: vi.fn(),
   delete: vi.fn(),
   sync: vi.fn(),
   exists: vi.fn(),
   openInTerminal: vi.fn(),
   openInEditor: vi.fn(),
   getBranches: vi.fn(),
-  branchExists: vi.fn()
+  branchExists: vi.fn(),
+  hasCommits: vi.fn(),
+  renameBranch: vi.fn()
+}
+
+const mockGitOps = {
+  getDiffStat: vi.fn(),
+  watchWorktree: vi.fn().mockResolvedValue(undefined),
+  unwatchWorktree: vi.fn().mockResolvedValue(undefined),
+  onStatusChanged: vi.fn(() => () => {}),
+  watchBranch: vi.fn().mockResolvedValue(undefined),
+  unwatchBranch: vi.fn().mockResolvedValue(undefined),
+  onBranchChanged: vi.fn(() => () => {}),
+  getFileStatuses: vi.fn().mockResolvedValue({ success: true, files: [] }),
+  getBranchInfo: vi.fn().mockResolvedValue({
+    success: true,
+    branch: { name: 'tokyo', upstream: null, ahead: 0, behind: 0 }
+  })
+}
+
+const mockKanban = {
+  ticket: {
+    detachWorktree: vi.fn().mockResolvedValue(undefined)
+  }
 }
 
 // Setup window mocks
@@ -65,6 +102,10 @@ beforeEach(() => {
   window.projectOps = mockProjectOps
   // @ts-expect-error - Mock window.worktreeOps
   window.worktreeOps = mockWorktreeOps
+  // @ts-expect-error - Mock window.gitOps
+  window.gitOps = mockGitOps
+  // @ts-expect-error - Mock window.kanban
+  window.kanban = mockKanban
 
   // Reset all mocks
   vi.clearAllMocks()
@@ -91,8 +132,14 @@ beforeEach(() => {
   mockDb.project.getAll.mockResolvedValue([])
   mockDb.project.touch.mockResolvedValue(true)
   mockDb.worktree.getActiveByProject.mockResolvedValue([])
+  mockDb.worktree.get.mockResolvedValue(null)
   mockDb.worktree.touch.mockResolvedValue(true)
+  mockProjectOps.loadLanguageIcons.mockResolvedValue({})
+  mockProjectOps.getProjectIconPath.mockResolvedValue(null)
+  mockProjectOps.getAbsoluteIconDataUrl.mockResolvedValue(null)
+  mockWorktreeOps.hasCommits.mockResolvedValue(true)
   mockWorktreeOps.sync.mockResolvedValue({ success: true })
+  mockGitOps.getDiffStat.mockResolvedValue({ success: true, files: [] })
 })
 
 describe('Session 5: Git Worktree Operations', () => {
@@ -113,8 +160,37 @@ describe('Session 5: Git Worktree Operations', () => {
     branch_name: 'tokyo',
     path: '/Users/test/.hive-worktrees/test-project/tokyo',
     status: 'active',
+    is_default: false,
+    branch_renamed: 0,
+    last_message_at: null,
+    session_titles: '[]',
+    last_model_provider_id: null,
+    last_model_id: null,
+    last_model_variant: null,
+    attachments: '[]',
+    github_pr_number: null,
+    github_pr_url: null,
     created_at: new Date().toISOString(),
     last_accessed_at: new Date().toISOString()
+  }
+
+  function getProjectExpandButton(): HTMLButtonElement {
+    const projectItem = screen.getByTestId('project-item-project-1')
+    const buttons = projectItem.querySelectorAll('button')
+    return buttons[0] as HTMLButtonElement
+  }
+
+  function getProjectCreateWorktreeButton(): HTMLButtonElement {
+    const projectItem = screen.getByTestId('project-item-project-1')
+    const buttons = projectItem.querySelectorAll('button')
+    return buttons[buttons.length - 1] as HTMLButtonElement
+  }
+
+  async function expandProject(): Promise<void> {
+    fireEvent.click(getProjectExpandButton())
+    await waitFor(() => {
+      expect(screen.getByTestId('worktree-list-project-1')).toBeInTheDocument()
+    })
   }
 
   test('Worktrees display under expanded project', async () => {
@@ -128,16 +204,9 @@ describe('Session 5: Git Worktree Operations', () => {
     })
 
     // Expand project
-    const projectItem = screen.getByTestId('project-item-project-1')
-    const chevron = projectItem.querySelector('button')
-    if (chevron) {
-      fireEvent.click(chevron)
-    }
+    await expandProject()
 
-    await waitFor(() => {
-      expect(screen.getByTestId('worktree-list-project-1')).toBeInTheDocument()
-      expect(screen.getByText('tokyo')).toBeInTheDocument()
-    })
+    expect(screen.getByTestId('worktree-item-worktree-1')).toBeInTheDocument()
   })
 
   test('Create worktree with city name', async () => {
@@ -151,6 +220,16 @@ describe('Session 5: Git Worktree Operations', () => {
       branch_name: 'paris',
       path: '/Users/test/.hive-worktrees/test-project/paris',
       status: 'active',
+      is_default: false,
+      branch_renamed: 0,
+      last_message_at: null,
+      session_titles: '[]',
+      last_model_provider_id: null,
+      last_model_id: null,
+      last_model_variant: null,
+      attachments: '[]',
+      github_pr_number: null,
+      github_pr_url: null,
       created_at: new Date().toISOString(),
       last_accessed_at: new Date().toISOString()
     }
@@ -167,18 +246,10 @@ describe('Session 5: Git Worktree Operations', () => {
     })
 
     // Expand project
-    const projectItem = screen.getByTestId('project-item-project-1')
-    const chevron = projectItem.querySelector('button')
-    if (chevron) {
-      fireEvent.click(chevron)
-    }
-
-    await waitFor(() => {
-      expect(screen.getByTestId('add-worktree-project-1')).toBeInTheDocument()
-    })
+    await expandProject()
 
     // Click add worktree button
-    const addButton = screen.getByTestId('add-worktree-project-1')
+    const addButton = getProjectCreateWorktreeButton()
     fireEvent.click(addButton)
 
     await waitFor(() => {
@@ -190,7 +261,9 @@ describe('Session 5: Git Worktree Operations', () => {
     })
 
     await waitFor(() => {
-      expect(screen.getByText('paris')).toBeInTheDocument()
+      expect(useWorktreeStore.getState().worktreesByProject.get('project-1')).toEqual(
+        expect.arrayContaining([expect.objectContaining({ id: 'worktree-new', name: 'paris' })])
+      )
     })
   })
 
@@ -225,14 +298,9 @@ describe('Session 5: Git Worktree Operations', () => {
     })
 
     // Expand project
-    const projectItem = screen.getByTestId('project-item-project-1')
-    const chevron = projectItem.querySelector('button')
-    if (chevron) {
-      fireEvent.click(chevron)
-    }
-
+    await expandProject()
     await waitFor(() => {
-      expect(screen.getByText('tokyo')).toBeInTheDocument()
+      expect(screen.getByTestId('worktree-item-worktree-1')).toBeInTheDocument()
     })
 
     // Right-click worktree to open context menu
@@ -270,14 +338,9 @@ describe('Session 5: Git Worktree Operations', () => {
     })
 
     // Expand project
-    const projectItem = screen.getByTestId('project-item-project-1')
-    const chevron = projectItem.querySelector('button')
-    if (chevron) {
-      fireEvent.click(chevron)
-    }
-
+    await expandProject()
     await waitFor(() => {
-      expect(screen.getByText('tokyo')).toBeInTheDocument()
+      expect(screen.getByTestId('worktree-item-worktree-1')).toBeInTheDocument()
     })
 
     // Right-click worktree to open context menu
@@ -315,14 +378,9 @@ describe('Session 5: Git Worktree Operations', () => {
     })
 
     // Expand project
-    const projectItem = screen.getByTestId('project-item-project-1')
-    const chevron = projectItem.querySelector('button')
-    if (chevron) {
-      fireEvent.click(chevron)
-    }
-
+    await expandProject()
     await waitFor(() => {
-      expect(screen.getByText('tokyo')).toBeInTheDocument()
+      expect(screen.getByTestId('worktree-item-worktree-1')).toBeInTheDocument()
     })
 
     // Right-click worktree to open context menu
@@ -356,14 +414,9 @@ describe('Session 5: Git Worktree Operations', () => {
     })
 
     // Expand project
-    const projectItem = screen.getByTestId('project-item-project-1')
-    const chevron = projectItem.querySelector('button')
-    if (chevron) {
-      fireEvent.click(chevron)
-    }
-
+    await expandProject()
     await waitFor(() => {
-      expect(screen.getByText('tokyo')).toBeInTheDocument()
+      expect(screen.getByTestId('worktree-item-worktree-1')).toBeInTheDocument()
     })
 
     // Right-click worktree to open context menu
@@ -395,14 +448,9 @@ describe('Session 5: Git Worktree Operations', () => {
     })
 
     // Expand project
-    const projectItem = screen.getByTestId('project-item-project-1')
-    const chevron = projectItem.querySelector('button')
-    if (chevron) {
-      fireEvent.click(chevron)
-    }
-
+    await expandProject()
     await waitFor(() => {
-      expect(screen.getByText('tokyo')).toBeInTheDocument()
+      expect(screen.getByTestId('worktree-item-worktree-1')).toBeInTheDocument()
     })
 
     // Click on worktree
@@ -466,6 +514,13 @@ describe('Session 5: Git Worktree Operations', () => {
     expect(result.success).toBe(true)
     expect(useWorktreeStore.getState().worktreesByProject.get('project-1')).toHaveLength(0)
     expect(useWorktreeStore.getState().selectedWorktreeId).toBeNull()
+    expect(mockWorktreeOps.delete).toHaveBeenCalledWith({
+      worktreeId: 'worktree-1',
+      worktreePath: '/Users/test/.hive-worktrees/test-project/tokyo',
+      branchName: 'tokyo',
+      projectPath: '/path/to/test-project',
+      archive: true
+    })
   })
 
   test('Worktree store: unbranchWorktree success', async () => {
@@ -532,15 +587,9 @@ describe('Session 5: Git Worktree Operations', () => {
       expect(screen.getByText('test-project')).toBeInTheDocument()
     })
 
-    // Expand project
-    const projectItem = screen.getByTestId('project-item-project-1')
-    const chevron = projectItem.querySelector('button')
-    if (chevron) {
-      fireEvent.click(chevron)
-    }
-
+    await expandProject()
     await waitFor(() => {
-      expect(screen.getByText('tokyo')).toBeInTheDocument()
+      expect(screen.getByTestId('worktree-item-worktree-1')).toBeInTheDocument()
     })
 
     // Right-click worktree to open context menu
@@ -548,11 +597,11 @@ describe('Session 5: Git Worktree Operations', () => {
     fireEvent.contextMenu(worktreeItem)
 
     await waitFor(() => {
-      expect(screen.getByText('Copy Path')).toBeInTheDocument()
+      expect(screen.getByRole('menuitem', { name: 'Copy Path' })).toBeInTheDocument()
     })
 
     // Click copy path
-    fireEvent.click(screen.getByText('Copy Path'))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Copy Path' }))
 
     await waitFor(() => {
       expect(mockProjectOps.copyToClipboard).toHaveBeenCalledWith(
@@ -569,6 +618,16 @@ describe('Session 5: Git Worktree Operations', () => {
       branch_name: 'paris',
       path: '/Users/test/.hive-worktrees/test-project/paris',
       status: 'active',
+      is_default: false,
+      branch_renamed: 0,
+      last_message_at: null,
+      session_titles: '[]',
+      last_model_provider_id: null,
+      last_model_id: null,
+      last_model_variant: null,
+      attachments: '[]',
+      github_pr_number: null,
+      github_pr_url: null,
       created_at: new Date().toISOString(),
       last_accessed_at: new Date().toISOString()
     }
@@ -583,15 +642,11 @@ describe('Session 5: Git Worktree Operations', () => {
     })
 
     // Expand project
-    const projectItem = screen.getByTestId('project-item-project-1')
-    const chevron = projectItem.querySelector('button')
-    if (chevron) {
-      fireEvent.click(chevron)
-    }
+    await expandProject()
 
     await waitFor(() => {
-      expect(screen.getByText('tokyo')).toBeInTheDocument()
-      expect(screen.getByText('paris')).toBeInTheDocument()
+      expect(screen.getByTestId('worktree-item-worktree-1')).toBeInTheDocument()
+      expect(screen.getByTestId('worktree-item-worktree-2')).toBeInTheDocument()
     })
   })
 
@@ -621,28 +676,19 @@ describe('Session 5: Git Worktree Operations', () => {
     })
 
     // Expand project
-    const projectItem = screen.getByTestId('project-item-project-1')
-    const chevron = projectItem.querySelector('button')
-    if (chevron) {
-      fireEvent.click(chevron)
-    }
-
-    await waitFor(() => {
-      expect(screen.getByTestId('add-worktree-project-1')).toBeInTheDocument()
-    })
+    await expandProject()
 
     // Click add worktree button
-    const addButton = screen.getByTestId('add-worktree-project-1')
+    const addButton = getProjectCreateWorktreeButton()
     fireEvent.click(addButton)
 
-    // Should show loading state
     await waitFor(() => {
-      expect(screen.getByText('Creating...')).toBeInTheDocument()
+      expect(getProjectCreateWorktreeButton()).toBeDisabled()
+      expect(getProjectCreateWorktreeButton().querySelector('.animate-spin')).toBeTruthy()
     })
 
-    // Eventually completes
     await waitFor(() => {
-      expect(screen.getByText('New Worktree')).toBeInTheDocument()
+      expect(getProjectCreateWorktreeButton()).not.toBeDisabled()
     })
   })
 })

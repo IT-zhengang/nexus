@@ -114,7 +114,7 @@ describe('Session 9: Part Types & Subagent', () => {
 
       fireEvent.click(screen.getByTestId('subtask-card-header'))
 
-      expect(screen.getByTestId('tool-card')).toBeTruthy()
+      expect(screen.getByTestId('compact-file-tool')).toBeTruthy()
     })
 
     test('truncates long description in collapsed view', () => {

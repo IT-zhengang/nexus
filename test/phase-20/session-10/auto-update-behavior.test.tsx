@@ -32,9 +32,7 @@ type UpdateDownloadedData = { version: string; releaseNotes?: string }
 type UpdateErrorData = { message: string }
 
 let onUpdateAvailableCb: ((data: UpdateAvailableData) => void) | null = null
-let onProgressCb: ((data: DownloadProgressData) => void) | null = null
 let onUpdateDownloadedCb: ((data: UpdateDownloadedData) => void) | null = null
-let onErrorCb: ((data: UpdateErrorData) => void) | null = null
 
 const installUpdateMock = vi.fn().mockResolvedValue(undefined)
 

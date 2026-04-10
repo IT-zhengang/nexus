@@ -14,6 +14,7 @@ const mockDbSession = {
   update: vi.fn(),
   delete: vi.fn(),
   search: vi.fn(),
+  getPinnedSessions: vi.fn(),
   getDraft: vi.fn(),
   updateDraft: vi.fn()
 }
@@ -63,10 +64,15 @@ vi.mock('@/lib/toast', () => ({
 vi.mock('../../../src/renderer/src/stores/useSettingsStore', () => ({
   useSettingsStore: {
     getState: () => ({
+      boardMode: 'toggle',
+      defaultAgentSdk: 'opencode',
       selectedModel: null,
+      selectedModelByProvider: {},
+      getModelForMode: () => null,
       updateSetting: vi.fn()
     })
-  }
+  },
+  resolveModelForSdk: () => null
 }))
 
 // Set up window mocks
@@ -167,6 +173,7 @@ function makeConnection() {
 describe('Session 6: Session Store Connection Support', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockDbSession.getPinnedSessions.mockResolvedValue([])
     // Reset store state completely
     useSessionStore.setState({
       sessionsByWorktree: new Map(),
@@ -594,6 +601,12 @@ describe('Session 6: Session Store Connection Support', () => {
 
     test('returns tab order for a connection', () => {
       useSessionStore.setState({
+        sessionsByConnection: new Map([
+          [
+            'conn-1',
+            [makeSession({ id: 'session-1' }), makeSession({ id: 'session-2', name: 'Session 2' })]
+          ]
+        ]),
         tabOrderByConnection: new Map([['conn-1', ['session-1', 'session-2']]])
       })
 

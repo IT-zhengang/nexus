@@ -177,6 +177,25 @@ describe('Git Resolvers — Integration Tests', () => {
       expect(mockGitService.getFileStatuses).not.toHaveBeenCalled()
     })
 
+    it('gitFileStatuses returns an error payload when the git service throws', async () => {
+      mockGitService.getFileStatuses.mockRejectedValue(new Error('boom'))
+
+      const { data, errors } = await execute(
+        `query($path: String!) {
+          gitFileStatuses(worktreePath: $path) {
+            success
+            error
+            files { path }
+          }
+        }`,
+        { path: fakeRepoDir }
+      )
+
+      expect(errors).toBeUndefined()
+      expect(data?.gitFileStatuses.success).toBe(false)
+      expect(data?.gitFileStatuses.error).toBe('boom')
+    })
+
     // --- 3. gitDiff — returns diff string ---
     it('gitDiff returns diff string', async () => {
       mockGitService.getDiff.mockResolvedValue({
